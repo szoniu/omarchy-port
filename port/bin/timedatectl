@@ -1,0 +1,33 @@
+#!/bin/sh
+# omarchy-port: `timedatectl` bez systemd. Instalowany TYLKO gdy prawdziwego nie ma.
+# Formy z Omarchy: list-timezones, show -p Timezone --value, set-timezone <strefa>.
+# Void trzyma strefę w /etc/localtime (symlink) + TIMEZONE w /etc/rc.conf (stosowane przy starcie).
+ZONEINFO=/usr/share/zoneinfo
+case ${1:-} in
+  list-timezones)
+    find "$ZONEINFO" -type f ! -path '*/posix/*' ! -path '*/right/*' ! -name '*.tab' ! -name '*.zi' \
+      ! -name 'leapseconds' ! -name 'tzdata.zi' ! -name 'SECURITY' ! -name 'leap-seconds.list' 2>/dev/null \
+      | sed "s|^$ZONEINFO/||" | grep '/' | sort ;;
+  show)
+    tz=$(readlink /etc/localtime 2>/dev/null | sed "s|.*zoneinfo/||")
+    case " $* " in
+      *" -p Timezone "*|*" --property=Timezone "*)
+        case " $* " in *" --value "*) echo "$tz" ;; *) echo "Timezone=$tz" ;; esac ;;
+      *) echo "Timezone=$tz" ;;
+    esac ;;
+  set-timezone)
+    tz=${2:?timedatectl (omarchy-port): podaj strefę}
+    [ -f "$ZONEINFO/$tz" ] || { echo "Failed to set time zone: Invalid or not installed time zone '$tz'" >&2; exit 1; }
+    [ "$(id -u)" = 0 ] || { echo "Failed to set time zone: Access denied (omarchy-port: wymaga roota — użyj sudo)" >&2; exit 4; }
+    ln -sf "$ZONEINFO/$tz" /etc/localtime
+    if [ -f /etc/rc.conf ]; then
+      if grep -q '^TIMEZONE=' /etc/rc.conf; then sed -i "s|^TIMEZONE=.*|TIMEZONE=\"$tz\"|" /etc/rc.conf
+      else echo "TIMEZONE=\"$tz\"" >>/etc/rc.conf; fi
+    fi ;;
+  ''|status)
+    echo "               Local time: $(date)"
+    echo "                Time zone: $(readlink /etc/localtime 2>/dev/null | sed "s|.*zoneinfo/||")" ;;
+  *)
+    echo "timedatectl (omarchy-port): nieobsługiwane: $1" >&2
+    exit 1 ;;
+esac

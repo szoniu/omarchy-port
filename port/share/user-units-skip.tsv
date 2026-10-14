@@ -1,0 +1,2 @@
+unit	powod
+omarchy-crash-watch.service	czyta zrzuty pamięci z journald (systemd-coredump) — na Voidzie brak odpowiednika

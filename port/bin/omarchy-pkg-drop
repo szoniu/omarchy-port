@@ -1,0 +1,20 @@
+#!/bin/bash
+# omarchy-port (Void): nakładka na /usr/bin/omarchy-pkg-drop (pacman -Rns → xbps-remove -R).
+# Usuwa tylko te z podanych pakietów, które są zainstalowane; brak = nic do zrobienia.
+. /usr/share/omarchy-port/pkg-map.sh
+
+names=()
+declare -A seen=()
+for pkg in "$@"; do
+  name=$(port_pkg_name "$pkg" 2>/dev/null) || continue
+  [[ -n ${seen[$name]:-} ]] && continue
+  seen[$name]=1
+  port_pkg_installed "$name" && names+=("$name")
+done
+
+(( ${#names[@]} )) || exit 0
+if (( EUID == 0 )); then
+  xbps-remove -Ry "${names[@]}"
+else
+  sudo xbps-remove -Ry "${names[@]}"
+fi

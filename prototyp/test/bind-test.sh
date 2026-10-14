@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Test skrótów Omarchy przez realny kanał: każde polecenie exec z binds.tsv
 # odpalone w środowisku ŻYWEJ sesji Hyprlanda (env z procesu Quickshella — patrz niżej).
-# Uruchamiać W VM jako użytkownik sesji; binds.tsv z binds-dump.lua w /tmp/binds.tsv.
+# Uruchamiać W VM jako użytkownik sesji; wejście (TSV: id/klawisze, opis, rodzaj, polecenie) w $1, domyślnie /tmp/binds.tsv.
 # Wynik: /tmp/bind-test/wyniki.tsv (klawisze, opis, wynik, rc, okna, stderr-skrót)
 set -uo pipefail
-OUT=/tmp/bind-test; rm -rf "$OUT"; mkdir -p "$OUT"
+OUT=${OUT:-/tmp/bind-test}; rm -rf "$OUT"; mkdir -p "$OUT"
 # env z dziecka sesji (Quickshell): sam Hyprland nie ma WAYLAND_DISPLAY ani HYPRLAND_INSTANCE_SIGNATURE
 hpid=$(pgrep -u "$(id -u)" -x quickshell | head -1)
 while IFS= read -r -d '' kv; do export "${kv?}"; done < "/proc/$hpid/environ"
@@ -36,6 +36,6 @@ while IFS=$'\t' read -r keys desc kind cmd; do
   elif [ "$rc" = 0 ]; then res="OK"
   else res="rc≠0"; fi
   printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$keys" "$desc" "$res" "$rc" "$new" "$e" >>"$OUT/wyniki.tsv"
-done < /tmp/binds.tsv
+done < "${1:-/tmp/binds.tsv}"
 echo "przetestowanych: $n"
 echo BIND-TEST-DONE

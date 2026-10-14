@@ -1,0 +1,81 @@
+#!/bin/bash
+# omarchy-port: `systemd-run` dla systemów BEZ systemd. Instalowany TYLKO gdy prawdziwego nie ma.
+# Formy używane przez Omarchy:
+#   odpal w tle         systemd-run --user --quiet --collect --unit=X [--property=…] cmd…
+#   czekaj na wynik     systemd-run --user … cmd… --wait   (albo --wait/--scope przed cmd)
+#   opóźnienie (timer)  systemd-run --user … --on-active=2s|5m [--timer-property=…] cmd…
+# Timer zostawia ślad w $XDG_RUNTIME_DIR/omarchy-port/timers/<unit>.timer („next pid”),
+# który widzi `systemctl --user list-timers/stop` (omarchy-port-units) — tak działają przypomnienia.
+if (( EUID == 0 )) && [[ -z ${XDG_RUNTIME_DIR:-} ]]; then RT=/run/omarchy-port
+else RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/omarchy-port"; fi
+if (( EUID == 0 )); then LOGD=/var/log/omarchy-port; else LOGD="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-port"; fi
+mkdir -p "$RT/timers" "$LOGD"
+
+wait=0 unit='' on_active='' out="$LOGD/systemd-run.log"
+while (($#)); do
+  case $1 in
+    --user|--system|-q|--quiet|-G|--collect|--no-block|--same-dir|-d) ;;
+    -W|--wait|--scope|-P|--pipe|-t|--pty) wait=1 ;;
+    --unit=*) unit=${1#*=} ;;
+    -u|--unit) unit=$2; shift ;;
+    --on-active=*) on_active=${1#*=} ;;
+    --on-active) on_active=$2; shift ;;
+    --property=StandardOutput=null|--property=StandardError=null) out=/dev/null ;;
+    -p|--property|--timer-property|--description|--slice|--working-directory|--uid|--gid|--nice) shift ;;
+    --property=*|--timer-property=*|--description=*|--slice=*|--working-directory=*|--uid=*|--gid=*|--nice=*) ;;
+    -E|--setenv) export "${2?}"; shift ;;
+    --setenv=*) export "${1#*=}" ;;
+    --on-calendar*|--on-boot*|--on-startup*|--on-unit-active*|--on-unit-inactive*|--on-clock-change|--on-timezone-change|--path-property*|--socket-property*)
+      echo "systemd-run (omarchy-port): $1 nieobsługiwane" >&2; exit 1 ;;
+    --) shift; break ;;
+    -*) echo "systemd-run (omarchy-port): ignoruję nieznaną opcję $1" >&2 ;;
+    *) break ;;
+  esac
+  shift
+done
+cmd=("$@")
+# omarchy-install-ai-hermes podaje --wait PO poleceniu — systemd i tak go nie przyjmie jako argumentu programu
+if [[ ${cmd[-1]:-} == --wait ]]; then unset 'cmd[-1]'; wait=1; fi
+(( ${#cmd[@]} )) || { echo "systemd-run (omarchy-port): brak polecenia" >&2; exit 1; }
+unit=${unit:-run-$$-$(date +%s%N)}
+unit=${unit%.service}
+
+# czas systemd (2s, 5m, 1h30m, 100ms, 1min, 30) → sekundy (z ułamkiem)
+to_seconds() {
+  local s=$1 total=0 num u
+  [[ $s =~ ^[0-9]+$ ]] && { echo "$s"; return; }
+  while [[ $s =~ ^([0-9]+)[[:space:]]*(us|usec|ms|msec|s|sec|second|seconds|m|min|minute|minutes|h|hr|hour|hours|d|day|days)?(.*)$ ]]; do
+    num=${BASH_REMATCH[1]} u=${BASH_REMATCH[2]} s=${BASH_REMATCH[3]}
+    case $u in
+      us|usec) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n / 1000000 }') ;;
+      ms|msec) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n / 1000 }') ;;
+      ''|s|sec|second|seconds) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n }') ;;
+      m|min|minute|minutes) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n * 60 }') ;;
+      h|hr|hour|hours) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n * 3600 }') ;;
+      d|day|days) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n * 86400 }') ;;
+    esac
+    s=${s#"${s%%[![:space:]]*}"}
+  done
+  [[ -z $s ]] || { echo "systemd-run (omarchy-port): nie rozumiem czasu '$1'" >&2; return 1; }
+  echo "$total"
+}
+
+if [[ -n $on_active ]]; then
+  secs=$(to_seconds "$on_active") || exit 1
+  timer="$RT/timers/$unit.timer"
+  setsid bash -c 'sleep "$1"; rm -f "$2"; shift 2; exec "$@"' _ "$secs" "$timer" "${cmd[@]}" >>"$out" 2>&1 </dev/null &
+  pid=$!
+  next=$(awk -v n="$(date +%s)" -v s="$secs" 'BEGIN { printf "%d", n + s + 0.999 }')
+  echo "$next $pid" >"$timer"
+  disown
+  exit 0
+fi
+
+if (( wait )); then
+  "${cmd[@]}"
+  exit $?
+fi
+
+setsid "${cmd[@]}" >>"$out" 2>&1 </dev/null &
+disown
+exit 0
