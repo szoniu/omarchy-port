@@ -8,9 +8,11 @@
 #
 # Etapy:
 #   1. repozytoria: nonfree + blackhole (Hyprland), klucz blackhole przypięty (share/void/xbps-keys)
-#   2. pakiety: dane/pakiety-do-instalacji.txt (lista Omarchy zmapowana na Voida)
+#   2. pakiety: dane/pakiety-do-instalacji.txt (lista Omarchy zmapowana na Voida); sshd restartowany,
+#      gdy aktualizacja podmieniła openssh pod działającą usługą
 #   3. pliki Omarchy: upstreamowe package() z omarchy-pkgs przy przypiętym commicie (share/upstream.env);
-#      zmienione przez admina pliki z backup=() PKGBUILD-a zostają, nowa wersja obok jako .omarchy-new
+#      zmienione przez admina pliki z backup=() PKGBUILD-a zostają, nowa wersja obok jako .omarchy-new;
+#      przeładowania działającego Hyprlanda wstrzymane na czas podmiany (jak hooki libalpm Omarchy)
 #   4. post_install omarchy-settings wybiórczo (bez os-release i nsswitch.conf)
 #   5. warstwa zgodności: install-layer.sh
 #   6. dom użytkownika z /etc/skel — tylko przy pierwszej instalacji, jako użytkownik
@@ -52,8 +54,11 @@ done
 # Każde wyjście, które nie przeszło przez podsumowanie, to przerwanie — kod 2, nie kod polecenia,
 # które padło (1 znaczy „krok padł, reszta doinstalowana”, a tu dalsze etapy w ogóle nie poszły).
 KONIEC=0
+STRAZNIK=/usr/bin/omarchy-hyprland-reload-guard
+wstrzymane=0   # przeładowania Hyprlanda wstrzymane na czas etapu 3 — przerwanie musi je wznowić
 koniec() {
   local rc=$?
+  if ((wstrzymane)); then "$STRAZNIK" resume || true; fi
   ((KONIEC)) && exit "$rc"
   ((rc == 2)) || echo "install.sh: przerwane (rc=$rc) — przyczyna wyżej${LOGDIR:+; log: $LOGDIR}" >&2
   exit 2
@@ -109,11 +114,18 @@ klucze=("$VOID"/xbps-keys/*.plist)
 (( ${#klucze[@]} == 1 )) || die "w $VOID/xbps-keys ma być dokładnie jeden klucz"
 BH_FP=${klucze[0]##*/}
 BH_FP=${BH_FP%.plist}   # nazwa pliku klucza xbps = jego odcisk
+BH_KEY=/var/db/xbps/keys/${klucze[0]##*/}
+bh_key_nowy=0
+[[ -e $BH_KEY ]] || bh_key_nowy=1
 install -m 644 "${klucze[0]}" /var/db/xbps/keys/
 echo "repository=$BH_URL" >"$BH_CONF"
+odrzuc_blackhole() { # repo i klucz wgrany przez ten przebieg znikają — przyjęty wcześniej zostaje
+  rm -f "$BH_CONF"
+  if ((bh_key_nowy)); then rm -f "$BH_KEY"; fi
+}
 synchro() {
   "$@" </dev/null && return 0
-  rm -f "$BH_CONF"
+  odrzuc_blackhole
   die "$* nie powiodło się — jeśli xbps pytał wyżej o klucz, repo blackhole podpisuje inny klucz niż przypięty ($BH_FP); repo usunięte"
 }
 synchro xbps-install -Syu xbps   # najpierw sam xbps — Void wymaga aktualnego xbps przed resztą
@@ -124,7 +136,7 @@ fp=$(xbps-query -vL </dev/null | awk -v u="$BH_URL" '
   w && $1 ~ /^[0-9]+$/ && $2 ~ /^https?:/ { exit }
   w && NF == 2 && $2 ~ /^[0-9a-f]{2}(:[0-9a-f]{2})+$/ { print $2; exit }')
 if [[ $fp != "$BH_FP" ]]; then
-  rm -f "$BH_CONF"
+  odrzuc_blackhole
   die "repo blackhole podpisane kluczem ${fp:-nieznanym}, a przypięty to $BH_FP — repo usunięte"
 fi
 echo "blackhole: podpis zgodny z przypiętym kluczem $BH_FP"
@@ -135,6 +147,17 @@ xbps-install -yu </dev/null   # pełna aktualizacja przed doinstalowaniem — xb
 mapfile -t PAKIETY < <(grep -v '^#' "$REPO/dane/pakiety-do-instalacji.txt" | tr -s ' ' '\n' | sed '/^$/d')
 echo "pakietów na liście: ${#PAKIETY[@]}"
 xbps-install -y "${PAKIETY[@]}" </dev/null
+# OpenSSH ≥ 9.8 przy każdym połączeniu uruchamia sshd-session z dysku: po aktualizacji openssh nowy
+# nie dogada się ze starym, działającym sshd i nowe połączenia SSH padają aż do restartu systemu.
+# runit wysyła TERM tylko do nasłuchującego sshd — trwające sesje (także ta z instalacją) zostają.
+sshd_pid=$(cat /var/service/sshd/supervise/pid 2>/dev/null) || sshd_pid=
+if [[ -n $sshd_pid && $(readlink "/proc/$sshd_pid/exe" 2>/dev/null) == *' (deleted)' ]]; then
+  if sv restart sshd >/dev/null; then
+    echo "sshd: zrestartowany — openssh zaktualizowany pod działającą usługą"
+  else
+    echo "UWAGA: sv restart sshd nie powiódł się — nowe połączenia SSH mogą padać do restartu systemu"
+  fi
+fi
 
 # ---------------------------------------------------------------------------------------------
 etap "3/9 pliki Omarchy $OMARCHY_TAG"
@@ -163,6 +186,19 @@ done
 # ~0,25 s, a plików Omarchy jest ~2000).
 sed -n 's|^[[:space:]]*<string>\(/[^<]*\)</string>.*|\1|p' /var/db/xbps/.*-files.plist | LC_ALL=C sort -u >"$CACHE/pliki-xbps.txt"
 
+# Żywy Hyprland przeładowuje config przy każdej zmianie w /usr/share/omarchy/default/hypr/, a podmiana
+# tych plików pod działającą sesją ją wywraca (przy rerunie w sesji: awaria, start w trybie awaryjnym).
+# Na Archu pauzę i wznowienie robią hooki libalpm omarchy-settings — tu ten sam strażnik, wprost.
+# Strażnik jest z poprzedniej instalacji; przy pierwszej nie ma ani jego, ani sesji Hyprlanda.
+if [[ -x $STRAZNIK ]]; then
+  if "$STRAZNIK" pause; then
+    wstrzymane=1
+    echo "Hyprland: przeładowania wstrzymane na czas podmiany plików"
+  else
+    echo "UWAGA: $STRAZNIK pause nie powiódł się — działająca sesja Hyprlanda może paść przy podmianie configu"
+  fi
+fi
+
 for p in omarchy-settings omarchy; do
   st="$CACHE/stage/$p"
   rm -rf "$st"
@@ -171,7 +207,7 @@ for p in omarchy-settings omarchy; do
   bash -e -c 'CARCH=x86_64 srcdir=$1 pkgdir=$2; cd "$3"; source ./PKGBUILD; package' \
     bash "$CACHE/src" "$st" "$CACHE/omarchy-pkgs/pkgbuilds/$p" >"$LOGDIR/package-$p.log" 2>&1 ||
     die "package() $p padło — $LOGDIR/package-$p.log"
-  # Hooki libalpm (strażnik pacmana, pauza przeładowań Hyprlanda) dotyczą tylko pacmana.
+  # Hooki libalpm są dla pacmana — pauzę przeładowań Hyprlanda port robi sam (wyżej).
   (cd "$st" && find . ! -type d ! -path './usr/share/libalpm/*' | sed 's|^\.||' | LC_ALL=C sort) >"$CACHE/manifest-$p.new"
   # Plik, który już jest na dysku, a nie pochodzi z poprzedniej instalacji portu, może należeć do
   # pakietu Voida — takiego nie nadpisujemy po cichu.
@@ -212,6 +248,12 @@ for p in omarchy-settings omarchy; do
   mv "$CACHE/kopie-$p.new" "$sumy"
   echo "$p: $(wc -l <"$stary") plików"
 done
+if ((wstrzymane)); then
+  # resume jak hook PostTransaction: jedno `hyprctl reload` na nowych plikach, potem stare ustawienia
+  "$STRAZNIK" resume || echo "UWAGA: $STRAZNIK resume nie powiódł się — auto-reload Hyprlanda może zostać wyłączony do wylogowania"
+  wstrzymane=0
+  echo "Hyprland: przeładowania wznowione"
+fi
 echo "$OMARCHY_TAG $OMARCHY_COMMIT" >"$STATE/wersja-omarchy"
 
 # ---------------------------------------------------------------------------------------------
