@@ -13,7 +13,7 @@
 #   6. dom użytkownika z /etc/skel — tylko przy pierwszej instalacji
 #   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/void/kroki.tsv
 #   8. omarchy-provision-user jako użytkownik, na tym samym drzewie kroków
-#   9. usługi runit: dbus, polkitd; dhcpcd wyłączony, gdy sieć przejął NetworkManager
+#   9. usługi runit: dbus, polkitd, chronyd (NTP); dhcpcd wyłączony, gdy sieć przejął NetworkManager
 #
 # Logi: /var/log/omarchy-port/install-<czas>/ (całość, log per krok, kroki.tsv).
 # Kod wyjścia: 0 — wszystko przeszło (pominięcia z kroki.tsv to nie błąd); 1 — któryś krok padł
@@ -250,9 +250,12 @@ for s in "${!AKCJA[@]}"; do
   case ${AKCJA[$s]} in pomiń) w=pominięty ;; *) w=podmieniony ;; esac
   wynik "$s" użytkownik "$w" "${POWOD[$s]}"
 done
+# OMARCHY_SETUP_CONTEXT: samo --first-install ustawia „iso-chroot”, a wtedy user/mise-work.sh szuka
+# Node z ISO w /opt/packages i pada. Kontekst czytają tylko dwa kroki: theme.sh (wszystko poza
+# „runtime” = bez żywej sesji — prawda) i mise-work.sh (poza iso-chroot/provision-owner = sieć).
 rc=0
-su - "$U" -c "OMARCHY_INSTALL='$OV' omarchy-provision-user --first-install" </dev/null \
-  >"$LOGDIR/provision-user.log" 2>&1 || rc=$?
+su - "$U" -c "OMARCHY_SETUP_CONTEXT=omarchy-port OMARCHY_INSTALL='$OV' omarchy-provision-user --first-install" \
+  </dev/null >"$LOGDIR/provision-user.log" 2>&1 || rc=$?
 if (( rc == 0 )); then
   wynik omarchy-provision-user użytkownik ok
   echo "  ok           omarchy-provision-user"
@@ -267,7 +270,8 @@ fi
 etap "9/9 usługi runit"
 # elogind celowo bez usługi runit: startuje z aktywacji D-Bus, a usługa obok kręci się w pętli
 # „already running” (sprawdzone w VM). NetworkManager, sddm, cups itd. włącza config/enable-services.sh.
-for s in dbus polkitd; do
+# chronyd zamiast systemd-timesyncd, który na Archu dochodzi z systemd i jest włączony domyślnie.
+for s in dbus polkitd chronyd; do
   if [[ ! -d /etc/sv/$s ]]; then
     echo "  BRAK usługi $s"
     wynik "usługa $s" root "BŁĄD" "brak /etc/sv/$s"
