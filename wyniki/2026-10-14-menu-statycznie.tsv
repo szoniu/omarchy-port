@@ -2,7 +2,7 @@ id	etykieta	niepokryte	akcja
 system.lock	Lock	-	omarchy-system-lock
 system.suspend	Suspend	-	systemctl suspend
 system.hibernate	Hibernate	-	systemctl hibernate
-system.logout	Logout	uwsm (nie uwsm-app)	omarchy-system-logout
+system.logout	Logout	-	omarchy-system-logout
 system.reboot	Reboot	-	omarchy-system-reboot
 system.shutdown	Shutdown	-	omarchy-system-shutdown
 trigger.hardware.hybrid-gpu	Hybrid GPU	-	omarchy-launch-floating-terminal-with-presentation omarchy-toggle-hybrid-gpu
@@ -26,7 +26,7 @@ setup.security.passwordless-sudo	Passwordless Sudo	-	omarchy-launch-floating-ter
 setup.security.sudoless-docker	Sudoless Docker	-	omarchy-launch-floating-terminal-with-presentation omarchy-setup-security-sudoless-docker
 setup.config.hyprsunset	Hyprsunset	-	omarchy-launch-config-editor ~/.config/hypr/hyprsunset.conf && omarchy-restart-hyprsunset
 setup.config.xcompose	XCompose	-	omarchy-launch-config-editor ~/.XCompose && omarchy-restart-xcompose
-setup.reset	Reset Computer	pacman/AUR, limine/snapper/mkinitcpio, timedatectl/hostnamectl/localectl	omarchy-launch-floating-terminal-with-presentation omarchy-system-factory-reset
+setup.reset	Reset Computer	pacman/AUR, limine/snapper/mkinitcpio, hostnamectl/localectl	omarchy-launch-floating-terminal-with-presentation omarchy-system-factory-reset
 install.package	Package	-	xdg-terminal-exec --app-id=org.omarchy.terminal omarchy-pkg-install
 install.aur	AUR	AUR (warstwa: uczciwa odmowa)	xdg-terminal-exec --app-id=org.omarchy.terminal omarchy-pkg-aur-install
 install.webapp	Web App	-	omarchy-launch-floating-terminal-with-presentation omarchy-webapp-install
@@ -39,7 +39,7 @@ install.style.font.fira	Fira Code	-	omarchy-install-font 'Fira Code' ttf-firacod
 install.style.font.victor	Victor Code	-	omarchy-install-font 'Victor Code' ttf-victor-mono-nerd 'VictorMono Nerd Font'
 install.style.font.bitstream	Bitstream Vera Mono	-	omarchy-install-font 'Bitstream Vera Code' ttf-bitstream-vera-mono-nerd 'BitstromWera Nerd Font'
 install.style.font.iosevka	Iosevka	-	omarchy-install-font Iosevka ttf-iosevka-nerd 'Iosevka Nerd Font Mono'
-install.windows	Windows	timedatectl/hostnamectl/localectl, uwsm (nie uwsm-app)	omarchy-launch-floating-terminal-with-presentation 'omarchy-windows-vm install'
+install.windows	Windows	-	omarchy-launch-floating-terminal-with-presentation 'omarchy-windows-vm install'
 install.preinstalls	Preinstalls	-	omarchy-launch-floating-terminal-with-presentation omarchy-install-preinstalls
 install.browser.chrome	Chrome	AUR (warstwa: uczciwa odmowa)	omarchy-launch-floating-terminal-with-presentation 'omarchy-install-browser chrome'
 install.browser.edge	Edge	AUR (warstwa: uczciwa odmowa)	omarchy-launch-floating-terminal-with-presentation 'omarchy-install-browser edge'
@@ -110,7 +110,7 @@ remove.webapp	Web App	-	omarchy-webapp-remove
 remove.tui	TUI	-	omarchy-tui-remove
 remove.theme	Theme	-	omarchy-theme-remove
 remove.dictation	Dictation	-	omarchy-launch-floating-terminal-with-presentation omarchy-voxtype-remove
-remove.windows	Windows	timedatectl/hostnamectl/localectl, uwsm (nie uwsm-app)	omarchy-launch-floating-terminal-with-presentation 'omarchy-windows-vm remove'
+remove.windows	Windows	-	omarchy-launch-floating-terminal-with-presentation 'omarchy-windows-vm remove'
 remove.preinstalls	Preinstalls	-	omarchy-launch-floating-terminal-with-presentation omarchy-remove-preinstalls
 remove.security.fingerprint	Fingerprint	-	omarchy-launch-floating-terminal-with-presentation omarchy-remove-security-fingerprint
 remove.security.fido2	Fido2	-	omarchy-launch-floating-terminal-with-presentation omarchy-remove-security-fido2

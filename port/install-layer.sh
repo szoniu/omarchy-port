@@ -32,6 +32,9 @@ for f in "$SRC"/bin/omarchy-pkg-* "$SRC/bin/omarchy-port-units"; do
 done
 
 install -m 755 "$SRC/session/session" /usr/libexec/omarchy-port/session
+# reguły tmpfiles Omarchy przy boocie (Void nie ma systemd-tmpfiles) — m.in. sprzątanie „sudo bez hasła”
+install -m 644 "$SRC/share/runit/90-omarchy-port-tmpfiles.sh" /etc/runit/core-services/
+echo "core-service: /etc/runit/core-services/90-omarchy-port-tmpfiles.sh"
 install -m 644 "$SRC/session/omarchy-void.desktop" /usr/share/wayland-sessions/
 echo "sesja: /usr/libexec/omarchy-port/session"
 echo LAYER-OK

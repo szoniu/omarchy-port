@@ -13,14 +13,13 @@ UNCOVERED = {
     "pacman/AUR": r"\b(pacman|yay|paru|makepkg|expac|checkupdates|paccache|pactree)\b",
     "limine/snapper/mkinitcpio": r"\b(limine[\w-]*|snapper|mkinitcpio)\b",
     "journalctl/coredumpctl": r"\b(journalctl|coredumpctl)\b",
-    "timedatectl/hostnamectl/localectl": r"\b(timedatectl|hostnamectl|localectl)\b",
+    "hostnamectl/localectl": r"\b(hostnamectl|localectl)\b",
     "resolvectl/networkctl": r"\b(resolvectl|networkctl)\b",
     "systemd-tmpfiles/sysusers": r"\b(systemd-tmpfiles|systemd-sysusers)\b",
-    "uwsm (nie uwsm-app)": r"\buwsm(?!-app)\b",
     "iwd (iwctl/impala)": r"\b(iwctl|impala)\b",
 }
-# Pokryte przez warstwę (dla informacji)
-COVERED = r"\b(systemctl|systemd-run|systemd-cat|systemd-inhibit|uwsm-app|xdg-terminal-exec|omarchy-pkg-[a-z-]+)\b"
+# Pokryte przez warstwę portu (shimy w port/bin): systemctl, systemd-run, systemd-cat, systemd-inhibit,
+# timedatectl, uwsm, uwsm-app, xdg-terminal-exec, omarchy-pkg-* — dlatego nie ma ich w UNCOVERED.
 
 # Skrypty Omarchy podmienione nakładkami portu (port/bin) — nie wchodzimy w ich upstreamową treść
 OVERRIDDEN = {f for f in os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'port', 'bin')) if f.startswith('omarchy-')}

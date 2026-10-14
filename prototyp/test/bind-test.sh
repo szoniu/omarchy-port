@@ -4,7 +4,10 @@
 # Uruchamiać W VM jako użytkownik sesji; wejście (TSV: id/klawisze, opis, rodzaj, polecenie) w $1, domyślnie /tmp/binds.tsv.
 # Wynik: /tmp/bind-test/wyniki.tsv (klawisze, opis, wynik, rc, okna, stderr-skrót)
 set -uo pipefail
-OUT=${OUT:-/tmp/bind-test}; rm -rf "$OUT"; mkdir -p "$OUT"
+# katalog wyników tylko pod /tmp — wcześniej `rm -rf "$OUT"` z ogólnej zmiennej mógł skasować cudzy katalog
+OUT=${BIND_TEST_OUT:-/tmp/bind-test}
+case $OUT in /tmp/?*) ;; *) echo "BIND_TEST_OUT musi być pod /tmp (jest: $OUT)" >&2; exit 2 ;; esac
+rm -rf "$OUT"; mkdir -p "$OUT"
 # env z dziecka sesji (Quickshell): sam Hyprland nie ma WAYLAND_DISPLAY ani HYPRLAND_INSTANCE_SIGNATURE
 hpid=$(pgrep -u "$(id -u)" -x quickshell | head -1)
 while IFS= read -r -d '' kv; do export "${kv?}"; done < "/proc/$hpid/environ"

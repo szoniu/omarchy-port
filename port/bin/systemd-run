@@ -6,15 +6,17 @@
 #   opóźnienie (timer)  systemd-run --user … --on-active=2s|5m [--timer-property=…] cmd…
 # Timer zostawia ślad w $XDG_RUNTIME_DIR/omarchy-port/timers/<unit>.timer („next pid”),
 # który widzi `systemctl --user list-timers/stop` (omarchy-port-units) — tak działają przypomnienia.
-if (( EUID == 0 )) && [[ -z ${XDG_RUNTIME_DIR:-} ]]; then RT=/run/omarchy-port
+# root zawsze w /run/omarchy-port — tam szuka shim systemctl (sudo systemctl is-active/stop X.timer)
+if (( EUID == 0 )); then RT=/run/omarchy-port
 else RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/omarchy-port"; fi
 if (( EUID == 0 )); then LOGD=/var/log/omarchy-port; else LOGD="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-port"; fi
-mkdir -p "$RT/timers" "$LOGD"
+mkdir -p "$RT/timers" "$RT/units" "$LOGD"
 
-wait=0 unit='' on_active='' out="$LOGD/systemd-run.log"
+wait=0 user=0 unit='' on_active='' out="$LOGD/systemd-run.log"
 while (($#)); do
   case $1 in
-    --user|--system|-q|--quiet|-G|--collect|--no-block|--same-dir|-d) ;;
+    --user) user=1 ;;
+    --system|-q|--quiet|-G|--collect|--no-block|--same-dir|-d) ;;
     -W|--wait|--scope|-P|--pipe|-t|--pty) wait=1 ;;
     --unit=*) unit=${1#*=} ;;
     -u|--unit) unit=$2; shift ;;
@@ -33,30 +35,32 @@ while (($#)); do
   esac
   shift
 done
+# Jak w systemd-run: opcje kończą się na pierwszym argumencie niebędącym opcją (getopt z „+”),
+# więc `… cmd --wait` przekazuje --wait PROGRAMOWI (omarchy-theme-set-hermes go przyjmuje).
 cmd=("$@")
-# omarchy-install-ai-hermes podaje --wait PO poleceniu — systemd i tak go nie przyjmie jako argumentu programu
-if [[ ${cmd[-1]:-} == --wait ]]; then unset 'cmd[-1]'; wait=1; fi
 (( ${#cmd[@]} )) || { echo "systemd-run (omarchy-port): brak polecenia" >&2; exit 1; }
 unit=${unit:-run-$$-$(date +%s%N)}
 unit=${unit%.service}
 
-# czas systemd (2s, 5m, 1h30m, 100ms, 1min, 30) → sekundy (z ułamkiem)
+# czas systemd (2s, 5m, 1h30m, 100ms, 1min, 90sec, 3hours, 30) → sekundy (z ułamkiem)
 to_seconds() {
-  local s=$1 total=0 num u
+  local s=${1// /} total=0 num unit mul
   [[ $s =~ ^[0-9]+$ ]] && { echo "$s"; return; }
-  while [[ $s =~ ^([0-9]+)[[:space:]]*(us|usec|ms|msec|s|sec|second|seconds|m|min|minute|minutes|h|hr|hour|hours|d|day|days)?(.*)$ ]]; do
-    num=${BASH_REMATCH[1]} u=${BASH_REMATCH[2]} s=${BASH_REMATCH[3]}
-    case $u in
-      us|usec) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n / 1000000 }') ;;
-      ms|msec) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n / 1000 }') ;;
-      ''|s|sec|second|seconds) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n }') ;;
-      m|min|minute|minutes) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n * 60 }') ;;
-      h|hr|hour|hours) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n * 3600 }') ;;
-      d|day|days) total=$(awk -v t="$total" -v n="$num" 'BEGIN { print t + n * 86400 }') ;;
+  while [[ -n $s ]]; do
+    [[ $s =~ ^([0-9]+)([a-z]*)(.*)$ ]] || { echo "systemd-run (omarchy-port): nie rozumiem czasu '$1'" >&2; return 1; }
+    num=${BASH_REMATCH[1]} unit=${BASH_REMATCH[2]} s=${BASH_REMATCH[3]}
+    case $unit in
+      us|usec) mul=0.000001 ;;
+      ms|msec) mul=0.001 ;;
+      ''|s|sec|second|seconds) mul=1 ;;
+      m|min|minute|minutes) mul=60 ;;
+      h|hr|hour|hours) mul=3600 ;;
+      d|day|days) mul=86400 ;;
+      w|week|weeks) mul=604800 ;;
+      *) echo "systemd-run (omarchy-port): nieznana jednostka czasu '$unit' w '$1'" >&2; return 1 ;;
     esac
-    s=${s#"${s%%[![:space:]]*}"}
+    total=$(awk -v t="$total" -v n="$num" -v m="$mul" 'BEGIN { print t + n * m }')
   done
-  [[ -z $s ]] || { echo "systemd-run (omarchy-port): nie rozumiem czasu '$1'" >&2; return 1; }
   echo "$total"
 }
 
@@ -77,5 +81,9 @@ if (( wait )); then
 fi
 
 setsid "${cmd[@]}" >>"$out" 2>&1 </dev/null &
+pid=$!
+# unit w tle z --user widoczny dla `systemctl --user is-active/stop <unit>.service` (omarchy-port-units);
+# setsid robi z procesu lidera grupy, więc stop zabija całe drzewo (kill -- -pid)
+(( user )) && echo "$pid" >"$RT/units/$unit.service.pid"
 disown
 exit 0
