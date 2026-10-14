@@ -8,6 +8,7 @@
 # SSH:   ssh -p 2229 -i id_vm root@127.0.0.1   (hostfwd w slirp)
 # QMP:   $VM_DIR/qmp.sock (python3 qmp.py …)
 # Stan VM (ISO, dysk, OVMF, klucz SSH, logi) leży w $VM_DIR, POZA repo.
+# Osobny dysk (np. świeża instalacja obok starej VM): VM_DISK=fresh.qcow2 VM_VARS=OVMF_VARS.fresh.fd ./vm.sh …
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VM_DIR="${VM_DIR:-$HOME/vm/omarchy-port}"
@@ -16,6 +17,8 @@ cd "$VM_DIR"
 NAME=vm-void-omarchy
 IMG=localhost/qemu-virgl:latest
 ISO=void-live-x86_64-20250202-base.iso
+VM_DISK="${VM_DISK:-void.qcow2}"
+VM_VARS="${VM_VARS:-OVMF_VARS.fd}"
 mode="${1:-}"
 
 if [ "$mode" = stop ]; then
@@ -39,15 +42,15 @@ Host vm
   ConnectTimeout 5
 SSHCFG
 
-[ -f void.qcow2 ] || podman run --rm -v "$PWD":/vm:z "$IMG" qemu-img create -f qcow2 /vm/void.qcow2 60G
-[ -f OVMF_VARS.fd ] || podman run --rm -v "$PWD":/vm:z "$IMG" cp /usr/share/edk2/ovmf/OVMF_VARS.fd /vm/OVMF_VARS.fd
+[ -f "$VM_DISK" ] || podman run --rm -v "$PWD":/vm:z "$IMG" qemu-img create -f qcow2 "/vm/$VM_DISK" 60G
+[ -f "$VM_VARS" ] || podman run --rm -v "$PWD":/vm:z "$IMG" cp /usr/share/edk2/ovmf/OVMF_VARS.fd "/vm/$VM_VARS"
 rm -f qmp.sock
 
 args=(
   -name void-omarchy -machine q35,accel=kvm -cpu host -smp 8 -m 8G
   -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/ovmf/OVMF_CODE.fd
-  -drive if=pflash,format=raw,file=/vm/OVMF_VARS.fd
-  -drive file=/vm/void.qcow2,if=virtio,format=qcow2,discard=unmap
+  -drive "if=pflash,format=raw,file=/vm/$VM_VARS"
+  -drive "file=/vm/$VM_DISK,if=virtio,format=qcow2,discard=unmap"
   -device virtio-vga-gl,xres=1920,yres=1080
   -display egl-headless,rendernode=/dev/dri/renderD128
   -vnc 127.0.0.1:1
@@ -71,4 +74,4 @@ podman run -d --name "$NAME" --network host \
   --device /dev/kvm --device /dev/dri/renderD128 \
   --security-opt label=disable \
   -v "$PWD":/vm -w /vm "$IMG" qemu-system-x86_64 "${args[@]}" >/dev/null
-echo "VM ($mode) wystartowała: VNC 127.0.0.1:5901, SSH 127.0.0.1:2229, QMP $PWD/qmp.sock"
+echo "VM ($mode, $VM_DISK) wystartowała: VNC 127.0.0.1:5901, SSH 127.0.0.1:2229, QMP $PWD/qmp.sock"

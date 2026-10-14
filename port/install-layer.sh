@@ -3,7 +3,8 @@
 #   shimy (systemctl, systemd-run, systemd-cat, uwsm-app, xdg-terminal-exec) → /usr/local/bin,
 #       TYLKO gdy prawdziwego polecenia nie ma (na Gentoo z systemd żaden nie powstaje);
 #   nakładki pakietowe (omarchy-pkg-*) i nadzorca unitów → /usr/local/bin, zawsze —
-#       /usr/local/bin jest w PATH i w secure_path sudo PRZED /usr/bin z plikami Omarchy;
+#       /usr/local/bin jest w PATH i w secure_path sudo PRZED /usr/bin z plikami Omarchy,
+#       a linki w /usr/share/omarchy/bin (PATH sesji) są przekierowane na nakładki;
 #   dane → /usr/share/omarchy-port, sesja → /usr/libexec/omarchy-port + wayland-sessions.
 set -euo pipefail
 SRC="$(cd "$(dirname "$0")" && pwd)"
@@ -30,6 +31,28 @@ for f in "$SRC"/bin/omarchy-pkg-* "$SRC/bin/omarchy-port-units"; do
   install -m 755 "$f" /usr/local/bin/
   echo "nakładka: /usr/local/bin/$(basename "$f")"
 done
+
+# Sesja Omarchy (default/uwsm) i omarchy-provision-user stawiają /usr/share/omarchy/bin PRZED
+# /usr/local/bin, a package() Omarchy robi tam linki do /usr/bin/omarchy-* (wersje z pacmanem).
+# Bez przekierowania nakładka działa tylko z SSH i sudo, a w sesji (menu, skróty) wygrywa pacman.
+# Każda reinstalacja plików Omarchy odtwarza te linki — po niej ten skrypt trzeba puścić ponownie.
+if [[ -d /usr/share/omarchy/bin ]]; then
+  for f in "$SRC"/bin/omarchy-pkg-*; do
+    b=$(basename "$f")
+    [[ -L /usr/share/omarchy/bin/$b ]] || continue
+    ln -sfn "/usr/local/bin/$b" "/usr/share/omarchy/bin/$b"
+    echo "przekierowanie: /usr/share/omarchy/bin/$b → /usr/local/bin/$b"
+  done
+else
+  echo "UWAGA: brak /usr/share/omarchy/bin — puść install-layer.sh ponownie po instalacji plików Omarchy" >&2
+fi
+
+# PipeWire na Voidzie: WirePlumber i serwer pulse jako moduły pipewire (Void Handbook) — nadzorca
+# unitów startuje sam `pipewire`, reszta wstaje z tych dwóch plików
+install -d /etc/pipewire/pipewire.conf.d
+ln -sfn /usr/share/examples/wireplumber/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/
+ln -sfn /usr/share/examples/pipewire/20-pipewire-pulse.conf /etc/pipewire/pipewire.conf.d/
+echo "pipewire: wireplumber + pulse jako moduły"
 
 install -m 755 "$SRC/session/session" /usr/libexec/omarchy-port/session
 # reguły tmpfiles Omarchy przy boocie (Void nie ma systemd-tmpfiles) — m.in. sprzątanie „sudo bez hasła”
