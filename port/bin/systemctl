@@ -81,6 +81,13 @@ wait_supervised() { local _; for _ in $(seq 1 30); do [[ -e $RUNSVDIR/$1/supervi
 wait_state() { local _; for _ in $(seq 1 30); do [[ $(svstat "$1") == "$2" ]] && return 0; sleep 0.5; done; return 1; }
 # Timery z `sudo systemd-run --on-active` (omarchy-sudo-passwordless): plik „next pid”
 TIMERS=/run/omarchy-port/timers
+# Tryb instalacji (OMARCHY_PORT_INSTALL=1, ustawia go port/install.sh): `enable` bez --now NIE startuje
+# usługi — jak w systemd, a Omarchy na tym polega („Enable services only… don't start daemons
+# mid-install”). runit nie ma stanu „włączona od następnego startu”, więc: link + plik down + wpis tu;
+# core-service 91-omarchy-port-start-at-boot.sh zdejmuje down przed startem usług.
+START_AT_BOOT=/var/lib/omarchy-port/start-at-boot
+pending() { [[ -f $START_AT_BOOT ]] && /usr/bin/grep -qxF -- "$1" "$START_AT_BOOT"; }
+unpend() { [[ -f $START_AT_BOOT ]] && sed -i "/^${1//./\\.}\$/d" "$START_AT_BOOT"; return 0; }
 
 rc=0
 for unit in "${units[@]}"; do
@@ -128,6 +135,15 @@ for unit in "${units[@]}"; do
   case $verb in
     enable)
       need_root "$unit"
+      if [[ -n ${OMARCHY_PORT_INSTALL:-} ]] && ((!now)) && [[ ! -L $RUNSVDIR/$name ]]; then
+        # down PRZED linkiem — runsv nie może zdążyć wystartować usługi
+        touch "$SVDIR/$name/down"
+        ln -sfn "$SVDIR/$name" "$RUNSVDIR/$name" || { rc=1; continue; }
+        mkdir -p "${START_AT_BOOT%/*}"
+        pending "$name" || echo "$name" >>"$START_AT_BOOT"
+        log "instalacja: $name włączona od następnego startu"
+        continue
+      fi
       rm -f "$SVDIR/$name/down"
       ln -sfn "$SVDIR/$name" "$RUNSVDIR/$name" || { rc=1; continue; }
       if ((now)); then
@@ -135,9 +151,11 @@ for unit in "${units[@]}"; do
       fi ;;
     disable)
       need_root "$unit"
+      unpend "$name"
       if ((now)); then rm -f "$RUNSVDIR/$name"; else touch "$SVDIR/$name/down"; fi ;;
     mask)
       need_root "$unit"
+      unpend "$name"
       rm -f "$RUNSVDIR/$name"; touch "$SVDIR/$name/down" ;;
     unmask)
       need_root "$unit"
@@ -161,7 +179,7 @@ for unit in "${units[@]}"; do
       if is_running "$name"; then ((quiet)) || echo active
       else ((quiet)) || echo inactive; rc=3; fi ;;
     is-enabled)
-      if [[ -L $RUNSVDIR/$name && ! -e $SVDIR/$name/down ]]; then ((quiet)) || echo enabled
+      if [[ -L $RUNSVDIR/$name ]] && { [[ ! -e $SVDIR/$name/down ]] || pending "$name"; }; then ((quiet)) || echo enabled
       else ((quiet)) || echo disabled; rc=1; fi ;;
     is-failed) rc=1 ;;
     status)

@@ -11,8 +11,12 @@ Kontekst i decyzje: epik [szoniu/dotfiles#169](https://git.szoniu.pl/szoniu/dotf
 Jako root, na działającym Voidzie (glibc, x86_64) z siecią i istniejącym użytkownikiem — taki stan zostawia instalator [szoniu/void](https://github.com/szoniu/void):
 
 ```sh
-git clone https://github.com/szoniu/omarchy-port && omarchy-port/port/install.sh --user NAZWA
+xbps-install -Sy git
+git clone https://github.com/szoniu/omarchy-port
+omarchy-port/port/install.sh --user NAZWA --name "Imię Nazwisko" --email adres@example.com
 ```
+
+`git` nie wchodzi w `base-system` Voida, a instalator szoniu/void stawia go tylko przy części opcji. `--name` i `--email` trafiają do gita i XCompose; bez `--name` port bierze imię z pola GECOS konta. Usługi włączane w trakcie instalacji startują dopiero po restarcie, jak w systemd.
 
 Orkiestrator jest idempotentny, a logi zapisuje w `/var/log/omarchy-port/`. Kod 1 znaczy, że któryś krok padł: reszta jest doinstalowana, a lista błędów jest w podsumowaniu. Kroki `install/` Omarchy, które na Voidzie są pomijane albo podmieniane, opisuje [`port/share/void/kroki.tsv`](port/share/void/kroki.tsv).
 
