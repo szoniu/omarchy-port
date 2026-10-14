@@ -13,7 +13,8 @@
 #   6. dom użytkownika z /etc/skel — tylko przy pierwszej instalacji
 #   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/void/kroki.tsv
 #   8. omarchy-provision-user jako użytkownik, na tym samym drzewie kroków
-#   9. usługi runit: dbus, polkitd, chronyd (NTP); dhcpcd wyłączony, gdy sieć przejął NetworkManager
+#   9. usługi runit: dbus, polkitd, chronyd (NTP); dhcpcd wyłączony, gdy sieć przejął NetworkManager;
+#      SDDM dostaje ostatniego użytkownika (motyw Omarchy nie ma pola użytkownika)
 #
 # Logi: /var/log/omarchy-port/install-<czas>/ (całość, log per krok, kroki.tsv).
 # Kod wyjścia: 0 — wszystko przeszło (pominięcia z kroki.tsv to nie błąd); 1 — któryś krok padł
@@ -267,7 +268,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------------------------
-etap "9/9 usługi runit"
+etap "9/9 usługi runit i logowanie"
 # elogind celowo bez usługi runit: startuje z aktywacji D-Bus, a usługa obok kręci się w pętli
 # „already running” (sprawdzone w VM). NetworkManager, sddm, cups itd. włącza config/enable-services.sh.
 # chronyd zamiast systemd-timesyncd, który na Archu dochodzi z systemd i jest włączony domyślnie.
@@ -285,6 +286,15 @@ done
 if [[ -L $SV/NetworkManager && -L $SV/dhcpcd ]]; then
   rm -f "$SV/dhcpcd"
   echo "  wyłączona    dhcpcd (sieć przejmuje NetworkManager)"
+fi
+# Motyw SDDM Omarchy nie ma pola użytkownika — loguje userModel.lastUser. Na świeżej maszynie
+# to pusty ciąg i logowanie hasłem pada („Authentication for user ""”); Omarchy z ISO ma autologin.
+# Zapis to samo, co SDDM robi sam po pierwszym udanym logowaniu (omarchy-port#2).
+if [[ ! -e /var/lib/sddm/state.conf ]] && getent passwd sddm >/dev/null; then
+  install -d -o sddm -g sddm /var/lib/sddm
+  printf '[Last]\nUser=%s\n' "$U" >/var/lib/sddm/state.conf
+  chown sddm:sddm /var/lib/sddm/state.conf
+  echo "  SDDM         ostatni użytkownik: $U"
 fi
 
 # ---------------------------------------------------------------------------------------------
