@@ -1,0 +1,16 @@
+#!/bin/sh
+# omarchy-port: uwsm-app bez uwsm/systemd — uruchamia polecenie wprost.
+# Formy w Omarchy: `uwsm-app -- cmd`, `uwsm-app -s b -- cmd`, `uwsm-app -t service -- cmd`.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --) shift; break ;;
+    -s|-t|-a|-u|-d|-S) shift 2 ;;
+    -*) shift ;;
+    *) break ;;
+  esac
+done
+[ $# -gt 0 ] || { echo "uwsm-app (omarchy-port): brak polecenia" >&2; exit 2; }
+case "$1" in
+  *.desktop|*.desktop:*) exec gtk-launch "${1%%:*}" ;;
+esac
+exec "$@"

@@ -1,0 +1,39 @@
+#!/bin/sh
+# omarchy-port: minimalny xdg-terminal-exec — pierwszy terminal z listy preferencji.
+# Opcje --app-id=/--title=/--dir= przekazywane tam, gdzie terminal je zna.
+app_id='' title='' dir='' print_id=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --print-id) print_id=1; shift ;;
+    --app-id=*) app_id=${1#*=}; shift ;;
+    --title=*) title=${1#*=}; shift ;;
+    --dir=*) dir=${1#*=}; shift ;;
+    -e) shift; break ;;
+    --) shift; break ;;
+    *) break ;;
+  esac
+done
+if [ -n "$dir" ]; then cd "$dir" || exit 1; fi
+for list in "${XDG_CONFIG_HOME:-$HOME/.config}/hyprland-xdg-terminals.list" \
+            "${XDG_CONFIG_HOME:-$HOME/.config}/xdg-terminals.list" \
+            /usr/share/xdg-terminal-exec/hyprland-xdg-terminals.list; do
+  [ -r "$list" ] || continue
+  for entry in $(grep -v '^#' "$list"); do
+    case "${entry%.desktop}" in
+      foot) command -v foot >/dev/null || continue
+            [ $print_id = 1 ] && { echo foot.desktop; exit 0; }
+            exec foot ${app_id:+--app-id="$app_id"} ${title:+--title="$title"} "$@" ;;
+      Alacritty|alacritty) command -v alacritty >/dev/null || continue
+            [ $print_id = 1 ] && { echo Alacritty.desktop; exit 0; }
+            exec alacritty ${app_id:+--class="$app_id"} ${title:+--title="$title"} ${1:+-e} "$@" ;;
+      kitty) command -v kitty >/dev/null || continue
+            [ $print_id = 1 ] && { echo kitty.desktop; exit 0; }
+            exec kitty ${app_id:+--class="$app_id"} ${title:+--title="$title"} "$@" ;;
+      com.mitchellh.ghostty) command -v ghostty >/dev/null || continue
+            [ $print_id = 1 ] && { echo com.mitchellh.ghostty.desktop; exit 0; }
+            exec ghostty ${app_id:+--class="$app_id"} ${title:+--title="$title"} ${1:+-e} "$@" ;;
+    esac
+  done
+done
+echo "xdg-terminal-exec (omarchy-port): brak znanego terminala z listy" >&2
+exit 1

@@ -13,14 +13,18 @@ Kontekst i decyzje: epik [szoniu/dotfiles#169](https://git.szoniu.pl/szoniu/dotf
 3. **`post_install` wybiórczo:** NIE nadpisujemy `os-release` (`ID_LIKE=arch` zmyliłby narzędzia rozpoznające dystrybucję) ani `nsswitch.conf`.
 4. **Kroki `install/` Omarchy pojedynczo:** te zależne od pacmana, systemd czy limine pomijamy albo podmieniamy.
 5. **Sesja bez uwsm:** `dbus-run-session` → PipeWire → `start-hyprland`; SDDM z motywem Omarchy.
-6. **Shimy** (`/usr/local/bin`) — powstają **tylko tam, gdzie oryginału nie ma**, więc na Gentoo z systemd nie zakłada się żaden: `systemd-cat`, `uwsm-app`, `xdg-terminal-exec`.
+6. **Warstwa zgodności** (`port/`, instalacja: `port/install-layer.sh`):
+   - shimy w `/usr/local/bin` — powstają **tylko tam, gdzie oryginału nie ma**, więc na Gentoo z systemd nie zakłada się żaden;
+   - nakładki `omarchy-pkg-*` → xbps;
+   - nadzorca unitów użytkownika zamiast `systemd --user`.
 
-Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md).
+Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md).
 
 ## Układ repo
 
 | Katalog | Zawartość |
 |---|---|
+| `port/` | **warstwa zgodności** (Void/runit): shimy `systemctl`, `systemd-run`, `systemd-inhibit`, `timedatectl`, `uwsm`, `uwsm-app`, `systemd-cat`, `xdg-terminal-exec` (tylko gdy oryginału brak); nakładki `omarchy-pkg-*` (xbps); nadzorca unitów użytkownika `omarchy-port-units`; sesja; `install-layer.sh` |
 | `prototyp/vm/` | VM testowa: QEMU z Fedory w kontenerze podmana (virgl), VNC, QMP (klawisze, mysz), zrzuty przez VNC |
 | `prototyp/void/` | baza Voida w VM, rundy portu (package(), kroki `install/`, shimy, sesja) |
 | `prototyp/test/` | zrzut skrótów z plików Lua Omarchy, test skrótów w żywej sesji, test PAM |

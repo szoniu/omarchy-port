@@ -1,0 +1,22 @@
+#!/bin/bash
+# omarchy-port (Void): nakładka na /usr/bin/omarchy-pkg-install — wybór pakietów z repo (fzf) → xbps-install.
+fzf_args=(
+  --multi
+  --preview 'xbps-query -R {1}'
+  --preview-label='alt-p: toggle description, alt-j/k: scroll, tab: multi-select'
+  --preview-label-pos='bottom'
+  --preview-window 'down:65%:wrap'
+  --bind 'alt-p:toggle-preview'
+  --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
+  --bind 'alt-k:preview-up,alt-j:preview-down'
+  --color 'pointer:green,marker:green'
+)
+
+# xbps-query -Rs '' → "[-] nazwa-wersja_rewizja  opis"; zostawiamy samą nazwę
+pkg_names=$(xbps-query -Rs '' | awk '{ sub(/-[^-]+_[0-9]+$/, "", $2); print $2 }' | sort -u | fzf "${fzf_args[@]}")
+
+if [[ -n $pkg_names ]]; then
+  # shellcheck disable=SC2086
+  echo "$pkg_names" | tr '\n' ' ' | xargs sudo xbps-install -Sy
+  omarchy-show-done 2>/dev/null || true
+fi

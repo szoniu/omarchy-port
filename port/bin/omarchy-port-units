@@ -1,0 +1,361 @@
+#!/bin/bash
+# omarchy-port: nadzorca unitów użytkownika zamiast `systemd --user` (Void/runit, Gentoo/OpenRC).
+# Wołany przez shim `systemctl --user …` oraz przez sesję portu (`daemon`).
+#
+# Zakres = to, czego używają unity Omarchy: Condition{PathExists,PathIsDirectory,Environment},
+# ExecCondition, ExecStart, Type=simple|oneshot, Restart=always|on-failure, RestartSec,
+# StartLimit (domyślnie systemd: 5 startów w 10 s → poddaj się).
+# Sesja: Omarchy w autostarcie woła `systemctl --user import-environment …` — tak jak w systemd
+# to jest moment, w którym unity z WantedBy=graphical-session.target startują (z env Hyprlanda).
+#
+# Jedna instancja na unit: nadzorca trzyma flock na units/<unit>.lock przez całe życie
+# (drugi start tego samego unitu kończy się od razu). Proces unitu startuje przez setsid,
+# więc jest liderem własnej grupy — stop zabija CAŁE drzewo (kill -- -pgid), nie tylko dziecko.
+#
+# Stan:  ~/.config/omarchy-port/user-units.enabled   (trwałe, odpowiednik .wants)
+#        $XDG_RUNTIME_DIR/omarchy-port/               (locki, pid-y, timery, session.env)
+#        ~/.local/state/omarchy-port/units.log + <unit>.log
+set -u
+RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/omarchy-port"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy-port"
+ENABLED="$CONF/user-units.enabled"
+ENVF="$RT/session.env"
+SKIP=/usr/share/omarchy-port/user-units-skip.tsv   # unity świadomie nieuruchamiane (powód w pliku)
+LOGD="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-port"
+mkdir -p "$RT/units" "$RT/timers" "$CONF" "$LOGD"
+touch "$ENABLED"
+log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >>"$LOGD/units.log"; }
+UID_=$(id -u)
+
+norm() { case $1 in *.service|*.timer|*.socket|*.path|*.target|*.scope) printf '%s\n' "$1" ;; *) printf '%s.service\n' "$1" ;; esac; }
+unit_file() {
+  local d
+  for d in "$HOME/.config/systemd/user" /etc/systemd/user /usr/lib/systemd/user; do
+    [[ -f $d/$1 ]] && { printf '%s\n' "$d/$1"; return 0; }
+  done
+  return 1
+}
+ukey() { awk -v k="$2" 'index($0, k "=") == 1 { v = substr($0, length(k) + 2) } END { if (v != "") print v }' "$1"; }
+# specyfikatory systemd + bezwzględne /usr/bin/systemctl → nasz shim z PATH
+spec() { local s=$1; s=${s//%h/$HOME}; s=${s//%t/${XDG_RUNTIME_DIR:-}}; s=${s//%%/%}; s=${s//\/usr\/bin\/systemctl/systemctl}; printf '%s' "$s"; }
+load_env() { [[ -f $ENVF ]] && { set -a; . "$ENVF"; set +a; }; return 0; }
+# czas systemd (RestartSec=2, 500ms, 1min) → sekundy
+to_seconds() {
+  local s=${1// /} total=0 num unit mul
+  [[ $s =~ ^[0-9]+$ ]] && { echo "$s"; return; }
+  while [[ -n $s ]]; do
+    [[ $s =~ ^([0-9]+)([a-z]*)(.*)$ ]] || { echo 1; return; }
+    num=${BASH_REMATCH[1]} unit=${BASH_REMATCH[2]} s=${BASH_REMATCH[3]}
+    case $unit in
+      us|usec) mul=0.000001 ;; ms|msec) mul=0.001 ;; ''|s|sec|second|seconds) mul=1 ;;
+      m|min|minute|minutes) mul=60 ;; h|hr|hour|hours) mul=3600 ;; *) echo 1; return ;;
+    esac
+    total=$(awk -v t="$total" -v n="$num" -v m="$mul" 'BEGIN { print t + n * m }')
+  done
+  echo "$total"
+}
+
+# --- dźwięk: główny demon to proces o linii poleceń dokładnie „pipewire” (tak go startujemy);
+# pipewire-pulse (`pipewire -c pipewire-pulse.conf`) i wireplumber to jego dzieci przez conf.d.
+# Inne instancje pipewire (np. omarchy-speaker-tuning: `pipewire -c omarchy-speaker-tuning.conf`)
+# NIE są „dźwiękiem” w sensie tych pseudo-unitów i nie wolno ich zabijać.
+is_audio() { case $1 in pipewire.service|pipewire.socket|pipewire-pulse.service|pipewire-pulse.socket|wireplumber.service) return 0 ;; esac; return 1; }
+audio_pids() { pgrep -u "$UID_" -fx pipewire; pgrep -u "$UID_" -fx '(/usr/bin/)?pipewire -c pipewire-pulse.conf'; pgrep -u "$UID_" -x wireplumber; }
+audio_active() { pgrep -u "$UID_" -fx pipewire >/dev/null; }
+audio_start() { audio_active || { setsid pipewire >>"$LOGD/pipewire.log" 2>&1 </dev/null & disown; log "pipewire start"; }; }
+audio_stop() {
+  local pids
+  pids=$(audio_pids)
+  [[ -z $pids ]] && return 0
+  # shellcheck disable=SC2086
+  kill $pids 2>/dev/null
+  # czekamy na faktyczne wyjście — inaczej restart widzi jeszcze umierający pipewire i nie startuje nowego
+  for _ in $(seq 1 30); do [[ -z $(audio_pids) ]] && break; sleep 0.1; done
+  log "pipewire stop"
+}
+
+conditions_ok() {
+  local f=$1 key val neg ok vn
+  while IFS=$'\t' read -r key val; do
+    [[ -z $key ]] && continue
+    val=$(spec "$val"); neg=0
+    [[ $val == '!'* ]] && { neg=1; val=${val#!}; }
+    case $key in
+      ConditionPathExists) [[ -e $val ]]; ok=$? ;;
+      ConditionPathIsDirectory) [[ -d $val ]]; ok=$? ;;
+      ConditionEnvironment)
+        if [[ $val == *=* ]]; then
+          vn=${val%%=*}
+          [[ ${!vn:-} == "${val#*=}" ]]; ok=$?
+        else [[ -n ${!val:-} ]]; ok=$?; fi ;;
+      *) log "warunek nieobsługiwany ($key) — traktuję jako spełniony"; ok=0 ;;
+    esac
+    (( neg )) && ok=$(( ! ok ))
+    (( ok == 0 )) || { log "$(basename "$f"): $key=$( ((neg)) && echo '!')$val niespełniony"; return 1; }
+  done < <(awk 'index($0, "Condition") == 1 { i = index($0, "="); print substr($0, 1, i - 1) "\t" substr($0, i + 1) }' "$f")
+  local ec
+  ec=$(ukey "$f" ExecCondition)
+  if [[ -n $ec ]]; then
+    ec=$(spec "$ec"); ec=${ec#[-@+!]}
+    bash -c "$ec" >/dev/null 2>&1 || { log "$(basename "$f"): ExecCondition niespełniony ($ec)"; return 1; }
+  fi
+  return 0
+}
+
+lockf() { printf '%s/units/%s.lock\n' "$RT" "$1"; }
+pidf() { printf '%s/units/%s.pid\n' "$RT" "$1"; }
+is_active() {
+  local u=$1 p
+  is_audio "$u" && { audio_active; return; }
+  # nadzorca żyje ⇔ trzyma flock na pliku locka
+  if [[ -e $(lockf "$u") ]] && ! flock -n "$(lockf "$u")" true 2>/dev/null; then return 0; fi
+  # unit z systemd-run --user --unit=… (bez nadzorcy): plik PID procesu
+  p=$(cat "$(pidf "$u")" 2>/dev/null) || return 1
+  kill -0 "$p" 2>/dev/null
+}
+
+supervise() { # proces nadzorcy jednego unitu (po setsid); TERM → zabija grupę procesów unitu i kończy
+  local u=$1 f exec restart rsec child='' rc stopping=0 starts=()
+  exec 9>"$(lockf "$u")"
+  flock -n 9 || exit 0          # inny nadzorca tego unitu już działa
+  f=$(unit_file "$u") || exit 5
+  load_env
+  exec=$(spec "$(ukey "$f" ExecStart)"); exec=${exec#[-@+!]}
+  restart=$(ukey "$f" Restart)
+  rsec=$(to_seconds "$(ukey "$f" RestartSec)"); [[ $rsec == 0 ]] && rsec=0.1
+  echo $$ >"$(pidf "$u")"
+  # shellcheck disable=SC2064
+  trap 'stopping=1; [[ -n $child ]] && kill -TERM -- -"$child" 2>/dev/null' TERM INT
+  while :; do
+    # setsid: dziecko liderem własnej grupy (pgid = pid) → stop zabija też wnuki; fd 9 (lock) nie dziedziczony
+    setsid bash -c "exec $exec" >>"$LOGD/$u.log" 2>&1 </dev/null 9>&- &
+    child=$!
+    wait "$child"; rc=$?
+    (( stopping )) && break
+    log "$u: zakończony rc=$rc (Restart=${restart:-no})"
+    case ${restart:-no} in
+      always) ;;
+      on-failure) (( rc != 0 )) || break ;;
+      *) break ;;
+    esac
+    # StartLimit jak w systemd (domyślnie 5 startów w 10 s) — nie kręcimy się w nieskończoność
+    starts+=("$(date +%s)")
+    (( ${#starts[@]} > 5 )) && starts=("${starts[@]: -5}")
+    if (( ${#starts[@]} == 5 && starts[4] - starts[0] < 10 )); then
+      log "$u: 5 restartów w <10 s — poddaję się (StartLimitBurst)"; break
+    fi
+    # sen przerywalny: pułapka TERM nie czeka do końca RestartSec
+    sleep "$rsec" & wait $!
+    (( stopping )) && break
+  done
+  # plik PID usuwamy tylko jeśli wciąż jest NASZ (restart mógł już zapisać nowego nadzorcę)
+  [[ $(cat "$(pidf "$u")" 2>/dev/null) == "$$" ]] && rm -f "$(pidf "$u")"
+  exit 0
+}
+
+start_unit() {
+  local u=$1 f type exec rc skip
+  if is_audio "$u"; then audio_start; return 0; fi
+  f=$(unit_file "$u") || { echo "Failed to start $u: Unit $u not found." >&2; return 5; }
+  is_active "$u" && return 0
+  skip=$(awk -F'\t' -v u="$u" 'NR > 1 && $1 == u { print $2; exit }' "$SKIP" 2>/dev/null)
+  if [[ -n $skip ]]; then log "$u: nieobsługiwany w porcie — $skip"; return 0; fi
+  load_env
+  conditions_ok "$f" || return 0   # jak w systemd: niespełniony warunek = unit nie startuje, bez błędu
+  type=$(ukey "$f" Type)
+  if [[ $type == oneshot ]]; then
+    exec=$(spec "$(ukey "$f" ExecStart)"); exec=${exec#[-@+!]}
+    bash -c "$exec" >>"$LOGD/$u.log" 2>&1 </dev/null; rc=$?
+    log "$u (oneshot): rc=$rc"
+    return $rc
+  fi
+  setsid "$0" __supervise "$u" </dev/null >/dev/null 2>&1 &
+  disown
+  log "$u: start"
+}
+
+stop_unit() {
+  local u=$1 p
+  if is_audio "$u"; then audio_stop; return 0; fi
+  # timer albo usługa z systemd-run --on-active
+  local t="$RT/timers/${u%.*}.timer"
+  if [[ -f $t ]]; then p=$(awk '{ print $2 }' "$t"); kill -- -"$p" 2>/dev/null || kill "$p" 2>/dev/null; rm -f "$t"; log "$u: timer anulowany"; return 0; fi
+  p=$(cat "$(pidf "$u")" 2>/dev/null) || return 0
+  # nadzorca (TERM → zabija grupę unitu) albo proces z systemd-run (sam jest liderem grupy)
+  kill -TERM -- -"$p" 2>/dev/null || kill "$p" 2>/dev/null
+  for _ in $(seq 1 30); do kill -0 "$p" 2>/dev/null || break; sleep 0.1; done
+  [[ $(cat "$(pidf "$u")" 2>/dev/null) == "$p" ]] && rm -f "$(pidf "$u")"
+  log "$u: stop"
+}
+
+# rozwinięcie wzorców (try-restart 'omarchy-*-invitation.service') na aktywne unity
+expand() {
+  local a f
+  for a in "$@"; do
+    if [[ $a == *[\*\?]* ]]; then
+      for f in "$RT"/units/$a.pid; do [[ -e $f ]] && basename "$f" .pid; done
+    else norm "$a"; fi
+  done
+}
+
+prop() { # wartość właściwości dla `show -p`
+  local u=$1 p=$2 pid
+  case $p in
+    ActiveState) is_active "$u" && echo active || echo inactive ;;
+    SubState) is_active "$u" && echo running || echo dead ;;
+    LoadState) { is_audio "$u" || unit_file "$u" >/dev/null; } && echo loaded || echo not-found ;;
+    UnitFileState) grep -qxF -- "$u" "$ENABLED" && echo enabled || echo disabled ;;
+    MainPID)
+      pid=$(cat "$(pidf "$u")" 2>/dev/null)
+      # unit z nadzorcą (jest lock): MainPID = proces unitu, czyli dziecko nadzorcy;
+      # unit z systemd-run --unit: sam zapisany proces
+      if [[ -n $pid && -e $(lockf "$u") ]]; then pid=$(pgrep -P "$pid" | head -1); fi
+      is_active "$u" && echo "${pid:-0}" || echo 0 ;;
+    Id) echo "$u" ;;
+    *) echo "" ;;
+  esac
+}
+
+list_timers() {
+  local json=0 legend=1 pat='*' a now t unit next pid first=1
+  for a in "$@"; do
+    case $a in
+      --output=json|json) json=1 ;;
+      --no-legend) legend=0 ;;
+      -*) ;;
+      *) pat=$a ;;
+    esac
+  done
+  now=$(date +%s)
+  ((json)) && printf '['
+  ((json)) || ((legend == 0)) || printf 'NEXT LEFT LAST PASSED UNIT ACTIVATES\n'
+  for t in "$RT"/timers/*.timer; do
+    [[ -e $t ]] || continue
+    unit=$(basename "$t")
+    # shellcheck disable=SC2053  # $pat to wzorzec (omarchy-reminder-*.timer) — glob zamierzony
+    [[ $unit == $pat ]] || continue
+    read -r next pid <"$t"
+    kill -0 "$pid" 2>/dev/null || { rm -f "$t"; continue; }
+    if ((json)); then
+      ((first)) || printf ','
+      first=0
+      printf '{"unit":"%s","next":%s,"activates":"%s"}' "$unit" "$(( next * 1000000 ))" "${unit%.timer}.service"
+    else
+      printf '%s %s - - %s %s\n' "$(date -d "@$next" '+%a_%F_%T')" "$(( next - now ))s" "$unit" "${unit%.timer}.service"
+    fi
+  done
+  ((json)) && printf ']\n'
+  return 0
+}
+
+stop_all() { # wszystkie unity tej sesji + dźwięk; także sieroty po sesji, której nadzorca zginął
+  local f p
+  for f in "$RT"/units/*.pid; do [[ -e $f ]] && stop_unit "$(basename "$f" .pid)"; done
+  for p in $(pgrep -u "$UID_" -f '[o]marchy-port-units __supervise'); do
+    [[ $p == "$$" ]] || kill -TERM -- -"$p" 2>/dev/null || kill "$p" 2>/dev/null
+  done
+  rm -f "$RT"/units/*.pid
+  audio_stop
+}
+
+daemon() { # sesja: dźwięk od razu, unity po import-environment, sprzątanie po końcu sesji
+  local spid=${1:-} u waited=0
+  # SDDM zabija przy wylogowaniu procesy sesji (w tym ten), a unity startują przez setsid
+  # i przeżywają — dlatego sprzątamy na STARCIE nowej sesji (odporne nawet na SIGKILL)
+  # oraz przy TERM/HUP/INT. Stary pipewire trzyma martwą magistralę D-Bus starej sesji.
+  stop_all
+  log "daemon: start sesji (spid=${spid:-?}), pozostałości po poprzedniej usunięte"
+  trap 'log "daemon: sygnał — sprzątam"; stop_all; rm -f "$ENVF"; exit 0' TERM HUP INT
+  rm -f "$ENVF"
+  audio_start
+  while [[ ! -f $ENVF ]] && (( waited < 120 )); do sleep 0.5; waited=$((waited + 1)); done
+  [[ -f $ENVF ]] || log "daemon: brak import-environment po 60 s — startuję unity z bieżącym env"
+  while read -r u; do [[ -n $u ]] && start_unit "$u"; done <"$ENABLED"
+  log "daemon: unity wystartowane"
+  [[ -n $spid ]] || return 0
+  while kill -0 "$spid" 2>/dev/null; do sleep 2 & wait $!; done
+  log "daemon: koniec sesji ($spid) — zatrzymuję unity"
+  stop_all
+  rm -f "$ENVF"
+}
+
+verb=${1:-}; shift || true
+now=0 quiet=0 value=0 args=() props=()
+while (( $# )); do
+  case $1 in
+    --now) now=1 ;;
+    --quiet|-q) quiet=1 ;;
+    --value) value=1 ;;
+    -p|--property) props+=("${2:-}"); shift ;;
+    --property=*) props+=("${1#*=}") ;;
+    --no-pager|--no-legend|--all|-a|--full|-l|--plain|--no-ask-password|--runtime|--force|-f|--output=*|-o)
+      [[ $1 == -o ]] && { args+=("--output=${2:-}"); shift; }
+      [[ $1 == --no-legend || $1 == --output=* ]] && args+=("$1") ;;
+    -*) ;;   # pozostałe opcje systemctl nie są nazwami unitów
+    *) args+=("$1") ;;
+  esac
+  shift
+done
+units() { local a; for a in "${args[@]}"; do [[ $a == --* ]] || printf '%s\n' "$a"; done; }
+# shellcheck disable=SC2046  # podział słów zamierzony: nazwy unitów nie mają spacji
+mapfile -t U < <(expand $(units))
+
+rc=0
+case $verb in
+  __supervise) supervise "${args[0]}" ;;
+  daemon) daemon "${args[0]:-}" ;;   # `daemon --session-pid N` — opcja odfiltrowana wyżej, zostaje N
+  daemon-reload|reset-failed|cancel) exit 0 ;;
+  import-environment)
+    tmp=$(mktemp "$RT/env.XXXXXX")
+    if (( ${#args[@]} )); then names=("${args[@]}"); else mapfile -t names < <(compgen -e); fi
+    for n in "${names[@]}"; do
+      [[ $n =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+      [[ -v $n ]] && printf 'export %s=%q\n' "$n" "${!n}" >>"$tmp"
+    done
+    mv -f "$tmp" "$ENVF"; log "import-environment: ${#names[@]} zmiennych" ;;
+  show-environment)
+    if [[ -f $ENVF ]]; then (set -a; . "$ENVF"; env); else env; fi ;;
+  list-timers) list_timers "${args[@]}" ;;
+  enable|disable)
+    for u in "${U[@]}"; do
+      if [[ $verb == enable ]]; then
+        is_audio "$u" || unit_file "$u" >/dev/null || { echo "Failed to enable unit: Unit file $u does not exist." >&2; rc=1; continue; }
+        grep -qxF -- "$u" "$ENABLED" || echo "$u" >>"$ENABLED"
+        (( now )) && { start_unit "$u" || rc=$?; }
+      else
+        grep -vxF -- "$u" "$ENABLED" >"$ENABLED.tmp"; mv -f "$ENABLED.tmp" "$ENABLED"
+        (( now )) && stop_unit "$u"
+      fi
+    done ;;
+  start) for u in "${U[@]}"; do start_unit "$u" || rc=$?; done ;;
+  stop|kill) for u in "${U[@]}"; do stop_unit "$u"; done ;;
+  restart) for u in "${U[@]}"; do stop_unit "$u"; done; for u in "${U[@]}"; do start_unit "$u" || rc=$?; done ;;
+  try-restart)
+    for u in "${U[@]}"; do is_active "$u" && { stop_unit "$u"; start_unit "$u" || rc=$?; }; done ;;
+  is-active)
+    for u in "${U[@]}"; do
+      if is_active "$u"; then (( quiet )) || echo active; else (( quiet )) || echo inactive; rc=3; fi
+    done ;;
+  is-enabled)
+    for u in "${U[@]}"; do
+      if grep -qxF -- "$u" "$ENABLED"; then (( quiet )) || echo enabled; else (( quiet )) || echo disabled; rc=1; fi
+    done ;;
+  show)
+    (( ${#props[@]} )) || props=(Id LoadState ActiveState SubState UnitFileState MainPID)
+    for u in "${U[@]}"; do
+      for p in "${props[@]}"; do
+        for pp in ${p//,/ }; do
+          if (( value )); then prop "$u" "$pp"; else printf '%s=%s\n' "$pp" "$(prop "$u" "$pp")"; fi
+        done
+      done
+    done ;;
+  status)
+    for u in "${U[@]}"; do
+      if is_active "$u"; then echo "● $u — active (omarchy-port)"; else echo "○ $u — inactive (omarchy-port)"; rc=3; fi
+    done ;;
+  *)
+    echo "systemctl --user (omarchy-port): nieobsługiwane: $verb" >&2
+    log "nieobsługiwane --user: $verb ${args[*]}"
+    exit 1 ;;
+esac
+exit $rc

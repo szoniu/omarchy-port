@@ -1,0 +1,26 @@
+systemd	runit	uwagi
+NetworkManager	NetworkManager
+sshd	sshd
+tailscaled	tailscaled
+iwd	iwd
+ufw	ufw
+thermald	thermald
+docker	docker	docker.socket/docker.service → jedna usługa runit
+cups	cupsd
+bluetooth	bluetoothd
+avahi-daemon	avahi-daemon
+sddm	sddm
+power-profiles-daemon	power-profiles-daemon
+supergfxd	supergfxd
+intel_lpmd	intel_lpmd
+NetworkManager-wait-online	-	runit nie ma celu network-online — nie ma na co czekać
+systemd-networkd-wait-online	-	j.w.
+systemd-networkd	-	sieć robi NetworkManager
+systemd-resolved	-	resolv.conf zarządza NetworkManager
+systemd-timesyncd	-	NTP: osobna decyzja portu (chrony/openntpd)
+systemd-oomd	-	brak odpowiednika
+linux-modules-cleanup	-	Arch: sprzątanie modułów starego kernela po aktualizacji
+snapper-timeline	-	snapper poza zakresem (Omarchy: btrfs + limine)
+snapper-cleanup	-	j.w.
+omarchy-seamless-login	-	Arch/limine: płynne przejście z plymouth
+omarchy-nvme-suspend-fix	-	do przejrzenia przy sprzęcie (omarchy-port#6)

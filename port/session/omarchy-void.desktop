@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Omarchy (Void)
+Comment=Omarchy Hyprland session without uwsm (omarchy-port)
+Exec=/usr/libexec/omarchy-port/session
+Type=Application

@@ -1,0 +1,100 @@
+klawisze	opis	wynik	rc	nowe_okna	stderr
+about	About	OK	0	1	
+system.screensaver	Screensaver	rc≠0	1	0	
+learn.keybindings	Keybindings	DZIAŁA (proces żyje)	124	0	
+learn.omarchy	Omarchy	DZIAŁA (proces żyje)	124	0	[12199:12199:1014/081145.127236:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [12112:12182:1014/081148.478257:ERROR:google_apis/gcm/engine/registration_request.
+learn.hyprland	Hyprland	DZIAŁA (proces żyje)	124	0	[12405:12405:1014/081154.033301:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [12318:12386:1014/081157.340116:ERROR:google_apis/gcm/engine/registration_request.
+learn.arch	Arch	DZIAŁA (proces żyje)	124	0	[12586:12586:1014/081203.622186:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [12499:12566:1014/081206.996108:ERROR:google_apis/gcm/engine/registration_request.
+learn.neovim	Neovim	DZIAŁA (proces żyje)	124	0	[12761:12761:1014/081213.175852:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [12674:12743:1014/081216.474469:ERROR:google_apis/gcm/engine/registration_request.
+learn.bash	Bash	DZIAŁA (proces żyje)	124	0	[12943:12943:1014/081222.757992:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [12855:12924:1014/081226.039253:ERROR:google_apis/gcm/engine/registration_request.
+learn.tmux-keybindings	Tmux	DZIAŁA (proces żyje)	124	0	
+learn.herdr-keybindings	Herdr	DZIAŁA (proces żyje)	124	0	
+learn.community	Community	DZIAŁA (proces żyje)	124	0	[13539:13539:1014/081251.436535:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [13450:13521:1014/081256.712636:ERROR:google_apis/gcm/engine/registration_request.
+trigger.emoji	Emoji	OK	0	0	
+trigger.capture.screenshot	Screenshot	DZIAŁA (proces żyje)	124	0	
+trigger.capture.screenrecord.stop	Stop Screenrecording	POMINIĘTY			
+trigger.capture.text	Text	DZIAŁA (proces żyje)	124	0	
+trigger.capture.qr	QR Code	DZIAŁA (proces żyje)	124	0	
+trigger.capture.color	Color	DZIAŁA (proces żyje)	124	0	
+trigger.capture.screenrecord.no-audio	With no audio	DZIAŁA (proces żyje)	124	0	
+trigger.capture.screenrecord.desktop-audio	With desktop audio	DZIAŁA (proces żyje)	124	0	
+trigger.capture.screenrecord.microphone	With desktop + microphone audio	DZIAŁA (proces żyje)	124	0	
+trigger.capture.screenrecord.webcam	With desktop + microphone audio + webcam	rc≠0	1	0	
+trigger.transcode	Transcode	rc≠0	1	0	
+trigger.hardware.laptop-display	Laptop Display	rc≠0	1	0	
+trigger.hardware.mirror-display	Mirror Display	rc≠0	1	0	
+trigger.hardware.touchpad-haptics.low	low	rc≠0	127	0	
+trigger.hardware.touchpad-haptics.mid	mid	rc≠0	127	0	
+trigger.hardware.touchpad-haptics.high	high	rc≠0	127	0	
+trigger.reminder.set	Set one	OK	0	0	
+trigger.reminder.show	Show all	OK	0	0	
+trigger.reminder.clear	Clear all	OK	0	0	
+trigger.share.clipboard	Clipboard	OK	0	0	
+trigger.share.file	File	DZIAŁA (proces żyje)	124	0	
+trigger.share.folder	Folder	DZIAŁA (proces żyje)	124	0	
+trigger.share.receive	Receive	BŁĄD	127	0	/usr/local/bin/uwsm-app: 16: exec: localsend: not found 
+trigger.toggle.battery-percentage	Battery Percentage	OK	0	0	
+trigger.toggle.workspace-layout	Workspace Layout	OK	0	0	
+trigger.toggle.window-gaps	Window Gaps	OK	0	0	
+trigger.toggle.one-window-ratio	1-Window Ratio	OK	0	0	
+trigger.tests.network-speedtest	Network Speed Test	OK	0	0	
+trigger.tests.disk-speedtest	Disk Speed Test	OK	0	0	
+style.bar.transparency	Transparency	OK	0	0	
+style.hyprland	Hyprland	DZIAŁA (proces żyje)	124	0	
+style.bar.position.top	Top	OK	0	0	
+style.bar.position.bottom	Bottom	OK	0	0	
+style.bar.position.left	Left	OK	0	0	
+style.bar.position.right	Right	OK	0	0	
+style.about.text	Edit Text	DZIAŁA (proces żyje)	124	1	
+style.about.image	Set From Image	DZIAŁA (proces żyje)	124	0	
+style.screensaver.text	Edit Text	DZIAŁA (proces żyje)	124	1	
+style.screensaver.image	Set From Image	DZIAŁA (proces żyje)	124	0	
+setup.monitors	Monitors	DZIAŁA (proces żyje)	124	0	
+setup.keybindings	Keybindings	DZIAŁA (proces żyje)	124	0	
+setup.input	Input	DZIAŁA (proces żyje)	124	0	
+setup.network.dns.dhcp	DHCP	OK	0	0	
+setup.network.dns.cloudflare	Cloudflare	OK	0	0	
+setup.network.dns.google	Google	OK	0	0	
+setup.network.dns.custom	Custom	DZIAŁA (proces żyje)	124	0	
+setup.network.qr	QR Code	OK	0	0	
+setup.default.agent.claude	Claude	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.codex	Codex	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.copilot	Copilot	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.crush	Crush	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.cursor-agent	Cursor CLI	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.gemini	Gemini	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.grok	Grok	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.hermes	Hermes	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.muse	Muse Code	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.omp	omp	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.openclaw	OpenClaw	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.opencode	OpenCode	DZIAŁA (proces żyje)	124	0	
+setup.default.agent.pi	Pi	DZIAŁA (proces żyje)	124	0	
+setup.default.browser.chromium	Chromium	OK	0	0	
+setup.default.browser.chrome	Chrome	rc≠0	1	0	
+setup.default.browser.brave	Brave	rc≠0	1	0	
+setup.default.browser.brave-origin	Brave Origin	rc≠0	1	0	
+setup.default.browser.edge	Edge	rc≠0	1	0	
+setup.default.browser.firefox	Firefox	rc≠0	1	0	
+setup.default.browser.zen	Zen	rc≠0	1	0	
+setup.default.terminal.alacritty	Alacritty	OK	0	0	
+setup.default.terminal.foot	Foot	OK	0	0	
+setup.default.terminal.ghostty	Ghostty	OK	0	0	
+setup.default.terminal.kitty	Kitty	OK	0	0	
+setup.default.editor.neovim	Neovim	OK	0	0	
+setup.default.editor.vscode	VSCode	OK	0	0	
+setup.default.editor.cursor	Cursor	OK	0	0	
+setup.default.editor.zed	Zed	OK	0	0	
+setup.default.editor.sublime	Sublime Text	OK	0	0	
+setup.default.editor.helix	Helix	OK	0	0	
+setup.default.editor.vim	Vim	OK	0	0	
+setup.default.editor.emacs	Emacs	OK	0	0	
+setup.plugin.enable	Enable Plugin	DZIAŁA (proces żyje)	124	0	
+setup.plugin.disable	Disable Plugin	DZIAŁA (proces żyje)	124	0	
+setup.plugin.add	Add Plugin	DZIAŁA (proces żyje)	124	0	
+setup.plugin.clone	Clone Plugin	DZIAŁA (proces żyje)	124	0	
+setup.security.sshd	SSHD	DZIAŁA (proces żyje)	124	0	
+setup.config.hyprland	Hyprland	DZIAŁA (proces żyje)	124	0	
+setup.direct-boot	Direct Boot	DZIAŁA (proces żyje)	124	0	
+update.timezone	Timezone	rc≠0	1	0	
+update.password.drive	Drive Encryption	DZIAŁA (proces żyje)	124	0	

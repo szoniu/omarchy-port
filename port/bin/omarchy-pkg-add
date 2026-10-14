@@ -1,0 +1,27 @@
+#!/bin/bash
+# omarchy-port (Void): nakładka na /usr/bin/omarchy-pkg-add (pacman -S --needed → xbps-install).
+# Kontrakt jak w upstreamie: rc 0 tylko gdy po instalacji WSZYSTKIE pakiety są obecne.
+. /usr/share/omarchy-port/pkg-map.sh
+
+names=()
+for pkg in "$@"; do
+  name=$(port_pkg_name "$pkg") || exit 1
+  port_pkg_installed "$name" || names+=("$name")
+done
+
+if (( ${#names[@]} )); then
+  if (( EUID == 0 )); then
+    xbps-install -Sy "${names[@]}" || exit 1
+  else
+    sudo xbps-install -Sy "${names[@]}" || exit 1
+  fi
+fi
+
+for pkg in "$@"; do
+  name=$(port_pkg_name "$pkg" 2>/dev/null)
+  if ! port_pkg_installed "$name"; then
+    echo -e "\033[31mError: Package '$pkg' ($name) did not install\033[0m" >&2
+    exit 1
+  fi
+done
+exit 0

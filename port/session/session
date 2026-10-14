@@ -1,0 +1,13 @@
+#!/bin/sh
+# omarchy-port: sesja Omarchy bez uwsm/systemd (odpowiednik `uwsm start … hyprland.desktop`).
+# Kolejność: magistrala D-Bus sesji → env Omarchy → nadzorca unitów (dźwięk od razu, unity
+# użytkownika po `systemctl --user import-environment` z autostartu Omarchy) → Hyprland.
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+  exec dbus-run-session -- "$0" "$@"
+fi
+[ -r /usr/share/uwsm/env.d/10-omarchy ] && . /usr/share/uwsm/env.d/10-omarchy
+for f in /usr/lib/environment.d/*.conf; do [ -r "$f" ] && { set -a; . "$f"; set +a; }; done
+export XDG_CURRENT_DESKTOP=Hyprland XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=Hyprland
+# $$ to PID, który za chwilę stanie się start-hyprland (exec) — nadzorca sprząta po jego końcu
+omarchy-port-units daemon --session-pid $$ </dev/null >/dev/null 2>&1 &
+exec start-hyprland

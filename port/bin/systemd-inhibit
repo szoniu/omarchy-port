@@ -1,0 +1,4 @@
+#!/bin/sh
+# omarchy-port: systemd-inhibit → elogind-inhibit (ten sam interfejs, logind z elogind).
+# Używa go omarchy-system-sleep-monitor (blokada „zablokuj ekran przed uśpieniem”).
+exec elogind-inhibit "$@"
