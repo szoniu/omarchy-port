@@ -1,0 +1,225 @@
+SUPER + RETURN	Terminal	exec	omarchy-launch-terminal
+SUPER + SHIFT + RETURN	Browser	exec	omarchy-launch-browser
+SUPER + SHIFT + F	File manager	exec	omarchy-launch-nautilus
+SUPER + ALT + SHIFT + F	File manager (cwd)	exec	omarchy-launch-nautilus-cwd
+SUPER + SHIFT + B	Browser	exec	omarchy-launch-browser
+SUPER + SHIFT + ALT + B	Browser (private)	exec	omarchy-launch-browser --private
+SUPER + SHIFT + N	Editor	exec	omarchy-launch-editor
+SUPER + ALT + RETURN	Tmux	exec	omarchy-launch-terminal-tmux
+SUPER + CTRL + RETURN	Herdr	exec	omarchy-launch-terminal-herdr
+SUPER + SHIFT + M	Music	exec	omarchy-launch-spotify
+SUPER + SHIFT + ALT + M	Music TUI	exec	omarchy-launch-or-focus-tui 'cliamp'
+SUPER + SHIFT + D	Docker	exec	omarchy-launch-tui 'omarchy-launch-docker-tui'
+SUPER + SHIFT + G	Signal	exec	omarchy-launch-signal
+SUPER + SHIFT + O	Obsidian	exec	omarchy-launch-or-focus '^obsidian$' 'uwsm-app -- obsidian'
+SUPER + SHIFT + W	Omawrite	exec	uwsm-app -- omawrite
+SUPER + SHIFT + SLASH	Passwords	exec	omarchy-launch-1password
+SUPER + SHIFT + A	ChatGPT	exec	omarchy-launch-webapp 'https://chatgpt.com'
+SUPER + SHIFT + ALT + A	Grok	exec	omarchy-launch-webapp 'https://grok.com'
+SUPER + SHIFT + C	Calendar	exec	omarchy-launch-webapp 'https://app.hey.com/calendar/weeks/'
+SUPER + SHIFT + E	Email	exec	omarchy-launch-webapp 'https://app.hey.com'
+SUPER + SHIFT + ALT + E	New email	exec	omarchy-launch-webapp 'https://app.hey.com/messages/new?display=standalone&new_window=true'
+SUPER + SHIFT + Y	YouTube	exec	omarchy-launch-webapp 'https://youtube.com/'
+SUPER + SHIFT + ALT + G	WhatsApp	exec	omarchy-launch-or-focus-webapp 'WhatsApp' 'https://web.whatsapp.com/'
+SUPER + SHIFT + CTRL + G	Google Messages	exec	omarchy-launch-or-focus-webapp 'Google Messages' 'https://messages.google.com/web/conversations'
+SUPER + SHIFT + P	Google Photos	exec	omarchy-launch-or-focus-webapp 'Google Photos' 'https://photos.google.com/'
+SUPER + SHIFT + S	Google Maps	exec	omarchy-launch-or-focus-webapp 'Google Maps' 'https://maps.google.com/'
+SUPER + SHIFT + X	X	exec	omarchy-launch-webapp 'https://x.com/'
+SUPER + SHIFT + ALT + X	X Post	exec	omarchy-launch-webapp 'https://x.com/compose/post'
+SUPER + C	Universal copy	lua	<funkcja Lua>
+SUPER + V	Universal paste	lua	<funkcja Lua>
+SUPER + X	Universal cut	lua	<funkcja Lua>
+SUPER + CTRL + V	Clipboard manager	exec	omarchy-shell shell toggle omarchy.clipboard
+XF86AudioRaiseVolume	Volume up	exec	omarchy-audio-output-volume raise
+XF86AudioLowerVolume	Volume down	exec	omarchy-audio-output-volume lower
+XF86AudioMute	Mute	exec	omarchy-audio-output-volume mute-toggle
+XF86AudioMicMute	Mute microphone	exec	omarchy-audio-input-mute
+XF86MonBrightnessUp	Brightness up	exec	omarchy-brightness-display +5%
+XF86MonBrightnessDown	Brightness down	exec	omarchy-brightness-display 5%-
+SHIFT + XF86MonBrightnessUp	Brightness maximum	exec	omarchy-brightness-display 100%
+SHIFT + XF86MonBrightnessDown	Brightness minimum	exec	omarchy-brightness-display 1%
+XF86KbdBrightnessUp	Keyboard brightness up	exec	omarchy-brightness-keyboard up
+XF86KbdBrightnessDown	Keyboard brightness down	exec	omarchy-brightness-keyboard down
+XF86KbdLightOnOff	Keyboard backlight cycle	exec	omarchy-brightness-keyboard cycle
+XF86TouchpadToggle	Toggle touchpad	exec	omarchy-toggle-touchpad
+XF86TouchpadOn	Enable touchpad	exec	omarchy-toggle-touchpad on
+XF86TouchpadOff	Disable touchpad	exec	omarchy-toggle-touchpad off
+ALT + XF86AudioRaiseVolume	Volume up precise	exec	omarchy-audio-output-volume +1
+ALT + XF86AudioLowerVolume	Volume down precise	exec	omarchy-audio-output-volume -1
+ALT + XF86MonBrightnessUp	Brightness up precise	exec	omarchy-brightness-display +1%
+ALT + XF86MonBrightnessDown	Brightness down precise	exec	omarchy-brightness-display 1%-
+XF86AudioNext	Next track	exec	omarchy-shell media next
+ALT + XF86AudioPlay	Next track	exec	omarchy-shell media next
+XF86AudioPause	Pause	exec	omarchy-shell media playPause
+XF86AudioPlay	Play	exec	omarchy-shell media playPause
+XF86AudioPrev	Previous track	exec	omarchy-shell media previous
+ALT + SHIFT + XF86AudioPlay	Previous track	exec	omarchy-shell media previous
+XF86Eject	Eject media	exec	eject
+SHIFT + XF86AudioMute	Switch audio output	exec	omarchy-audio-output-switch
+SHIFT + XF86AudioPause	Switch media source	exec	omarchy-audio-source-switch
+SHIFT + XF86AudioPlay	Switch media source	exec	omarchy-audio-source-switch
+SUPER + W	Close window	dsp	dsp.window.close()
+CTRL + ALT + DELETE	Close all windows	exec	omarchy-hyprland-window-close-all
+SUPER + J	Toggle window split	dsp	dsp.layout(togglesplit)
+SUPER + P	Pseudo window	dsp	dsp.window.pseudo()
+SUPER + T	Toggle window floating/tiling	dsp	dsp.window.float({…})
+SUPER + F	Full screen	dsp	dsp.window.fullscreen({…})
+SUPER + CTRL + F	Tiled full screen	exec	omarchy-hyprland-window-tiled-fullscreen-toggle
+SUPER + ALT + F	Full width	dsp	dsp.window.fullscreen({…})
+SUPER + O	Pop window out (float & pin)	exec	omarchy-hyprland-window-pop
+SUPER + ALT + Home	Save window width	exec	omarchy-hyprland-window-width save
+SUPER + Home	Restore window width	exec	omarchy-hyprland-window-width restore
+SUPER + L	Toggle workspace layout	exec	omarchy-hyprland-workspace-layout-toggle
+SUPER + LEFT	Focus on left window	dsp	dsp.focus({…})
+SUPER + RIGHT	Focus on right window	dsp	dsp.focus({…})
+SUPER + UP	Focus on above window	dsp	dsp.focus({…})
+SUPER + DOWN	Focus on below window	dsp	dsp.focus({…})
+SUPER + code:10	Switch to workspace 1	dsp	dsp.focus({…})
+SUPER + SHIFT + code:10	Move window to workspace 1	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:10	Move window silently to workspace 1	dsp	dsp.window.move({…})
+SUPER + code:11	Switch to workspace 2	dsp	dsp.focus({…})
+SUPER + SHIFT + code:11	Move window to workspace 2	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:11	Move window silently to workspace 2	dsp	dsp.window.move({…})
+SUPER + code:12	Switch to workspace 3	dsp	dsp.focus({…})
+SUPER + SHIFT + code:12	Move window to workspace 3	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:12	Move window silently to workspace 3	dsp	dsp.window.move({…})
+SUPER + code:13	Switch to workspace 4	dsp	dsp.focus({…})
+SUPER + SHIFT + code:13	Move window to workspace 4	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:13	Move window silently to workspace 4	dsp	dsp.window.move({…})
+SUPER + code:14	Switch to workspace 5	dsp	dsp.focus({…})
+SUPER + SHIFT + code:14	Move window to workspace 5	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:14	Move window silently to workspace 5	dsp	dsp.window.move({…})
+SUPER + code:15	Switch to workspace 6	dsp	dsp.focus({…})
+SUPER + SHIFT + code:15	Move window to workspace 6	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:15	Move window silently to workspace 6	dsp	dsp.window.move({…})
+SUPER + code:16	Switch to workspace 7	dsp	dsp.focus({…})
+SUPER + SHIFT + code:16	Move window to workspace 7	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:16	Move window silently to workspace 7	dsp	dsp.window.move({…})
+SUPER + code:17	Switch to workspace 8	dsp	dsp.focus({…})
+SUPER + SHIFT + code:17	Move window to workspace 8	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:17	Move window silently to workspace 8	dsp	dsp.window.move({…})
+SUPER + code:18	Switch to workspace 9	dsp	dsp.focus({…})
+SUPER + SHIFT + code:18	Move window to workspace 9	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:18	Move window silently to workspace 9	dsp	dsp.window.move({…})
+SUPER + code:19	Switch to workspace 10	dsp	dsp.focus({…})
+SUPER + SHIFT + code:19	Move window to workspace 10	dsp	dsp.window.move({…})
+SUPER + SHIFT + ALT + code:19	Move window silently to workspace 10	dsp	dsp.window.move({…})
+SUPER + S	Toggle scratchpad	dsp	dsp.workspace.toggle_special(scratchpad)
+SUPER + ALT + S	Move window to scratchpad	dsp	dsp.window.move({…})
+SUPER + TAB	Next workspace	dsp	dsp.focus({…})
+SUPER + SHIFT + TAB	Previous workspace	dsp	dsp.focus({…})
+SUPER + CTRL + TAB	Former workspace	dsp	dsp.focus({…})
+SUPER + SHIFT + ALT + LEFT	Move workspace to left monitor	dsp	dsp.workspace.move({…})
+SUPER + SHIFT + ALT + RIGHT	Move workspace to right monitor	dsp	dsp.workspace.move({…})
+SUPER + SHIFT + ALT + UP	Move workspace to up monitor	dsp	dsp.workspace.move({…})
+SUPER + SHIFT + ALT + DOWN	Move workspace to down monitor	dsp	dsp.workspace.move({…})
+SUPER + SHIFT + LEFT	Swap window to the left	dsp	dsp.window.swap({…})
+SUPER + SHIFT + RIGHT	Swap window to the right	dsp	dsp.window.swap({…})
+SUPER + SHIFT + UP	Swap window up	dsp	dsp.window.swap({…})
+SUPER + SHIFT + DOWN	Swap window down	dsp	dsp.window.swap({…})
+ALT + TAB	Focus on next window	dsp	dsp.window.cycle_next()
+ALT + SHIFT + TAB	Focus on previous window	dsp	dsp.window.cycle_next({…})
+ALT + TAB	Reveal active window on top	dsp	dsp.window.bring_to_top()
+ALT + SHIFT + TAB	Reveal active window on top	dsp	dsp.window.bring_to_top()
+CTRL + ALT + TAB	Focus on next monitor	dsp	dsp.focus({…})
+CTRL + ALT + SHIFT + TAB	Focus on previous monitor	dsp	dsp.focus({…})
+SUPER + code:20	Expand window left	dsp	dsp.window.resize({…})
+SUPER + code:21	Shrink window left	dsp	dsp.window.resize({…})
+SUPER + SHIFT + code:20	Shrink window up	dsp	dsp.window.resize({…})
+SUPER + SHIFT + code:21	Expand window down	dsp	dsp.window.resize({…})
+SUPER + ALT + code:20	Expand window left a little	dsp	dsp.window.resize({…})
+SUPER + ALT + code:21	Shrink window left a little	dsp	dsp.window.resize({…})
+SUPER + SHIFT + ALT + code:20	Shrink window up a little	dsp	dsp.window.resize({…})
+SUPER + SHIFT + ALT + code:21	Expand window down a little	dsp	dsp.window.resize({…})
+SUPER + CTRL + code:20	Expand window left a lot	dsp	dsp.window.resize({…})
+SUPER + CTRL + code:21	Shrink window left a lot	dsp	dsp.window.resize({…})
+SUPER + CTRL + SHIFT + code:20	Shrink window up a lot	dsp	dsp.window.resize({…})
+SUPER + CTRL + SHIFT + code:21	Expand window down a lot	dsp	dsp.window.resize({…})
+SUPER + mouse_down	Scroll active workspace forward	dsp	dsp.focus({…})
+SUPER + mouse_up	Scroll active workspace backward	dsp	dsp.focus({…})
+SUPER + mouse:272	Move window	dsp	dsp.window.drag()
+SUPER + mouse:273	Resize window	dsp	dsp.window.resize()
+SUPER + G	Toggle window grouping	dsp	dsp.group.toggle()
+SUPER + ALT + G	Move active window out of group	dsp	dsp.window.move({…})
+SUPER + ALT + LEFT	Move window to group on left	dsp	dsp.window.move({…})
+SUPER + ALT + RIGHT	Move window to group on right	dsp	dsp.window.move({…})
+SUPER + ALT + UP	Move window to group on top	dsp	dsp.window.move({…})
+SUPER + ALT + DOWN	Move window to group on bottom	dsp	dsp.window.move({…})
+SUPER + ALT + TAB	Next window in group	dsp	dsp.group.next()
+SUPER + ALT + SHIFT + TAB	Previous window in group	dsp	dsp.group.prev()
+SUPER + CTRL + LEFT	Move grouped window focus left	dsp	dsp.group.prev()
+SUPER + CTRL + RIGHT	Move grouped window focus right	dsp	dsp.group.next()
+SUPER + ALT + mouse_down	Next window in group	dsp	dsp.group.next()
+SUPER + ALT + mouse_up	Previous window in group	dsp	dsp.group.prev()
+SUPER + ALT + code:10	Switch to group window 1	dsp	dsp.group.active({…})
+SUPER + ALT + code:11	Switch to group window 2	dsp	dsp.group.active({…})
+SUPER + ALT + code:12	Switch to group window 3	dsp	dsp.group.active({…})
+SUPER + ALT + code:13	Switch to group window 4	dsp	dsp.group.active({…})
+SUPER + ALT + code:14	Switch to group window 5	dsp	dsp.group.active({…})
+SUPER + SLASH	Monitor scaling up	exec	omarchy-hyprland-monitor-scaling up
+SUPER + ALT + SLASH	Monitor scaling down	exec	omarchy-hyprland-monitor-scaling down
+SUPER + SPACE	Omarchy menu	exec	omarchy-menu toggle
+SUPER + ALT + SPACE	Apps menu	exec	omarchy-menu toggle apps
+SUPER + CTRL + E	Emojis	exec	omarchy-shell shell toggle omarchy.emojis
+SUPER + CTRL + C	Capture menu	exec	omarchy-menu toggle capture
+SUPER + CTRL + O	Toggle menu	exec	omarchy-menu toggle toggle
+SUPER + CTRL + H	Hardware menu	exec	omarchy-menu toggle hardware
+SUPER + SHIFT + code:201	Omarchy menu	exec	omarchy-menu toggle root
+SUPER + ESCAPE	System menu	exec	omarchy-menu toggle system
+XF86PowerOff	Power menu	exec	omarchy-menu toggle system
+SUPER + K	Keybindings	exec	omarchy-menu-keybindings
+SUPER + ALT + K	Tmux keybindings	exec	omarchy-menu-tmux-keybindings
+SUPER + CTRL + K	Herdr keybindings	exec	omarchy-menu-herdr-keybindings
+SUPER + CTRL + Q	Calculator	exec	omacalc
+XF86Calculator	Calculator	exec	omacalc
+SUPER + SHIFT + SPACE	Toggle top bar	exec	omarchy-toggle-bar
+SUPER + CTRL + SPACE	Background switcher	exec	omarchy-menu toggle background
+SUPER + SHIFT + CTRL + SPACE	Theme menu	exec	omarchy-menu toggle theme
+SUPER + BACKSPACE	Toggle window transparency	exec	omarchy-hyprland-window-transparency-toggle
+SUPER + SHIFT + BACKSPACE	Toggle window gaps	exec	omarchy-hyprland-window-gaps-toggle
+SUPER + CTRL + BACKSPACE	Toggle single-window square aspect	exec	omarchy-hyprland-window-single-square-aspect-toggle
+SUPER + comma	Dismiss last notification	exec	omarchy-shell notifications dismissOne
+SUPER + SHIFT + comma	Dismiss all notifications	exec	omarchy-shell notifications dismissAll
+SUPER + CTRL + comma	Toggle silencing notifications	exec	omarchy-toggle-notification-silencing
+SUPER + ALT + comma	Invoke last notification	exec	omarchy-shell notifications invokeLast
+SUPER + SHIFT + ALT + comma	Open notification history	exec	omarchy-shell notifications showHistory
+SUPER + CTRL + I	Toggle locking on idle	exec	omarchy-toggle-idle
+SUPER + CTRL + N	Toggle nightlight	exec	omarchy-toggle-nightlight
+SUPER + CTRL + Delete	Toggle laptop display	exec	omarchy-hyprland-monitor-internal toggle
+SUPER + CTRL + ALT + Delete	Toggle laptop display mirroring	exec	omarchy-hyprland-monitor-internal-mirror toggle
+switch:on:Lid Switch		exec	omarchy-system-lid-close
+switch:off:Lid Switch		exec	omarchy-hyprland-monitor-clamshell
+PRINT	Screenshot	exec	omarchy-capture-screenshot
+ALT + PRINT	Screenrecording	exec	omarchy-capture-screenrecording --stop-recording || omarchy-menu toggle trigger.capture.screenrecord
+SUPER + ALT + code:34	Make webcam overlay smaller	exec	omarchy-capture-webcam-resize smaller
+SUPER + ALT + code:35	Make webcam overlay larger	exec	omarchy-capture-webcam-resize larger
+SUPER + PRINT	Color picker	exec	pkill hyprpicker || hyprpicker -a
+SUPER + CTRL + PRINT	Extract text (OCR) from screenshot	exec	omarchy-capture-text
+SUPER + CTRL + S	Share	exec	omarchy-menu toggle share
+SUPER + CTRL + PERIOD	Transcode	exec	omarchy-transcode
+SUPER + CTRL + R	Set reminder	exec	omarchy-menu toggle reminder-set
+SUPER + CTRL + ALT + R	Show reminders	exec	omarchy-reminder show
+SUPER + SHIFT + CTRL + R	Clear reminders	exec	omarchy-reminder clear
+SUPER + CTRL + ALT + T	Show time	exec	omarchy-notification-time
+SUPER + CTRL + ALT + B	Show battery remaining	exec	omarchy-notification-battery
+SUPER + CTRL + ALT + W	Toggle weather	exec	omarchy-notification-weather
+SUPER + SHIFT + CTRL + A	Agent	exec	omarchy-agent --pick
+SUPER + CTRL + A	Audio	exec	omarchy-shell shell toggle omarchy.audio
+SUPER + CTRL + B	Bluetooth	exec	omarchy-shell shell toggle omarchy.bluetooth
+SUPER + CTRL + D	Display	exec	omarchy-shell shell toggle omarchy.monitor
+SUPER + CTRL + ALT + D	Calendar	exec	omarchy-shell shell toggle omarchy.clock
+SUPER + CTRL + W	Network	exec	omarchy-shell shell toggle omarchy.network
+SUPER + CTRL + P	Power	exec	omarchy-shell shell toggle omarchy.power
+SUPER + CTRL + T	Activity	exec	omarchy-launch-tui 'btop'
+SUPER + CTRL + code:10	Bar panel 1	exec	omarchy-shell -q shell togglePanelAt right 1
+SUPER + CTRL + code:11	Bar panel 2	exec	omarchy-shell -q shell togglePanelAt right 2
+SUPER + CTRL + code:12	Bar panel 3	exec	omarchy-shell -q shell togglePanelAt right 3
+SUPER + CTRL + code:13	Bar panel 4	exec	omarchy-shell -q shell togglePanelAt right 4
+SUPER + CTRL + code:14	Bar panel 5	exec	omarchy-shell -q shell togglePanelAt right 5
+SUPER + CTRL + code:15	Bar panel 6	exec	omarchy-shell -q shell togglePanelAt right 6
+SUPER + CTRL + code:16	Bar panel 7	exec	omarchy-shell -q shell togglePanelAt right 7
+SUPER + CTRL + code:17	Bar panel 8	exec	omarchy-shell -q shell togglePanelAt right 8
+SUPER + CTRL + code:18	Bar panel 9	exec	omarchy-shell -q shell togglePanelAt right 9
+SUPER + CTRL + Z	Zoom in	lua	<funkcja Lua>
+SUPER + CTRL + ALT + Z	Reset zoom	lua	<funkcja Lua>
+SUPER + CTRL + L	Lock system	exec	omarchy-system-lock

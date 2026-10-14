@@ -1,0 +1,15 @@
+# Stan VM trzymamy w $VM_DIR, ale na wypadek uruchomienia w katalogu repo:
+*.iso
+*.qcow2
+OVMF_VARS*.fd
+id_vm
+id_vm.pub
+ssh_config
+qmp.sock
+serial.log
+iso-boot/
+shots/
+*.log
+omarchy-src/
+omarchy-pkgs/
+__pycache__/

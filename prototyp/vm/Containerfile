@@ -1,0 +1,11 @@
+# QEMU z Fedory w kontenerze — QEMU z AlmaLinux 10 nie ma virtio-gpu-gl (virgl),
+# a Hyprland + Quickshell w VM potrzebują 3D w gościu.
+FROM registry.fedoraproject.org/fedora:latest
+RUN dnf -y install \
+      qemu-system-x86-core qemu-img \
+      qemu-device-display-virtio-vga qemu-device-display-virtio-vga-gl \
+      qemu-device-display-virtio-gpu qemu-device-display-virtio-gpu-gl \
+      qemu-ui-egl-headless qemu-ui-opengl \
+      edk2-ovmf mesa-dri-drivers mesa-libEGL mesa-libgbm \
+      socat python3 xorriso gvnc-tools \
+ && dnf clean all

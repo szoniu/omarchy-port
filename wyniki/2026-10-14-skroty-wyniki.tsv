@@ -1,0 +1,127 @@
+klawisze	opis	wynik	rc	nowe_okna	stderr
+SUPER + RETURN	Terminal	DZIAŁA (proces żyje)	124	0	
+SUPER + SHIFT + RETURN	Browser	BŁĄD	0	0	/usr/share/omarchy/bin/omarchy-launch-browser: linia 20: systemd-run: nie znaleziono polecenia 
+SUPER + SHIFT + F	File manager	DZIAŁA (proces żyje)	124	0	nautilus-application-Message: 06:54:47.924: Failed to initialize display server connection: Nie można wywołać metody; pośrednik jest dla znanej nazwy org.gnome.Mutter.ServiceChannel bez właścici
+SUPER + ALT + SHIFT + F	File manager (cwd)	DZIAŁA (proces żyje)	124	0	nautilus-application-Message: 06:54:57.521: Failed to initialize display server connection: Nie można wywołać metody; pośrednik jest dla znanej nazwy org.gnome.Mutter.ServiceChannel bez właścici
+SUPER + SHIFT + B	Browser	BŁĄD	0	0	/usr/share/omarchy/bin/omarchy-launch-browser: linia 20: systemd-run: nie znaleziono polecenia 
+SUPER + SHIFT + ALT + B	Browser (private)	BŁĄD	0	0	/usr/share/omarchy/bin/omarchy-launch-browser: linia 20: systemd-run: nie znaleziono polecenia 
+SUPER + SHIFT + N	Editor	DZIAŁA (proces żyje)	124	0	
+SUPER + ALT + RETURN	Tmux	DZIAŁA (proces żyje)	124	0	
+SUPER + CTRL + RETURN	Herdr	BŁĄD	230	0	 err: slave.c:554: herdr: failed to execute: No such file or directory  err: fdm.c:228: no such FD: 6 
+SUPER + SHIFT + M	Music	DZIAŁA (proces żyje)	124	0	
+SUPER + SHIFT + ALT + M	Music TUI	BŁĄD	0	0	 err: slave.c:554: cliamp: failed to execute: No such file or directory  err: fdm.c:228: no such FD: 6 
+SUPER + SHIFT + D	Docker	DZIAŁA (proces żyje)	124	0	
+SUPER + SHIFT + G	Signal	DZIAŁA (proces żyje)	124	0	
+SUPER + SHIFT + O	Obsidian	BŁĄD	127	0	/usr/local/bin/uwsm-app: 16: exec: obsidian: not found 
+SUPER + SHIFT + W	Omawrite	BŁĄD	127	0	/usr/local/bin/uwsm-app: 16: exec: omawrite: not found 
+SUPER + SHIFT + SLASH	Passwords	DZIAŁA (proces żyje)	124	0	
+SUPER + SHIFT + A	ChatGPT	DZIAŁA (proces żyje)	124	0	[1556:1556:1014/065613.843959:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [1453:1532:1014/065616.678166:ERROR:google_apis/gcm/engine/registration_request.cc:2
+SUPER + SHIFT + ALT + A	Grok	DZIAŁA (proces żyje)	124	0	[2651:2651:1014/065623.360277:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [2550:2627:1014/065629.700996:ERROR:google_apis/gcm/engine/registration_request.cc:2
+SUPER + SHIFT + C	Calendar	DZIAŁA (proces żyje)	124	0	[3631:3631:1014/065632.951848:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [3529:3607:1014/065635.663349:ERROR:google_apis/gcm/engine/registration_request.cc:2
+SUPER + SHIFT + E	Email	DZIAŁA (proces żyje)	124	0	[4511:4511:1014/065642.492971:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [4410:4488:1014/065644.897977:ERROR:google_apis/gcm/engine/registration_request.cc:2
+SUPER + SHIFT + ALT + E	New email	DZIAŁA (proces żyje)	124	0	[5382:5382:1014/065652.032950:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [5282:5358:1014/065654.441222:ERROR:google_apis/gcm/engine/registration_request.cc:2
+SUPER + SHIFT + Y	YouTube	DZIAŁA (proces żyje)	124	0	[6253:6253:1014/065701.596278:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [6153:6231:1014/065707.863650:ERROR:google_apis/gcm/engine/registration_request.cc:2
+SUPER + SHIFT + ALT + G	WhatsApp	BŁĄD	0	1	[7204:7204:1014/065711.189174:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error 
+SUPER + SHIFT + CTRL + G	Google Messages	BŁĄD	0	1	[7540:7540:1014/065712.800818:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error 
+SUPER + SHIFT + P	Google Photos	BŁĄD	0	1	[7975:7975:1014/065714.381688:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error 
+SUPER + SHIFT + S	Google Maps	BŁĄD	0	1	[8308:8308:1014/065715.964695:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error 
+SUPER + SHIFT + X	X	DZIAŁA (proces żyje)	124	0	[8614:8614:1014/065717.569942:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [8512:8592:1014/065722.103193:ERROR:google_apis/gcm/engine/registration_request.cc:2
+SUPER + SHIFT + ALT + X	X Post	DZIAŁA (proces żyje)	124	0	[9554:9554:1014/065727.074890:ERROR:media/gpu/vaapi/vaapi_wrapper.cc:1801] vaInitialize failed: unknown libva error [9453:9531:1014/065732.409737:ERROR:google_apis/gcm/engine/registration_request.cc:2
+SUPER + CTRL + V	Clipboard manager	OK	0	0	
+XF86AudioRaiseVolume	Volume up	OK	0	0	
+XF86AudioLowerVolume	Volume down	OK	0	0	
+XF86AudioMute	Mute	OK	0	0	
+XF86AudioMicMute	Mute microphone	OK	0	0	
+XF86MonBrightnessUp	Brightness up	rc≠0	1	0	
+XF86MonBrightnessDown	Brightness down	rc≠0	1	0	
+SHIFT + XF86MonBrightnessUp	Brightness maximum	rc≠0	1	0	
+SHIFT + XF86MonBrightnessDown	Brightness minimum	rc≠0	1	0	
+XF86KbdBrightnessUp	Keyboard brightness up	rc≠0	1	0	
+XF86KbdBrightnessDown	Keyboard brightness down	rc≠0	1	0	
+XF86KbdLightOnOff	Keyboard backlight cycle	rc≠0	1	0	
+XF86TouchpadToggle	Toggle touchpad	rc≠0	1	0	
+XF86TouchpadOn	Enable touchpad	rc≠0	1	0	
+XF86TouchpadOff	Disable touchpad	rc≠0	1	0	
+ALT + XF86AudioRaiseVolume	Volume up precise	OK	0	0	
+ALT + XF86AudioLowerVolume	Volume down precise	OK	0	0	
+ALT + XF86MonBrightnessUp	Brightness up precise	rc≠0	1	0	
+ALT + XF86MonBrightnessDown	Brightness down precise	rc≠0	1	0	
+XF86AudioNext	Next track	OK	0	0	
+ALT + XF86AudioPlay	Next track	OK	0	0	
+XF86AudioPause	Pause	OK	0	0	
+XF86AudioPlay	Play	OK	0	0	
+XF86AudioPrev	Previous track	OK	0	0	
+ALT + SHIFT + XF86AudioPlay	Previous track	OK	0	0	
+XF86Eject	Eject media	POMINIĘTY			
+SHIFT + XF86AudioMute	Switch audio output	OK	0	0	
+SHIFT + XF86AudioPause	Switch media source	OK	0	0	
+SHIFT + XF86AudioPlay	Switch media source	OK	0	0	
+CTRL + ALT + DELETE	Close all windows	POMINIĘTY			
+SUPER + CTRL + F	Tiled full screen	OK	0	0	
+SUPER + O	Pop window out (float & pin)	OK	0	0	
+SUPER + ALT + Home	Save window width	rc≠0	1	0	
+SUPER + Home	Restore window width	rc≠0	1	0	
+SUPER + L	Toggle workspace layout	OK	0	0	
+SUPER + SLASH	Monitor scaling up	OK	0	0	
+SUPER + ALT + SLASH	Monitor scaling down	OK	0	0	
+SUPER + SPACE	Omarchy menu	OK	0	0	
+SUPER + ALT + SPACE	Apps menu	OK	0	0	
+SUPER + CTRL + E	Emojis	OK	0	0	
+SUPER + CTRL + C	Capture menu	OK	0	0	
+SUPER + CTRL + O	Toggle menu	OK	0	0	
+SUPER + CTRL + H	Hardware menu	OK	0	0	
+SUPER + SHIFT + code:201	Omarchy menu	OK	0	0	
+SUPER + ESCAPE	System menu	OK	0	0	
+XF86PowerOff	Power menu	OK	0	0	
+SUPER + K	Keybindings	DZIAŁA (proces żyje)	124	0	
+SUPER + ALT + K	Tmux keybindings	DZIAŁA (proces żyje)	124	0	
+SUPER + CTRL + K	Herdr keybindings	DZIAŁA (proces żyje)	124	0	
+SUPER + CTRL + Q	Calculator	rc≠0	127	0	
+XF86Calculator	Calculator	rc≠0	127	0	
+SUPER + SHIFT + SPACE	Toggle top bar	OK	0	0	
+SUPER + CTRL + SPACE	Background switcher	OK	0	0	
+SUPER + SHIFT + CTRL + SPACE	Theme menu	OK	0	0	
+SUPER + BACKSPACE	Toggle window transparency	OK	0	0	
+SUPER + SHIFT + BACKSPACE	Toggle window gaps	OK	0	0	
+SUPER + CTRL + BACKSPACE	Toggle single-window square aspect	OK	0	0	
+SUPER + comma	Dismiss last notification	OK	0	0	
+SUPER + SHIFT + comma	Dismiss all notifications	OK	0	0	
+SUPER + CTRL + comma	Toggle silencing notifications	OK	0	0	
+SUPER + ALT + comma	Invoke last notification	OK	0	0	
+SUPER + SHIFT + ALT + comma	Open notification history	OK	0	0	
+SUPER + CTRL + I	Toggle locking on idle	OK	0	0	
+SUPER + CTRL + N	Toggle nightlight	OK	0	0	
+SUPER + CTRL + Delete	Toggle laptop display	POMINIĘTY			
+SUPER + CTRL + ALT + Delete	Toggle laptop display mirroring	POMINIĘTY			
+PRINT	Screenshot	DZIAŁA (proces żyje)	124	0	
+ALT + PRINT	Screenrecording	POMINIĘTY			
+SUPER + ALT + code:34	Make webcam overlay smaller	OK	0	0	
+SUPER + ALT + code:35	Make webcam overlay larger	OK	0	0	
+SUPER + PRINT	Color picker	DZIAŁA (proces żyje)	124	0	
+SUPER + CTRL + PRINT	Extract text (OCR) from screenshot	DZIAŁA (proces żyje)	124	0	
+SUPER + CTRL + S	Share	OK	0	0	
+SUPER + CTRL + PERIOD	Transcode	rc≠0	1	0	
+SUPER + CTRL + R	Set reminder	OK	0	0	
+SUPER + CTRL + ALT + R	Show reminders	OK	0	0	
+SUPER + SHIFT + CTRL + R	Clear reminders	rc≠0	127	0	
+SUPER + CTRL + ALT + T	Show time	OK	0	0	
+SUPER + CTRL + ALT + B	Show battery remaining	OK	0	0	
+SUPER + CTRL + ALT + W	Toggle weather	OK	0	0	
+SUPER + SHIFT + CTRL + A	Agent	POMINIĘTY			
+SUPER + CTRL + A	Audio	OK	0	0	
+SUPER + CTRL + B	Bluetooth	OK	0	0	
+SUPER + CTRL + D	Display	OK	0	0	
+SUPER + CTRL + ALT + D	Calendar	OK	0	0	
+SUPER + CTRL + W	Network	OK	0	0	
+SUPER + CTRL + P	Power	OK	0	0	
+SUPER + CTRL + T	Activity	DZIAŁA (proces żyje)	124	0	
+SUPER + CTRL + code:10	Bar panel 1	OK	0	0	
+SUPER + CTRL + code:11	Bar panel 2	OK	0	0	
+SUPER + CTRL + code:12	Bar panel 3	OK	0	0	
+SUPER + CTRL + code:13	Bar panel 4	OK	0	0	
+SUPER + CTRL + code:14	Bar panel 5	OK	0	0	
+SUPER + CTRL + code:15	Bar panel 6	OK	0	0	
+SUPER + CTRL + code:16	Bar panel 7	OK	0	0	
+SUPER + CTRL + code:17	Bar panel 8	OK	0	0	
+SUPER + CTRL + code:18	Bar panel 9	OK	0	0	
+SUPER + CTRL + L	Lock system	POMINIĘTY			

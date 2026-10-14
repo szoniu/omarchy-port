@@ -1,0 +1,148 @@
+arch	stan	void	na_archu_z
+aether	brak		omarchy-pkgs
+alsa-utils	jest	alsa-utils	
+asdcontrol	brak		omarchy-pkgs
+avahi	jest	avahi	
+bash-completion	jest	bash-completion	
+bat	jest	bat	
+bluez	jest	bluez	
+bluez-tools	brak		
+bluez-utils	zamiennik	bluez	
+bolt	jest	bolt	
+brightnessctl	jest	brightnessctl	
+btop	jest	btop	
+chromium	jest	chromium	
+clang	jest	clang	
+cliamp	brak		omarchy-pkgs
+cups	jest	cups	
+cups-filters	jest	cups-filters	
+cups-pk-helper	jest	cups-pk-helper	
+ddcutil	jest	ddcutil	
+docker	jest	docker	
+docker-buildx	jest	docker-buildx	
+docker-compose	jest	docker-compose	
+dosfstools	jest	dosfstools	
+dotnet-runtime	brak		
+dua-cli	jest	dua-cli	
+evince	jest	evince	
+exfatprogs	jest	exfatprogs	
+expac	brak		
+eza	jest	eza	
+fakeroot	jest	fakeroot	
+fastfetch	jest	fastfetch	
+fcitx5	jest	fcitx5	
+fcitx5-gtk	jest	fcitx5-gtk	
+fcitx5-qt	jest	fcitx5-qt	
+fd	jest	fd	
+ffmpegthumbnailer	jest	ffmpegthumbnailer	
+fontconfig	jest	fontconfig	
+foot	jest	foot	
+fzf	jest	fzf	
+git	jest	git	
+gnome-keyring	jest	gnome-keyring	
+gnome-themes-extra	jest	gnome-themes-extra	
+grim	jest	grim	
+gpu-screen-recorder	jest	gpu-screen-recorder	
+gum	jest	gum	
+gvfs-mtp	jest	gvfs-mtp	
+gvfs-nfs	brak		
+gvfs-smb	jest	gvfs-smb	
+herdr	brak		omarchy-pkgs
+hyprland	jest	hyprland	omarchy-pkgs
+hyprland-guiutils	jest	hyprland-guiutils	
+hyprland-preview-share-picker	brak		omarchy-pkgs
+hyprpicker	jest	hyprpicker	
+hyprsunset	jest	hyprsunset	
+imagemagick	jest (wielkość liter)	ImageMagick	
+imv	jest	imv	
+inetutils	jest	inetutils	
+inotify-tools	jest	inotify-tools	
+inxi	jest	inxi	
+networkmanager	jest (wielkość liter)	NetworkManager	
+jq	jest	jq	
+kdenlive	jest	kdenlive	
+kernel-modules-hook	brak		
+lazydocker	jest	lazydocker	
+lazygit	jest	lazygit	
+less	jest	less	
+libsecret	jest	libsecret	
+libvips	jest	libvips	
+libyaml	jest	libyaml	
+libreoffice-fresh	zamiennik	libreoffice	
+llvm	jest	llvm	
+localsend	brak		omarchy-pkgs
+lua51	jest	lua51	
+luarocks	jest	luarocks	
+man-db	jest	man-db	
+mariadb-libs	zamiennik	libmariadbclient	
+mise-bin	zamiennik	mise	omarchy-pkgs
+moonlight-qt	brak		
+mpv	jest	mpv	
+mpv-mpris	jest	mpv-mpris	
+nautilus	jest	nautilus	
+nautilus-python	jest	nautilus-python	
+gnome-disk-utility	jest	gnome-disk-utility	
+noto-fonts	zamiennik	noto-fonts-ttf	
+noto-fonts-cjk	jest	noto-fonts-cjk	
+noto-fonts-emoji	jest	noto-fonts-emoji	
+nss-mdns	jest	nss-mdns	
+nvim	zamiennik	neovim	
+obs-studio	zamiennik	obs	omarchy-pkgs
+obsidian	brak		omarchy-pkgs
+omacalc	brak		omarchy-pkgs
+omacut	brak		omarchy-pkgs
+omawrite	brak		omarchy-pkgs
+omarchy-nvim	brak		omarchy-pkgs
+pacman-contrib	brak		
+pamixer	jest	pamixer	
+pinta	brak		omarchy-pkgs
+plocate	jest	plocate	
+plymouth	jest	plymouth	
+postgresql-libs	jest	postgresql-libs	
+power-profiles-daemon	jest	power-profiles-daemon	
+python-gobject	zamiennik	python3-gobject	
+python-poetry-core	zamiennik	python3-poetry-core	
+ttfx	brak		omarchy-pkgs
+qemu-user-static-binfmt	zamiennik	qemu-user-static	
+qrencode	jest	qrencode	
+qt6-imageformats	jest	qt6-imageformats	
+quickshell	jest	quickshell	omarchy-pkgs
+ripgrep	jest	ripgrep	
+ruby	jest	ruby	
+tensaku	brak		omarchy-pkgs
+sddm	jest	sddm	
+slurp	jest	slurp	
+socat	jest	socat	
+starship	jest	starship	
+sushi	jest	sushi	
+system-config-printer	jest	system-config-printer	
+tesseract	jest	tesseract	
+tesseract-data-eng	zamiennik	tesseract-ocr-eng	
+tldr	jest	tldr	
+tree-sitter-cli	jest	tree-sitter-cli	
+tmux	jest	tmux	
+tobi-try	brak		omarchy-pkgs
+ttf-ia-writer	brak		omarchy-pkgs
+ttf-jetbrains-mono-nerd-basic	zamiennik	nerd-fonts-ttf	omarchy-pkgs
+tzupdate	jest	tzupdate	omarchy-pkgs
+udiskie	jest	udiskie	
+ufw	jest	ufw	
+ufw-docker	brak		omarchy-pkgs
+unzip	jest	unzip	
+usage	jest	usage	
+uwsm	brak		
+whois	jest	whois	
+wireless-regdb	jest	wireless-regdb	
+wireplumber	jest	wireplumber	
+wl-clipboard	jest	wl-clipboard	
+wtype	jest	wtype	
+woff2-font-awesome	zamiennik	font-awesome6	
+xdg-desktop-portal-gtk	jest	xdg-desktop-portal-gtk	
+xdg-desktop-portal-hyprland	jest	xdg-desktop-portal-hyprland	
+xdg-terminal-exec	brak		
+xournalpp	jest	xournalpp	
+yaru-icon-theme	zamiennik	yaru	omarchy-pkgs
+yay	brak		omarchy-pkgs
+yt-dlp	jest	yt-dlp	
+zbar	jest	zbar	
+zoxide	jest	zoxide	
