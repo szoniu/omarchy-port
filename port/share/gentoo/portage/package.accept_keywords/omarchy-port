@@ -1,0 +1,37 @@
+# omarchy-port: keywordy ~amd64 per atom dla listy Omarchy (dane/pakiety-gentoo.txt) — wyliczone emerge --autounmask
+# na czystej bazie (prototyp/gentoo/install-base.sh) 15.10.2026; overlaye bez zbiorczego */*::repo ~amd64.
+app-misc/brightnessctl ~amd64
+app-misc/tzupdate ~amd64
+app-office/obsidian ~amd64
+app-shells/zoxide ~amd64
+app-text/tldr ~amd64
+dev-cpp/cpptrace ~amd64
+dev-cpp/glaze ~amd64
+dev-cpp/sdbus-c++ ~amd64
+dev-libs/hyprgraphics ~amd64
+dev-libs/hyprland-protocols ~amd64
+dev-libs/hyprlang ~amd64
+dev-libs/libdwarf ~amd64
+dev-util/hyprwayland-scanner ~amd64
+dev-vcs/lazygit ~amd64
+gui-apps/hyprpicker ~amd64
+gui-apps/hyprsunset ~amd64
+gui-apps/quickshell ~amd64
+gui-apps/uwsm ~amd64
+gui-apps/wtype ~amd64
+gui-libs/aquamarine ~amd64
+gui-libs/hyprcursor ~amd64
+gui-libs/hyprland-guiutils ~amd64
+gui-libs/hyprtoolkit ~amd64
+gui-libs/hyprutils ~amd64
+gui-libs/hyprwire ~amd64
+gui-libs/xdg-desktop-portal-hyprland ~amd64
+gui-wm/hyprland ~amd64
+media-fonts/nerdfonts ~amd64
+media-sound/pamixer ~amd64
+media-video/gpu-screen-recorder ~amd64
+media-video/obs-studio ~amd64
+mpv-plugin/mpv-mpris ~amd64
+net-misc/moonlight ~amd64
+net-wireless/bluez-tools ~amd64
+sys-fs/dua-cli ~amd64

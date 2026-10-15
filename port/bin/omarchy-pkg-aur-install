@@ -1,6 +1,7 @@
 #!/bin/bash
-# omarchy-port (Void): AUR nie istnieje poza Archem. Uczciwa odmowa zamiast cichego sukcesu —
+# omarchy-port: AUR nie istnieje poza Archem. Uczciwa odmowa zamiast cichego sukcesu —
 # wołający (np. instalatory aplikacji z menu) ma zobaczyć, czego brakuje.
-echo -e "\033[31momarchy-port: AUR niedostępny na Voidzie — pakiet(y): $*\033[0m" >&2
-echo "Sprawdź repo Voida (xbps-query -Rs <nazwa>), flatpak albo instalację z upstreamu." >&2
+. /usr/share/omarchy-port/pkg-map.sh
+echo -e "\033[31momarchy-port: AUR niedostępny $PORT_NA — pakiet(y): $*\033[0m" >&2
+echo "Sprawdź repo $PORT_DYSTR_NAZWA (Install > Package w menu), flatpak albo instalację z upstreamu." >&2
 exit 1

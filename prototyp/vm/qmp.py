@@ -8,7 +8,8 @@
 import json, socket, sys, time, os
 
 VM_DIR = os.environ.get("VM_DIR", os.path.expanduser("~/vm/omarchy-port"))
-SOCK = os.path.join(VM_DIR, "qmp.sock")
+_NR = os.environ.get("VM_NR", "1")
+SOCK = os.path.join(VM_DIR, "qmp.sock" if _NR == "1" else "qmp%s.sock" % _NR)
 
 def connect():
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

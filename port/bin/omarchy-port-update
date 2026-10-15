@@ -2,7 +2,7 @@
 # omarchy-port: część root aktualizacji (woła ją omarchy-update). Najpierw nowa wersja portu z klonu
 # /opt/omarchy-port — `git pull --ff-only` na gałęzi, którą klon śledzi (domyślnie main z GitHuba;
 # podbicie wersji Omarchy to commit w porcie po teście w VM) — potem orkiestrator tej NOWEJ wersji
-# w trybie --update: pakiety Voida, pliki Omarchy przy jej pinie, warstwa, łatki.
+# w trybie --update: pakiety dystrybucji, pliki Omarchy przy jej pinie, warstwa, łatki.
 set -euo pipefail
 PORT_DIR=/opt/omarchy-port
 (( EUID == 0 )) || exec sudo "$0" "$@"

@@ -1,0 +1,17 @@
+# omarchy-port: usage (CLI dla mise) z wydania upstreamu (binarka) — na Gentoo nie ma go w ::gentoo, GURU
+# ani hyproverlay (omarchy-port#5). Wersja jak w Archu (extra); suma = digest pliku z API GitHuba
+# (sprawdzona 15.10.2026). Budowane przez port/install.sh (etap 3: zrodla() + package()).
+pkgname=usage
+pkgver=6.12.1
+pkgrel=1
+pkgdesc='A specification for CLIs'
+arch=('x86_64')
+url='https://github.com/jdx/usage'
+license=('MIT')
+source=("https://github.com/jdx/usage/releases/download/v${pkgver}/usage-x86_64-unknown-linux-gnu.tar.gz")
+sha256sums=('db25b616258fce61af2e07f1aa1c7ed33c7303a8a38abade121920b1dca86488')
+
+package() {
+  install -Dm755 "$srcdir/usage" "$pkgdir/usr/bin/usage"
+  install -Dm644 "$srcdir/usage.1" "$pkgdir/usr/share/man/man1/usage.1"
+}

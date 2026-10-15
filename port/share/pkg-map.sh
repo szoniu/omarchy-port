@@ -1,39 +1,53 @@
 # shellcheck shell=bash
-# omarchy-port: nazwy pakietów Archa (tak woła je Omarchy) → nazwy Voida.
-# Źródło: /usr/share/omarchy-port/mapa-pakietow-void.tsv (kolumny: arch, stan, void, na_archu_z).
+# omarchy-port: nazwy pakietów Archa (tak woła je Omarchy) → nazwy dystrybucji (Void: nazwa xbps,
+# Gentoo: atom kategoria/pakiet[:slot]) i backend pakietów dystrybucji dla nakładek omarchy-pkg-*.
+# Źródła: /usr/share/omarchy-port/mapa-pakietow.tsv (kolumny: arch, stan, nazwa w dystrybucji,
+# na_archu_z) i pkg-backend.sh (z port/share/<dystrybucja>/pkg.sh) — oba kładzie install-layer.sh.
 # Pakiet spoza mapy próbujemy pod tą samą nazwą — Omarchy dociąga na żądanie
 # rzeczy spoza listy bazowej (np. sof-firmware), a większość nazw jest wspólna.
-# Stan „port”: pakiet z omarchy-pkgs bez odpowiednika w repo Voida, który instaluje port/install.sh
-# (etap 3, package() z PKGBUILD-a) — nazwa „port:<arch>”, obecność = manifest portu, nie baza xbps.
+# Stan „port”: pakiet bez odpowiednika w repo dystrybucji, który instaluje port/install.sh (etap 3,
+# package() z PKGBUILD-a) — nazwa „port:<arch>”, obecność = manifest portu, nie baza menedżera pakietów.
 
-PORT_PKG_MAP=${PORT_PKG_MAP:-/usr/share/omarchy-port/mapa-pakietow-void.tsv}
+PORT_PKG_MAP=${PORT_PKG_MAP:-/usr/share/omarchy-port/mapa-pakietow.tsv}
+PORT_PKG_BACKEND=${PORT_PKG_BACKEND:-/usr/share/omarchy-port/pkg-backend.sh}
+# shellcheck source=void/pkg.sh
+. "$PORT_PKG_BACKEND"
 
-# port_pkg_name <arch> → wypisuje nazwę Voida (albo port:<arch>); rc 1 = pakietu świadomie brak na Voidzie
+# port_pkg_name <arch> → wypisuje nazwę w dystrybucji (albo port:<arch>); rc 1 = pakietu świadomie brak
 port_pkg_name() {
-  local arch=$1 row stan void
+  local arch=$1 row stan nazwa
   row=$(awk -F'\t' -v p="$arch" 'NR > 1 && $1 == p { print $2 "\t" $3; exit }' "$PORT_PKG_MAP" 2>/dev/null)
   if [[ -z $row ]]; then
     printf '%s\n' "$arch"
     return 0
   fi
   stan=${row%%$'\t'*}
-  void=${row#*$'\t'}
+  nazwa=${row#*$'\t'}
   if [[ $stan == port ]]; then
     printf 'port:%s\n' "$arch"
     return 0
   fi
-  if [[ $stan == brak || -z $void ]]; then
-    echo "omarchy-port: pakietu '$arch' nie ma na Voidzie (mapa: $PORT_PKG_MAP)" >&2
+  if [[ $stan == brak || -z $nazwa ]]; then
+    echo "omarchy-port: pakietu '$arch' nie ma $PORT_NA (mapa: $PORT_PKG_MAP)" >&2
     return 1
   fi
-  printf '%s\n' "$void"
+  printf '%s\n' "$nazwa"
 }
 
-# port_pkg_installed <nazwa-voida|port:<arch>>
+# port_pkg_installed <nazwa-w-dystrybucji|port:<arch>>
 port_pkg_installed() {
   if [[ $1 == port:* ]]; then
     [[ -s /var/lib/omarchy-port/manifest-${1#port:}.txt ]]
     return
   fi
-  xbps-query "$1" >/dev/null 2>&1
+  backend_pkg_installed "$1"
+}
+
+# port_jako_root <funkcja backendu> <argumenty…> — instalacja i usuwanie pakietów (sudo, gdy trzeba)
+port_jako_root() {
+  if (( EUID == 0 )); then
+    "$@"
+  else
+    sudo bash -c '. /usr/share/omarchy-port/pkg-map.sh && "$@"' bash "$@"
+  fi
 }

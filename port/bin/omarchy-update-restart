@@ -2,11 +2,9 @@
 
 # omarchy:summary=Prompt for required reboot or service restarts after updates
 
-# omarchy-port (Void): nakładka na /usr/bin/omarchy-update-restart — inaczej tylko sprawdzenie jądra
-# (pacman -Qo → xbps-query -o). Upstream pyta, czy pliki działającego jądra wciąż należą do pakietu;
-# na Archu aktualizacja je usuwa. Pakiety jądra Voida (preserve) zostawiają stare pliki na dysku, ale
-# po aktualizacji nie należą już do żadnego pakietu — to samo pytanie daje tę samą odpowiedź.
-# xbps-query -o kończy się kodem 0 także bez trafienia — liczy się wyjście, nie kod.
+# omarchy-port: nakładka na /usr/bin/omarchy-update-restart — inaczej tylko sprawdzenie jądra
+# (pacman -Qo → backend_jadro_podmienione z backendu dystrybucji; uzasadnienie per dystrybucja tam).
+. /usr/share/omarchy-port/pkg-map.sh
 
 echo
 
@@ -14,11 +12,9 @@ confirm_reboot() {
   gum confirm "$1" && { omarchy-system-reboot; exit 0; }
 }
 
-running_kernel=$(uname -r)
-kernel_updated=true
-
-if [[ -n $(xbps-query -o "/usr/lib/modules/$running_kernel/modules.order" 2>/dev/null) ]]; then
-  kernel_updated=false
+kernel_updated=false
+if backend_jadro_podmienione; then
+  kernel_updated=true
 fi
 
 if [[ $kernel_updated == "true" ]]; then

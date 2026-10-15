@@ -1,5 +1,5 @@
 #!/bin/bash
-# omarchy-port (Void): nakładka na /usr/bin/omarchy-pkg-present (pacman -Q → xbps-query).
+# omarchy-port: nakładka na /usr/bin/omarchy-pkg-present (pacman -Q → baza pakietów dystrybucji).
 # rc 0 = wszystkie podane pakiety są zainstalowane.
 . /usr/share/omarchy-port/pkg-map.sh
 for pkg in "$@"; do

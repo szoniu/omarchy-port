@@ -1,5 +1,6 @@
 #!/bin/bash
-# omarchy-port (Void): nakładka na /usr/bin/omarchy-version-channel (mirrorlist i pacman.conf → stała).
-# Port nie ma kanałów stable/rc/edge Omarchy — przypina wydanie (share/upstream.env), a pakiety
-# bierze z repo Voida; omarchy-channel-current i tak zwraca „unknown”, bo pyta pacmana.
-echo void
+# omarchy-port: nakładka na /usr/bin/omarchy-version-channel (mirrorlist i pacman.conf → stała). Port nie
+# ma kanałów Omarchy — pakiety bierze z repo dystrybucji; omarchy-channel-current i tak zwraca „unknown”,
+# bo pyta pacmana.
+. /usr/share/omarchy-port/pkg-map.sh
+echo "$PORT_DYSTR"

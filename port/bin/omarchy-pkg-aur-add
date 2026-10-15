@@ -1,5 +1,5 @@
 #!/bin/bash
-# omarchy-port (Void): AUR nie istnieje poza Archem. Pakiet, który JEST w repo Voida (np. firefox,
+# omarchy-port: AUR nie istnieje poza Archem. Pakiet, który JEST w repo dystrybucji (np. firefox,
 # emacs — w Archu instalowane przez Omarchy z AUR), instalujemy stamtąd; reszta → uczciwa odmowa,
 # żeby wołający (instalatory aplikacji z menu) zobaczył, czego brakuje.
 . /usr/share/omarchy-port/pkg-map.sh
@@ -7,11 +7,11 @@
 repo=() missing=()
 for pkg in "$@"; do
   name=$(port_pkg_name "$pkg" 2>/dev/null) || { missing+=("$pkg"); continue; }
-  if xbps-query -R "$name" >/dev/null 2>&1; then repo+=("$pkg"); else missing+=("$pkg"); fi
+  if backend_pkg_w_repo "$name"; then repo+=("$pkg"); else missing+=("$pkg"); fi
 done
 
 if (( ${#missing[@]} )); then
-  echo -e "\033[31momarchy-port: brak w repo Voida (na Archu z AUR): ${missing[*]}\033[0m" >&2
+  echo -e "\033[31momarchy-port: brak w repo $PORT_DYSTR_NAZWA (na Archu z AUR): ${missing[*]}\033[0m" >&2
   echo "Sprawdź flatpak albo instalację z upstreamu." >&2
 fi
 if (( ${#repo[@]} )); then
