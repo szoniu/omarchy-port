@@ -44,15 +44,22 @@ BACKEND_PODGLAD_RECZNE='for d in /var/db/pkg/{1}-[0-9]*; do echo "${d#/var/db/pk
 
 # Sieroty (pacman -Qtdq): to, co usunąłby `emerge --depclean` — zależności, których nic już nie
 # potrzebuje. Jądro dystrybucji (gentoo-kernel-bin) ma własne sprzątanie, więc nie jest pomijane osobno.
+# Lista z wiersza „All selected packages: =kat/pakiet-wersja …” — jest z --quiet i bez (nagłówka
+# „These are the packages that would be unmerged” przy --quiet nie ma), a dokładne wersje usuwają tylko
+# pokazane pakiety, nawet gdy w międzyczasie coś doszło.
 backend_sieroty() {
   emerge --pretend --depclean --quiet </dev/null 2>/dev/null |
-    awk '/^>>> These are the packages that would be unmerged/ { w = 1; next } w && /^ [a-z0-9]/ { print $1 }'
+    awk '/^All selected packages:/ { for (i = 4; i <= NF; i++) print $i }'
 }
 backend_usun_sieroty() { emerge --ask=n --depclean "$@" </dev/null; }   # jako root; atomy z backend_sieroty
 
-# Ostatnia instalacja, aktualizacja albo usunięcie pakietu (epoka) — z /var/log/emerge.log
+# Ostatnia instalacja albo aktualizacja pakietu (epoka), jak „upgraded” z pacman.log w upstreamie:
+# najnowszy katalog pakietu w /var/db/pkg (powstaje przy każdym emerge pakietu). Nie /var/log/emerge.log —
+# ma prawa portage:portage 0660, a fastfetch woła omarchy-version-pkgs jako użytkownik.
 backend_ostatnia_zmiana() {
-  awk -F: '/::: completed emerge|>>> unmerge success/ { t = $1 } END { if (t) print t }' /var/log/emerge.log 2>/dev/null
+  local last
+  last=$(find /var/db/pkg -mindepth 2 -maxdepth 2 -type d -printf '%T@\n' 2>/dev/null | sort -n | tail -1)
+  [[ -n $last ]] && echo "${last%.*}"
 }
 
 # Czy działające jądro zostało podmienione (pytanie o restart): jak w upstreamie — moduły działającego
