@@ -1,0 +1,15 @@
+# omarchy-port (Gentoo): alias Chromium → Google Chrome. Omarchy zakłada chromium.desktop (domyślna
+# przeglądarka w omarchy-provision-user, rezerwa w omarchy-launch-webapp), a na Gentoo nie ma go nawet
+# prawdziwy Chromium (chromium-browser-chromium.desktop). Ukryty w launcherze; port ustawia potem
+# google-chrome.desktop jako domyślną (share/gentoo/backend.sh, dyst_po_provision). Exec przez wrapper
+# z flagami Omarchy (share/gentoo/bin/google-chrome-stable).
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Chromium (Google Chrome)
+Exec=/usr/local/bin/google-chrome-stable %U
+Icon=google-chrome
+Terminal=false
+NoDisplay=true
+Categories=Network;WebBrowser;
+MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;

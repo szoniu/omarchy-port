@@ -1,5 +1,5 @@
 #!/bin/bash
-# omarchy-port (Void): nakładka na /usr/bin/omarchy-pkg-add (pacman -S --needed → xbps-install).
+# omarchy-port: nakładka na /usr/bin/omarchy-pkg-add (pacman -S --needed → menedżer pakietów dystrybucji).
 # Kontrakt jak w upstreamie: rc 0 tylko gdy po instalacji WSZYSTKIE pakiety są obecne.
 . /usr/share/omarchy-port/pkg-map.sh
 
@@ -9,20 +9,16 @@ for pkg in "$@"; do
   port_pkg_installed "$name" || names+=("$name")
 done
 
-# pakiet portu (stan „port” w mapie) instaluje orkiestrator z omarchy-pkgs, nie xbps
+# pakiet portu (stan „port” w mapie) instaluje orkiestrator (PKGBUILD), nie menedżer pakietów
 for name in "${names[@]}"; do
   if [[ $name == port:* ]]; then
-    echo -e "\033[31mError: Package '${name#port:}' is installed by omarchy-port (port/install.sh), not xbps — run omarchy-update\033[0m" >&2
+    echo -e "\033[31mError: Package '${name#port:}' is installed by omarchy-port (port/install.sh), not the package manager — run omarchy-update\033[0m" >&2
     exit 1
   fi
 done
 
 if (( ${#names[@]} )); then
-  if (( EUID == 0 )); then
-    xbps-install -Sy "${names[@]}" || exit 1
-  else
-    sudo xbps-install -Sy "${names[@]}" || exit 1
-  fi
+  port_jako_root backend_pkg_instaluj "${names[@]}" || exit 1
 fi
 
 for pkg in "$@"; do

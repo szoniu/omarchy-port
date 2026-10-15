@@ -1,0 +1,17 @@
+# omarchy-port: lazydocker z wydania upstreamu (binarka) — na Gentoo nie ma go w ::gentoo, GURU ani
+# hyproverlay (omarchy-port#5). Wersja jak w Archu (extra); suma = digest pliku z API GitHuba (sprawdzona
+# 15.10.2026). Budowane przez port/install.sh (etap 3: zrodla() + package()).
+pkgname=lazydocker
+pkgver=0.25.2
+pkgrel=1
+pkgdesc='A simple terminal UI for both docker and docker-compose'
+arch=('x86_64')
+url='https://github.com/jesseduffield/lazydocker'
+license=('MIT')
+source=("https://github.com/jesseduffield/lazydocker/releases/download/v${pkgver}/lazydocker_${pkgver}_Linux_x86_64.tar.gz")
+sha256sums=('0d9dbfc26068b218e7ed84b104748cadc6e3cf733c0afd35465306fb39b9523c')
+
+package() {
+  install -Dm755 "$srcdir/lazydocker" "$pkgdir/usr/bin/lazydocker"
+  install -Dm644 "$srcdir/LICENSE" "$pkgdir/usr/share/licenses/lazydocker/LICENSE"
+}

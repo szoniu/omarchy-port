@@ -1,0 +1,15 @@
+#!/bin/bash
+# omarchy-port (Gentoo): Chrome z flagami z ~/.config/chrome-flags.conf — tak robi wrapper pakietu
+# google-chrome z AUR, na którym Omarchy polega (omarchy-install-browser chrome kopiuje tam
+# config/chromium-flags.conf: natywny Wayland, rozszerzenia Omarchy, libsecret, gesty). Launcher
+# Google na Gentoo (/opt/google/chrome/google-chrome) tego pliku nie czyta. Jedna flaga na linię,
+# # i puste linie pomijane.
+config=${XDG_CONFIG_HOME:-$HOME/.config}/chrome-flags.conf
+flagi=()
+if [[ -r $config ]]; then
+  while IFS= read -r linia; do
+    [[ $linia =~ ^[[:space:]]*(#|$) ]] && continue
+    flagi+=("$linia")
+  done <"$config"
+fi
+exec /opt/google/chrome/google-chrome "${flagi[@]}" "$@"

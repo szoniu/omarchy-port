@@ -1,0 +1,8 @@
+# Kroki install/ Omarchy, które na Gentoo NIE idą w wersji z upstreamu. Reszta idzie bez zmian.
+# krok (względem install/)	akcja (pomiń|podmień)	powód
+# podmień → share/gentoo/kroki/<krok>; pomiń → krok zastąpiony zaślepką, która tylko wypisuje powód
+# (zaślepka jest potrzebna, bo omarchy-provision-user woła kroki user/ sam, z tego samego drzewa).
+config/snapper.sh	pomiń	snapper i limine-snapper-sync — Omarchy zakłada btrfs ze snapshotami i limine, port na Gentoo nie
+hardware/pacman.sh	pomiń	repo pacmana dla Maców z T2 (/etc/pacman.conf) — nie dotyczy Gentoo
+post-install/pacman.sh	pomiń	pacman.conf i mirrorlist Archa; cups-files.conf z UID-ami Archa (User/Group 209)
+config/enable-services.sh	podmień	bez linux-modules-cleanup.service (Arch, kernel-modules-hook) — upstream pod set -e stawał na nim i nie włączał reszty, m.in. sddm

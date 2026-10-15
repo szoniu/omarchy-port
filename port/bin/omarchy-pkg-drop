@@ -1,5 +1,5 @@
 #!/bin/bash
-# omarchy-port (Void): nakładka na /usr/bin/omarchy-pkg-drop (pacman -Rns → xbps-remove -R).
+# omarchy-port: nakładka na /usr/bin/omarchy-pkg-drop (pacman -Rns → menedżer pakietów dystrybucji).
 # Usuwa tylko te z podanych pakietów, które są zainstalowane; brak = nic do zrobienia.
 . /usr/share/omarchy-port/pkg-map.sh
 
@@ -7,7 +7,7 @@ names=()
 declare -A seen=()
 for pkg in "$@"; do
   name=$(port_pkg_name "$pkg" 2>/dev/null) || continue
-  # pakiet portu (stan „port” w mapie, np. ufw-docker dla config/firewall.sh) — nie z xbps, zostaje
+  # pakiet portu (stan „port” w mapie, np. ufw-docker dla config/firewall.sh) — nie z menedżera pakietów, zostaje
   [[ $name == port:* ]] && continue
   [[ -n ${seen[$name]:-} ]] && continue
   seen[$name]=1
@@ -15,8 +15,4 @@ for pkg in "$@"; do
 done
 
 (( ${#names[@]} )) || exit 0
-if (( EUID == 0 )); then
-  xbps-remove -Ry "${names[@]}"
-else
-  sudo xbps-remove -Ry "${names[@]}"
-fi
+port_jako_root backend_pkg_usun "${names[@]}"

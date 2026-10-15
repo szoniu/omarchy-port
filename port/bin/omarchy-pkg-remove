@@ -1,8 +1,9 @@
 #!/bin/bash
-# omarchy-port (Void): nakładka na /usr/bin/omarchy-pkg-remove — wybór ręcznie zainstalowanych pakietów (fzf) → xbps-remove -R.
+# omarchy-port: nakładka na /usr/bin/omarchy-pkg-remove — wybór ręcznie zainstalowanych pakietów (fzf) → usunięcie.
+. /usr/share/omarchy-port/pkg-map.sh
 fzf_args=(
   --multi
-  --preview 'xbps-query {1}'
+  --preview "$BACKEND_PODGLAD_RECZNE"
   --preview-label='alt-p: toggle description, alt-j/k: scroll, tab: multi-select'
   --preview-label-pos='bottom'
   --preview-window 'down:65%:wrap'
@@ -12,10 +13,11 @@ fzf_args=(
   --color 'pointer:red,marker:red'
 )
 
-# xbps-query -m → pakiety zainstalowane ręcznie (odpowiednik pacman -Qqe), jako nazwa-wersja_rewizja
-pkg_names=$(xbps-query -m | sed -E 's/-[^-]+_[0-9]+$//' | fzf "${fzf_args[@]}")
+# pakiety zainstalowane ręcznie (odpowiednik pacman -Qqe)
+pkg_names=$(backend_pkg_lista_reczne | fzf "${fzf_args[@]}")
 
 if [[ -n $pkg_names ]]; then
-  echo "$pkg_names" | tr '\n' ' ' | xargs sudo xbps-remove -Ry
+  mapfile -t names <<<"$pkg_names"
+  port_jako_root backend_pkg_usun "${names[@]}"
   omarchy-show-done 2>/dev/null || true
 fi

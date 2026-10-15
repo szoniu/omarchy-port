@@ -2,7 +2,7 @@
 
 # omarchy:summary=Check whether Omarchy updates are available.
 
-# omarchy-port (Void): nakładka na /usr/bin/omarchy-update-available (checkupdates pakietu omarchy →
+# omarchy-port: nakładka na /usr/bin/omarchy-update-available (checkupdates pakietu omarchy →
 # nowy commit portu). Nowe wersje Omarchy przychodzą razem z portem (pin w share/upstream.env), więc
 # aktualizacja = inny commit na gałęzi, którą śledzi /opt/omarchy-port. Wersję zainstalowaną i adres
 # zapisuje orkiestrator (/var/lib/omarchy-port/wersja-portu) — tu sam `git ls-remote`, bez dostępu do

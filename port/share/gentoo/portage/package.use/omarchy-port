@@ -1,0 +1,11 @@
+# omarchy-port: USE dla listy Omarchy (dane/pakiety-gentoo.txt)
+# wymagane przez zależności listy (emerge --autounmask, 15.10.2026):
+media-libs/libsdl2 kms
+media-video/ffmpeg vaapi opus
+dev-cpp/cpptrace unwind
+# odpowiedniki gvfs-mtp, gvfs-nfs i gvfs-smb z Archa
+gnome-base/gvfs mtp nfs samba
+# Omarchy używa „JetBrainsMono Nerd Font” (Arch: ttf-jetbrains-mono-nerd-basic); domyślnie tylko symbole
+media-fonts/nerdfonts jetbrainsmono
+# odpowiednik tesseract-data-eng z Archa — dane angielskie (L10N domyślnie puste)
+app-text/tessdata_fast l10n_en

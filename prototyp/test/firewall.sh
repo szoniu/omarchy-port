@@ -23,8 +23,13 @@ sprawdz() { # sprawdz <co> <oczekiwane> <jest>
 st=$(ufw status | sed -n 's/^Status: //p')
 sprawdz "ufw status" active "$st"
 sprawdz "ENABLED w /etc/ufw/ufw.conf" yes "$(sed -n 's/^ENABLED=//p' /etc/ufw/ufw.conf)"
-sprawdz "usługa runit ufw (/var/service/ufw, bez down)" tak \
-  "$([[ -L /var/service/ufw && ! -e /etc/sv/ufw/down ]] && echo tak || echo nie)"
+# stan initu wprost, nie przez shim portu: runit — link w /var/service bez pliku down; systemd — systemctl
+if [[ -d /run/systemd/system ]]; then
+  sprawdz "usługa ufw włączona (systemd)" tak "$(systemctl -q is-enabled ufw.service && echo tak || echo nie)"
+else
+  sprawdz "usługa ufw włączona (runit: /var/service/ufw bez down)" tak \
+    "$([[ -L /var/service/ufw && ! -e /etc/sv/ufw/down ]] && echo tak || echo nie)"
+fi
 reguly=$(ufw show added)
 for r in 'ufw allow 53317/udp' 'ufw allow 53317/tcp' \
          "ufw allow from 172.16.0.0/12 to 172.17.0.1 port 53 proto udp comment 'allow-docker-dns'" \

@@ -1,6 +1,6 @@
 #!/bin/bash
-# omarchy-port (Void): nakładka na /usr/bin/omarchy-pkg-missing.
-# rc 0 = przynajmniej jednego z podanych pakietów brakuje (pakiet nieistniejący na Voidzie też „brakuje”).
+# omarchy-port: nakładka na /usr/bin/omarchy-pkg-missing.
+# rc 0 = przynajmniej jednego z podanych pakietów brakuje (pakiet nieistniejący w dystrybucji też „brakuje”).
 . /usr/share/omarchy-port/pkg-map.sh
 for pkg in "$@"; do
   name=$(port_pkg_name "$pkg" 2>/dev/null) || exit 0

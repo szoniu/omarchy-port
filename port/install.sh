@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# omarchy-port: pełne Omarchy na Voidzie (glibc, x86_64, runit) — orkiestrator. Jako root, na
-# DZIAŁAJĄCYM systemie z siecią, gitem i istniejącym użytkownikiem (taki stan zostawia instalator
-# szoniu/void + `xbps-install -S git`). Idempotentny: ponowne uruchomienie dociąga to, czego brakuje.
+# omarchy-port: pełne Omarchy na Voidzie (glibc, x86_64, runit) albo Gentoo (amd64, systemd) —
+# orkiestrator. Jako root, na DZIAŁAJĄCYM systemie z siecią, gitem i istniejącym użytkownikiem (taki
+# stan zostawia instalator szoniu/void albo szoniu/gentoo + git). Idempotentny: ponowne uruchomienie
+# dociąga to, czego brakuje. Część zależna od dystrybucji i initu: share/<dystrybucja>/backend.sh
+# i share/init/<init>.sh (rozpoznanie: share/system.sh); reszta etapów jest wspólna.
 #   port/install.sh --user NAZWA [--name "Imię Nazwisko"] [--email adres]
 #   port/install.sh --update
 # --name/--email: tożsamość dla gita i XCompose (na ISO Omarchy pyta o nie instalator); domyślnie
@@ -13,24 +15,27 @@
 # Port do aktualizacji: klon /opt/omarchy-port (instalacja go zakłada, gdy go nie ma).
 #
 # Etapy:
-#   1. repozytoria: nonfree + blackhole (Hyprland), klucz blackhole przypięty (share/void/xbps-keys)
-#   2. pakiety: dane/pakiety-do-instalacji.txt (lista Omarchy zmapowana na Voida); sshd restartowany,
-#      gdy aktualizacja podmieniła openssh pod działającą usługą
+#   1. repozytoria — Void: nonfree + blackhole (Hyprland), klucz blackhole przypięty (share/void/xbps-keys);
+#      Gentoo: GURU + hyproverlay, keywordy/USE/licencje per atom (share/gentoo/portage)
+#   2. pakiety: pełna aktualizacja systemu i dane/pakiety-<dystrybucja>.txt (lista Omarchy zmapowana);
+#      sshd przeładowany, gdy aktualizacja podmieniła openssh pod działającą usługą
 #   3. pliki Omarchy: upstreamowe package() z omarchy-pkgs przy przypiętym commicie (share/upstream.env),
-#      także pakietów bez odpowiednika w repo Voida (ufw-docker — źródła sprawdzone sumami z PKGBUILD-a);
+#      także pakietów w stanie „port” z mapy (bez odpowiednika w repo dystrybucji: ufw-docker, na Gentoo
+#      też gum, mise, …) — PKGBUILD z share/pakiety albo omarchy-pkgs, źródła sprawdzone jego sumami;
 #      zmienione przez admina pliki z backup=() PKGBUILD-a zostają, nowa wersja obok jako .omarchy-new;
 #      pliki poprzedniej wersji, których nowa nie ma, znikają (zmienione przez admina → .omarchy-save);
 #      przeładowania działającego Hyprlanda wstrzymane na czas podmiany (jak hooki libalpm Omarchy)
 #   4. post_install omarchy-settings wybiórczo (bez os-release i nsswitch.conf)
-#   5. warstwa zgodności: install-layer.sh (z łatkami i brandingiem Voida)
+#   5. warstwa zgodności: install-layer.sh (z łatkami i brandingiem dystrybucji)
 #   6. dom użytkownika z /etc/skel — tylko przy pierwszej instalacji, jako użytkownik
-#   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/void/kroki.tsv; przed
+#   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/<dystrybucja>/kroki.tsv; przed
 #      config/firewall.sh włączony sshd dostaje regułę z Setup > Security > SSH (ufw limit 22/tcp)
 #   8. omarchy-provision-user jako użytkownik, na tym samym drzewie kroków — tylko dopóki nie przeszło
-#   9. usługi: dbus, polkitd, chronyd (NTP); dhcpcd wyłączony, gdy sieć przejmuje NetworkManager;
+#   9. usługi bazowe initu (runit: dbus, polkitd, chronyd; systemd: timesyncd); dhcpcd wyłączony,
+#      gdy sieć przejmuje NetworkManager;
 #      SDDM dostaje ostatniego użytkownika (motyw Omarchy nie ma pola użytkownika)
-# Usługi włączane w trakcie (krok enable-services i etap 9) NIE startują od razu — jak w systemd
-# wstają przy następnym starcie systemu (shim systemctl w trybie OMARCHY_PORT_INSTALL).
+# Usługi włączane w trakcie (krok enable-services i etap 9) NIE startują od razu — wstają przy
+# następnym starcie systemu (na runit: shim systemctl w trybie OMARCHY_PORT_INSTALL).
 # Przy --update etapy 6–9 nie idą, z jednym wyjątkiem: instalacja sprzed omarchy-port#8 (krok
 # config/firewall.sh pominięty) dostaje firewall raz — ufw rusza przy następnym starcie systemu.
 #
@@ -43,7 +48,6 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 SRC="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$SRC/.." && pwd)"
-VOID="$SRC/share/void"
 STATE=/var/lib/omarchy-port
 CACHE=/var/cache/omarchy-port
 OV=/usr/share/omarchy-port/install   # drzewo install/ Omarchy z pominięciami i podmianami portu
@@ -92,8 +96,15 @@ koniec() {
 trap koniec EXIT
 
 (( EUID == 0 )) || die "uruchom jako root"
-command -v xbps-install >/dev/null || die "na razie tylko Void (xbps) — Gentoo: omarchy-port#5"
-[[ $(xbps-uhelper arch) == x86_64 ]] || die "na razie tylko Void x86_64 z glibc (jest: $(xbps-uhelper arch))"
+# shellcheck source=share/system.sh
+source "$SRC/share/system.sh"
+wykryj_system || die "przerwane — powód wyżej"
+DYST="$SRC/share/$DYSTR"
+# shellcheck source=share/void/backend.sh
+source "$DYST/backend.sh"
+# shellcheck source=share/init/runit.sh
+source "$SRC/share/init/$INIT.sh"
+dyst_sprawdz
 if ((AKTUALIZACJA)); then
   [[ -e $STATE/wersja-omarchy ]] || die "--update: brak instalacji portu ($STATE/wersja-omarchy) — najpierw install.sh --user NAZWA"
 else
@@ -105,10 +116,7 @@ else
     die "katalog domowy $U (${H:-pusty}) nie istnieje albo nie należy do $U"
   ((imie_podane)) || IMIE=$(getent passwd "$U" | cut -d: -f5 | cut -d, -f1)
 fi
-# /var/service wskazuje na /run/runit/… — istnieje tylko w działającym systemie. Kroki Omarchy
-# włączają usługi przez shim systemctl, który bez działającego runit nie ma czego włączać.
-[[ -d /var/service ]] || die "system nie działa pod runit (chroot?) — orkiestrator wymaga uruchomionego systemu"
-command -v git >/dev/null || die "brak gita: xbps-install -S git"
+command -v git >/dev/null || die "brak gita — zainstaluj go menedżerem pakietów dystrybucji"
 
 # shellcheck source=share/upstream.env
 source "$SRC/share/upstream.env"
@@ -138,59 +146,22 @@ fi
 
 # ---------------------------------------------------------------------------------------------
 etap "1/9 repozytoria"
-# Adres i nazwa pliku jak w instalatorze szoniu/void (_setup_hyprland_repo) — oba trafiają w to samo.
-# Klucz blackhole NIE jest przyjmowany w ciemno: przypięty plik trafia do keys/ PRZED pierwszą
-# synchronizacją, xbps dostaje </dev/null (pytanie o nowy klucz = odmowa, a nie Enter = „tak”),
-# a po synchronizacji repo musi być podpisane kluczem o przypiętym odcisku — także wtedy, gdy klucz
-# był już w systemie (np. przyjęty przez instalator).
-BH_CONF=/etc/xbps.d/20-blackhole.conf
-BH_URL="https://mirror.black-hole.dev/$(xbps-uhelper arch)"
-klucze=("$VOID"/xbps-keys/*.plist)
-(( ${#klucze[@]} == 1 )) || die "w $VOID/xbps-keys ma być dokładnie jeden klucz"
-BH_FP=${klucze[0]##*/}
-BH_FP=${BH_FP%.plist}   # nazwa pliku klucza xbps = jego odcisk
-BH_KEY=/var/db/xbps/keys/${klucze[0]##*/}
-bh_key_nowy=0
-[[ -e $BH_KEY ]] || bh_key_nowy=1
-install -m 644 "${klucze[0]}" /var/db/xbps/keys/
-echo "repository=$BH_URL" >"$BH_CONF"
-odrzuc_blackhole() { # repo i klucz wgrany przez ten przebieg znikają — przyjęty wcześniej zostaje
-  rm -f "$BH_CONF"
-  if ((bh_key_nowy)); then rm -f "$BH_KEY"; fi
-}
-synchro() {
-  "$@" </dev/null && return 0
-  odrzuc_blackhole
-  die "$* nie powiodło się — jeśli xbps pytał wyżej o klucz, repo blackhole podpisuje inny klucz niż przypięty ($BH_FP); repo usunięte"
-}
-synchro xbps-install -Syu xbps   # najpierw sam xbps — Void wymaga aktualnego xbps przed resztą
-synchro xbps-install -y void-repo-nonfree
-synchro xbps-install -S
-fp=$(xbps-query -vL </dev/null | awk -v u="$BH_URL" '
-  $2 == u { w = 1; next }
-  w && $1 ~ /^[0-9]+$/ && $2 ~ /^https?:/ { exit }
-  w && NF == 2 && $2 ~ /^[0-9a-f]{2}(:[0-9a-f]{2})+$/ { print $2; exit }')
-if [[ $fp != "$BH_FP" ]]; then
-  odrzuc_blackhole
-  die "repo blackhole podpisane kluczem ${fp:-nieznanym}, a przypięty to $BH_FP — repo usunięte"
-fi
-echo "blackhole: podpis zgodny z przypiętym kluczem $BH_FP"
+dyst_repozytoria
 
 # ---------------------------------------------------------------------------------------------
 etap "2/9 pakiety"
-xbps-install -yu </dev/null   # pełna aktualizacja przed doinstalowaniem — xbps nie robi aktualizacji częściowych
-mapfile -t PAKIETY < <(grep -v '^#' "$REPO/dane/pakiety-do-instalacji.txt" | tr -s ' ' '\n' | sed '/^$/d')
+mapfile -t PAKIETY < <(grep -v '^#' "$REPO/dane/pakiety-$DYSTR.txt" | tr -s ' ' '\n' | sed '/^$/d')
 echo "pakietów na liście: ${#PAKIETY[@]}"
-xbps-install -y "${PAKIETY[@]}" </dev/null
+dyst_pakiety "${PAKIETY[@]}"
 # OpenSSH ≥ 9.8 przy każdym połączeniu uruchamia sshd-session z dysku: po aktualizacji openssh nowy
 # nie dogada się ze starym, działającym sshd i nowe połączenia SSH padają aż do restartu systemu.
-# runit wysyła TERM tylko do nasłuchującego sshd — trwające sesje (także ta z instalacją) zostają.
-sshd_pid=$(cat /var/service/sshd/supervise/pid 2>/dev/null) || sshd_pid=
+# Przeładowanie (share/init) dotyczy tylko nasłuchującego sshd — trwające sesje zostają.
+sshd_pid=$(init_pid sshd) || sshd_pid=
 if [[ -n $sshd_pid && $(readlink "/proc/$sshd_pid/exe" 2>/dev/null) == *' (deleted)' ]]; then
-  if sv restart sshd >/dev/null; then
-    echo "sshd: zrestartowany — openssh zaktualizowany pod działającą usługą"
+  if init_przeladuj_sshd; then
+    echo "sshd: przeładowany — openssh zaktualizowany pod działającą usługą"
   else
-    echo "UWAGA: sv restart sshd nie powiódł się — nowe połączenia SSH mogą padać do restartu systemu"
+    echo "UWAGA: przeładowanie sshd nie powiodło się — nowe połączenia SSH mogą padać do restartu systemu"
   fi
 fi
 
@@ -240,51 +211,70 @@ lista_pasuje() { # lista_pasuje <plik .tsv> <katalog w źródle Omarchy> <katalo
     esac
   done <"$tsv"
 }
-lista_pasuje "$VOID/kroki.tsv" install "$VOID/kroki"
-lista_pasuje "$VOID/migracje.tsv" migrations "$VOID/migracje"
+lista_pasuje "$DYST/kroki.tsv" install "$DYST/kroki"
+lista_pasuje "$DYST/migracje.tsv" migrations "$DYST/migracje"
 # Krok firewalla port obsługuje po nazwie (krok_firewall: reguła SSH przed nim, raz przy aktualizacji) —
 # po zmianie nazwy albo wypadnięciu z config/all.sh szedłby jako zwykły krok bez reguły SSH albo wcale.
 grep -qxF 'run_logged "$OMARCHY_INSTALL/config/firewall.sh"' "$CACHE/src/omarchy/install/config/all.sh" ||
   die "install/config/all.sh w Omarchy $OMARCHY_TAG nie woła już config/firewall.sh — przejrzyj krok_firewall (omarchy-port#8)"
 
-# Pakiety z omarchy-pkgs instalowane przez package(): omarchy i omarchy-settings ze źródeł Omarchy przy
-# przypiętym commicie ($CACHE/src), reszta — bez odpowiednika w repo Voida (stan „port” w
-# dane/mapa-pakietow-void.tsv) — ze źródeł z ich PKGBUILD-a, sprawdzonych jego sumami. ufw-docker:
-# krok config/firewall.sh bez niego pada przed włączeniem ufw (omarchy-port#8).
-PAKIETY_UPSTREAM=(omarchy-settings omarchy ufw-docker)
+# Pakiety budowane przez package() bez makepkg: omarchy i omarchy-settings ze źródeł Omarchy przy
+# przypiętym commicie ($CACHE/src), a pakiety w stanie „port” z mapy dystrybucji (bez odpowiednika w jej
+# repo: ufw-docker dla config/firewall.sh — omarchy-port#8, na Gentoo też gum, mise, …) ze źródeł z ich
+# PKGBUILD-a — z share/pakiety/<nazwa> portu, inaczej z omarchy-pkgs przy przypiętym commicie —
+# sprawdzonych jego sumami (b2sums albo sha256sums, także warianty _x86_64 jak w makepkg).
+mapfile -t PAKIETY_PORTU < <(awk -F'\t' 'NR > 1 && $2 == "port" { print $1 }' "$REPO/dane/mapa-pakietow-$DYSTR.tsv")
+PAKIETY_UPSTREAM=(omarchy-settings omarchy "${PAKIETY_PORTU[@]}")
 declare -A ZRODLA=([omarchy-settings]="$CACHE/src" [omarchy]="$CACHE/src")
-zrodla() { # zrodla <pakiet> — source= i b2sums= z PKGBUILD-a, jak makepkg; wynik w ZRODLA[<pakiet>]
-  local p=$1 pb="$CACHE/omarchy-pkgs/pkgbuilds/$1" dl="$CACHE/pobrane/$1" sd="$CACHE/zrodla/$1"
-  local i s nazwa url plik typ wartosc
+katalog_pkgbuild() { # katalog_pkgbuild <pakiet> — PKGBUILD portu ma pierwszeństwo przed omarchy-pkgs
+  if [[ -f $SRC/share/pakiety/$1/PKGBUILD ]]; then
+    echo "$SRC/share/pakiety/$1"
+  else
+    echo "$CACHE/omarchy-pkgs/pkgbuilds/$1"
+  fi
+}
+zrodla() { # zrodla <pakiet> — source= i sumy z PKGBUILD-a, jak makepkg; wynik w ZRODLA[<pakiet>]
+  local p=$1 pb dl="$CACHE/pobrane/$1" sd="$CACHE/zrodla/$1"
+  local i s nazwa url plik typ wartosc alg='' wzor
   local -a src=() sumy=()
-  [[ -f $pb/PKGBUILD ]] || die "brak PKGBUILD-a $p w omarchy-pkgs ($OMARCHY_PKGS_COMMIT) — zmiana nazwy? popraw PAKIETY_UPSTREAM"
-  # jedno wczytanie PKGBUILD-a: S<tab>źródło, B<tab>suma (pusta tablica nie daje pustego elementu)
+  pb=$(katalog_pkgbuild "$p")
+  [[ -f $pb/PKGBUILD ]] || die "brak PKGBUILD-a $p (share/pakiety portu ani omarchy-pkgs $OMARCHY_PKGS_COMMIT) — popraw mapę pakietów"
+  # jedno wczytanie PKGBUILD-a: S<tab>źródło, B|H<tab>suma b2sum|sha256 (pusta tablica = brak wierszy)
   while IFS=$'\t' read -r typ wartosc; do
-    case $typ in S) src+=("$wartosc") ;; B) sumy+=("$wartosc") ;; esac
+    case $typ in
+      S) src+=("$wartosc") ;;
+      B | H) sumy+=("$wartosc"); alg=$typ ;;
+    esac
   done < <(bash -c 'CARCH=x86_64; cd "$1" && source ./PKGBUILD >/dev/null 2>&1 || exit
-    for s in "${source[@]}"; do printf "S\t%s\n" "$s"; done
-    for s in "${b2sums[@]}"; do printf "B\t%s\n" "$s"; done' bash "$pb")
+    for s in "${source[@]}" "${source_x86_64[@]}"; do printf "S\t%s\n" "$s"; done
+    if (( ${#b2sums[@]} + ${#b2sums_x86_64[@]} )); then
+      for s in "${b2sums[@]}" "${b2sums_x86_64[@]}"; do printf "B\t%s\n" "$s"; done
+    else
+      for s in "${sha256sums[@]}" "${sha256sums_x86_64[@]}"; do printf "H\t%s\n" "$s"; done
+    fi' bash "$pb")
   (( ${#src[@]} > 0 && ${#src[@]} == ${#sumy[@]} )) ||
-    die "PKGBUILD $p: source= (${#src[@]}) i b2sums= (${#sumy[@]}) nie do pary — port instaluje tylko źródła z sumą b2sum"
+    die "PKGBUILD $p: źródła (${#src[@]}) i sumy b2sums/sha256sums (${#sumy[@]}) nie do pary — port instaluje tylko źródła z sumą"
+  if [[ $alg == B ]]; then wzor='^[0-9a-f]{128}$'; else wzor='^[0-9a-f]{64}$'; fi
+  suma() { if [[ $alg == B ]]; then b2sum <"$1"; else sha256sum <"$1"; fi | cut -d' ' -f1; }
   rm -rf "$sd"
   mkdir -p "$sd" "$dl"
   for i in "${!src[@]}"; do
     s=${src[i]}
     if [[ $s == *::* ]]; then nazwa=${s%%::*} url=${s#*::}; else nazwa=${s##*/} url=$s; fi
-    [[ ${sumy[i]} =~ ^[0-9a-f]{128}$ ]] || die "PKGBUILD $p: $nazwa bez sumy b2sum (${sumy[i]})"
+    [[ ${sumy[i]} =~ $wzor ]] || die "PKGBUILD $p: $nazwa bez sumy (${sumy[i]})"
     case $url in
       https://*)
         plik="$dl/$nazwa"
-        if [[ ! -f $plik || $(b2sum <"$plik" | cut -d' ' -f1) != "${sumy[i]}" ]]; then
+        if [[ ! -f $plik || $(suma "$plik") != "${sumy[i]}" ]]; then
           curl -fsSL --retry 3 --connect-timeout 20 --max-time 300 -o "$plik.part" "$url" ||
             die "PKGBUILD $p: pobranie $url nie powiodło się"
           mv -f "$plik.part" "$plik"
         fi ;;
-      *://*) die "PKGBUILD $p: źródło $url — port obsługuje tylko https:// i pliki z omarchy-pkgs" ;;
+      *://*) die "PKGBUILD $p: źródło $url — port obsługuje tylko https:// i pliki obok PKGBUILD-a" ;;
       *) plik="$pb/$url" ;;
     esac
-    [[ $(b2sum <"$plik" | cut -d' ' -f1) == "${sumy[i]}" ]] ||
-      die "PKGBUILD $p: $nazwa ma inną sumę b2sum niż w PKGBUILD-zie ($plik)"
+    [[ $(suma "$plik") == "${sumy[i]}" ]] ||
+      die "PKGBUILD $p: $nazwa ma inną sumę niż w PKGBUILD-zie ($plik)"
     case $nazwa in
       *.tar|*.tar.*|*.tgz) tar -xf "$plik" -C "$sd" --no-same-owner ;;
       *) ln -s "$plik" "$sd/$nazwa" ;;
@@ -297,9 +287,8 @@ for p in "${PAKIETY_UPSTREAM[@]}"; do
   [[ -n ${ZRODLA[$p]:-} ]] || zrodla "$p"
 done
 
-# Ścieżki należące do pakietów Voida — raz, z list plików w bazie xbps (xbps-query -o na plik to
-# ~0,25 s, a plików Omarchy jest ~2000).
-sed -n 's|^[[:space:]]*<string>\(/[^<]*\)</string>.*|\1|p' /var/db/xbps/.*-files.plist | LC_ALL=C sort -u >"$CACHE/pliki-xbps.txt"
+# Ścieżki należące do pakietów dystrybucji — raz, z bazy menedżera pakietów (share/<dystrybucja>/backend.sh).
+dyst_pliki_pakietow >"$CACHE/pliki-dystrybucji.txt"
 
 # Żywy Hyprland przeładowuje config przy każdej zmianie w /usr/share/omarchy/default/hypr/, a podmiana
 # tych plików pod działającą sesją ją wywraca (przy rerunie w sesji: awaria, start w trybie awaryjnym).
@@ -320,10 +309,16 @@ fi
 # po wypakowaniu części nie gubi plików do usunięcia przy ponownej próbie.
 POPRZ_MANIFEST="$STATE/manifest-poprzedni.txt"
 POPRZ_SUMY="$STATE/kopie-poprzednie.sums"
+# Z WSZYSTKICH manifestów w $STATE, nie tylko z bieżącej listy: pakiet, który wypadł ze stanu „port”
+# (np. gum dostępny już w repo dystrybucji), ma pliki do usunięcia, a jego manifest — do skasowania.
 if [[ ! -f $POPRZ_MANIFEST ]]; then
-  for p in "${PAKIETY_UPSTREAM[@]}"; do cat "$STATE/manifest-$p.txt" 2>/dev/null || true; done |
-    LC_ALL=C sort -u >"$POPRZ_MANIFEST.tmp"
-  for p in "${PAKIETY_UPSTREAM[@]}"; do cat "$STATE/kopie-$p.sums" 2>/dev/null || true; done >"$POPRZ_SUMY"
+  for m in "$STATE"/manifest-*.txt; do
+    if [[ -f $m && $m != "$POPRZ_MANIFEST" ]]; then cat "$m"; fi
+  done | LC_ALL=C sort -u >"$POPRZ_MANIFEST.tmp"
+  for m in "$STATE"/kopie-*.sums; do
+    if [[ -f $m && $m != "$POPRZ_SUMY" ]]; then cat "$m"; fi
+  done >"$POPRZ_SUMY.tmp"
+  mv "$POPRZ_SUMY.tmp" "$POPRZ_SUMY"
   mv "$POPRZ_MANIFEST.tmp" "$POPRZ_MANIFEST"
 fi
 
@@ -333,22 +328,22 @@ for p in "${PAKIETY_UPSTREAM[@]}"; do
   mkdir -p "$st"
   # Osobny proces bash: `set -e` w podpowłoce wołanej w warunku (|| / if) bash po cichu ignoruje.
   bash -e -c 'CARCH=x86_64 srcdir=$1 pkgdir=$2; cd "$3"; source ./PKGBUILD; package' \
-    bash "${ZRODLA[$p]}" "$st" "$CACHE/omarchy-pkgs/pkgbuilds/$p" >"$LOGDIR/package-$p.log" 2>&1 ||
+    bash "${ZRODLA[$p]}" "$st" "$(katalog_pkgbuild "$p")" >"$LOGDIR/package-$p.log" 2>&1 ||
     die "package() $p padło — $LOGDIR/package-$p.log"
   # Hooki libalpm są dla pacmana — pauzę przeładowań Hyprlanda port robi sam (wyżej).
   (cd "$st" && find . ! -type d ! -path './usr/share/libalpm/*' | sed 's|^\.||' | LC_ALL=C sort) >"$CACHE/manifest-$p.new"
   # Plik, który już jest na dysku, a nie pochodzi z poprzedniej instalacji portu, może należeć do
-  # pakietu Voida — takiego nie nadpisujemy po cichu.
+  # pakietu dystrybucji — takiego nie nadpisujemy po cichu.
   konflikty=()
   while IFS= read -r f; do
-    if [[ -e $f || -L $f ]]; then konflikty+=("$f ($(xbps-query -o "$f" 2>/dev/null | head -1 | cut -d: -f1))"); fi
-  done < <(LC_ALL=C comm -23 "$CACHE/manifest-$p.new" "$POPRZ_MANIFEST" | LC_ALL=C comm -12 - "$CACHE/pliki-xbps.txt")
-  (( ${#konflikty[@]} == 0 )) || die "$p nadpisałby pliki pakietów Voida: ${konflikty[*]}"
+    if [[ -e $f || -L $f ]]; then konflikty+=("$f ($(dyst_wlasciciel "$f"))"); fi
+  done < <(LC_ALL=C comm -23 "$CACHE/manifest-$p.new" "$POPRZ_MANIFEST" | LC_ALL=C comm -12 - "$CACHE/pliki-dystrybucji.txt")
+  (( ${#konflikty[@]} == 0 )) || die "$p nadpisałby pliki pakietów dystrybucji: ${konflikty[*]}"
 
   # backup=() z PKGBUILD-a jak w pacmanie: plik zmieniony przez admina (albo istniejący wcześniej,
   # nie nasz) zostaje, nowa wersja obok jako .omarchy-new; niezmieniony — nadpisujemy nowszą.
   mapfile -t KOPIE < <(bash -c 'CARCH=x86_64; cd "$1"; source ./PKGBUILD >/dev/null 2>&1; for b in "${backup[@]}"; do echo "/$b"; done' \
-    bash "$CACHE/omarchy-pkgs/pkgbuilds/$p")
+    bash "$(katalog_pkgbuild "$p")")
   wyklucz="$CACHE/wyklucz-$p.txt"
   : >"$wyklucz"
   : >"$CACHE/kopie-$p.new"
@@ -371,11 +366,11 @@ done
 # Pliki poprzedniej wersji, których nowa nie ma — pacman usuwa je przy aktualizacji pakietu, przed
 # wypakowaniem nowej (ścieżka może zmienić się z pliku w katalog i odwrotnie). Plik z backup=()
 # zmieniony przez admina zostaje jako .omarchy-save (jak .pacsave); plik, który należy dziś do pakietu
-# Voida, nie jest już nasz i zostaje. Od tego miejsca dysk się zmienia — przerwanie przywraca warstwę.
+# dystrybucji, nie jest już nasz i zostaje. Od tego miejsca dysk się zmienia — przerwanie przywraca warstwę.
 wypakowywanie=1
 for p in "${PAKIETY_UPSTREAM[@]}"; do cat "$CACHE/manifest-$p.new"; done | LC_ALL=C sort -u >"$CACHE/manifest-nowy.txt"
 # katalogi nowej wersji (także puste) zostają; reszta opróżnionych — tylko we własnym drzewie, bo
-# gdzie indziej katalog mógł założyć pakiet Voida
+# gdzie indziej katalog mógł założyć pakiet dystrybucji
 for p in "${PAKIETY_UPSTREAM[@]}"; do (cd "$CACHE/stage/$p" && find . -type d | sed 's|^\.||'); done |
   LC_ALL=C sort -u >"$CACHE/katalogi-nowe.txt"
 usuniete=0
@@ -396,7 +391,7 @@ while IFS= read -r f; do
   while [[ $d == /usr/share/omarchy/* ]] && ! grep -qxF "$d" "$CACHE/katalogi-nowe.txt" && rmdir "$d" 2>/dev/null; do
     d=${d%/*}
   done
-done < <(LC_ALL=C comm -23 "$POPRZ_MANIFEST" "$CACHE/manifest-nowy.txt" | LC_ALL=C comm -23 - "$CACHE/pliki-xbps.txt")
+done < <(LC_ALL=C comm -23 "$POPRZ_MANIFEST" "$CACHE/manifest-nowy.txt" | LC_ALL=C comm -23 - "$CACHE/pliki-dystrybucji.txt")
 echo "pliki poprzedniej wersji usunięte: $usuniete"
 
 for p in "${PAKIETY_UPSTREAM[@]}"; do
@@ -404,6 +399,18 @@ for p in "${PAKIETY_UPSTREAM[@]}"; do
   mv "$CACHE/manifest-$p.new" "$STATE/manifest-$p.txt"
   mv "$CACHE/kopie-$p.new" "$STATE/kopie-$p.sums"
   echo "$p: $(wc -l <"$STATE/manifest-$p.txt") plików"
+done
+# manifesty pakietów spoza bieżącej listy — ich pliki zniknęły wyżej (albo należą już do dystrybucji)
+for m in "$STATE"/manifest-*.txt; do
+  [[ -f $m && $m != "$POPRZ_MANIFEST" ]] || continue
+  p=${m##*/manifest-}
+  p=${p%.txt}
+  na_liscie=0
+  for q in "${PAKIETY_UPSTREAM[@]}"; do [[ $q == "$p" ]] && na_liscie=1; done
+  if (( ! na_liscie )); then
+    rm -f "$m" "$STATE/kopie-$p.sums"
+    echo "$p: wypadł z listy pakietów — manifest usunięty"
+  fi
 done
 rm -f "$POPRZ_MANIFEST" "$POPRZ_SUMY"   # pełny przebieg — następna aktualizacja liczy od tej wersji
 if ((wstrzymane)); then
@@ -426,7 +433,9 @@ etap "4/9 post_install omarchy-settings (wybiórczo)"
 EO=/usr/share/omarchy/etc-overrides
 install -m 644 "$EO/dot.bashrc" /etc/skel/.bashrc
 echo "/etc/skel/.bashrc"
-if [[ -e /usr/lib/security/pam_faillock.so ]]; then
+# moduły PAM: Void w /usr/lib/security, Gentoo w /lib64/security (albo /usr/lib64 po scaleniu /usr)
+if compgen -G '/usr/lib/security/pam_faillock.so' >/dev/null || compgen -G '/lib*/security/pam_faillock.so' >/dev/null ||
+  compgen -G '/usr/lib64/security/pam_faillock.so' >/dev/null; then
   install -m 644 "$EO/security-faillock.conf" /etc/security/faillock.conf
   echo "/etc/security/faillock.conf"
 else
@@ -446,17 +455,17 @@ OMARCHY_PORT_SWIEZE_PLIKI=1 bash "$SRC/install-layer.sh"
 warstwa_ok=1
 # Łatka, która nie weszła (inna wersja Omarchy), nie może zginąć w logu warstwy: trafia do
 # podsumowania i kodu wyjścia. Łatki bezpieczeństwa mają to słowo w pierwszej linii nagłówka.
-for l in "$SRC"/share/latki/*.patch "$SRC"/share/void/latki/*.patch; do
+for l in "$SRC"/share/latki/*.patch "$DYST"/latki/*.patch; do
   [[ -e $l ]] || continue
   git -C /usr/share/omarchy apply --check -R -p1 "$l" 2>/dev/null && continue
   wynik "${l#"$SRC"/}" root BŁĄD "nie nałożona — $(head -1 "$l")"
   echo "  BŁĄD         łatka ${l#"$SRC"/share/} nie nałożona — przejrzyj ją przy zmianie wersji Omarchy"
   BLEDY=$((BLEDY + 1))
 done
-# Branding Voida, który nie przeszedł (warstwa zostawia plik), też trafia do podsumowania, ale jako uwaga
+# Branding dystrybucji, który nie przeszedł (warstwa zostawia plik), też trafia do podsumowania, ale jako uwaga
 # bez kodu 1: kosmetyka nie zatrzymuje omarchy-update przed migracjami Omarchy (install-layer.sh).
 if [[ -e $STATE/branding-blad ]]; then
-  wynik share/void/branding.sh root uwaga "$(cat "$STATE/branding-blad")"
+  wynik "share/$DYSTR/branding.sh" root uwaga "$(cat "$STATE/branding-blad")"
   echo "  UWAGA        $(cat "$STATE/branding-blad")"
 fi
 
@@ -485,12 +494,19 @@ uruchom_krok() { # uruchom_krok <krok> <plik> [dopisek do „ok”] — krok ins
 # nie ma: „ERROR: problem running” i kod 1, choć plik reguł jest już zapisany (sprawdzone w VM). Dlatego
 # o wyniku decyduje obecność reguły w `ufw show added`, nie kod wyjścia.
 ssh_w_firewallu() { # rc 1 = sshd włączony, a którejś reguły nie ma
-  local porty port wyjscie dodane
+  local porty port wyjscie dodane gniazdo=0
   local -a brak=()
-  systemctl -q is-enabled sshd.service || return 0
+  # na systemd sshd bywa uruchamiany przez gniazdo (sshd.socket, port w ListenStream, nie w sshd_config)
+  if [[ $INIT == systemd ]] && systemctl -q is-enabled sshd.socket 2>/dev/null; then gniazdo=1; fi
+  systemctl -q is-enabled sshd.service || ((gniazdo)) || return 0
   porty=$(sshd -T 2>/dev/null | awk 'tolower($1) == "listenaddress" { n = split($2, a, ":"); print a[n] }' | sort -un) || porty=
   [[ -n $porty ]] || porty=$(sshd -T 2>/dev/null | awk 'tolower($1) == "port" { print $2 }' | sort -un) || porty=
   [[ -n $porty ]] || porty=22
+  if ((gniazdo)); then
+    # Listen=[::]:22 (Stream) 0.0.0.0:2222 (Stream) — port po ostatnim dwukropku każdego adresu
+    porty=$( { echo "$porty"; systemctl show -p Listen --value sshd.socket 2>/dev/null |
+      grep -oE ':[0-9]+ \(Stream\)' | grep -oE '[0-9]+'; } | sort -un) || true
+  fi
   for port in $porty; do
     wyjscie=$(ufw limit "$port/tcp" comment omarchy-sshd 2>&1) || true
     dodane=$(ufw show added 2>&1) || true
@@ -549,13 +565,13 @@ firewall_przy_aktualizacji() {
   # shim systemctl jak w etapie 7: ufw włączony bez startu, firewall ruszy przy następnym starcie systemu
   export OMARCHY_PATH=/usr/share/omarchy OMARCHY_PORT_INSTALL=1
   plik=$OMARCHY_PATH/install/$krok
-  IFS=$'\t' read -r _ akcja powod < <(awk -F'\t' -v k="$krok" '$1 == k' "$VOID/kroki.tsv") || true
+  IFS=$'\t' read -r _ akcja powod < <(awk -F'\t' -v k="$krok" '$1 == k' "$DYST/kroki.tsv") || true
   case $akcja in
     pomiń)
       wynik "$krok" root pominięty "$powod"
       echo "  pominięty    $krok"
       return 0 ;;
-    podmień) plik=$VOID/kroki/$krok ;;
+    podmień) plik=$DYST/kroki/$krok ;;
   esac
   krok_firewall "$plik" "${akcja:+ (podmieniony)}"
   if ((FIREWALL_TERAZ)); then
@@ -600,16 +616,16 @@ while IFS=$'\t' read -r krok akcja powod; do
   [[ -f $OV/$krok ]] || die "kroki.tsv: $krok nie istnieje w Omarchy $OMARCHY_TAG — przejrzyj listę po zmianie wersji"
   case $akcja in
     pomiń)
-      printf '# omarchy-port: krok pominięty na Voidzie (port/share/void/kroki.tsv)\necho %q\n' \
+      printf '# omarchy-port: krok pominięty na %s (port/share/%s/kroki.tsv)\necho %q\n' "$DYSTR" "$DYSTR" \
         "omarchy-port: pominięty — $powod" >"$OV/$krok" ;;
     podmień)
-      [[ -f $VOID/kroki/$krok ]] || die "kroki.tsv: brak podmiany $VOID/kroki/$krok"
-      install -m 644 "$VOID/kroki/$krok" "$OV/$krok" ;;
+      [[ -f $DYST/kroki/$krok ]] || die "kroki.tsv: brak podmiany $DYST/kroki/$krok"
+      install -m 644 "$DYST/kroki/$krok" "$OV/$krok" ;;
     *) die "kroki.tsv: nieznana akcja '$akcja' dla $krok" ;;
   esac
   AKCJA[$krok]=$akcja
   POWOD[$krok]=$powod
-done <"$VOID/kroki.tsv"
+done <"$DYST/kroki.tsv"
 
 kroki_grupy() { # kroki z <grupa>/all.sh; linia inna niż run_logged = upstream zmienił format
   local line re='^run_logged "\$OMARCHY_INSTALL/([^"]+)"$'
@@ -654,7 +670,9 @@ for s in "${!AKCJA[@]}"; do
   case ${AKCJA[$s]} in pomiń) w=pominięty ;; *) w=podmieniony ;; esac
   wynik "$s" użytkownik "$w" "${POWOD[$s]}"
 done
+provision_ok=0
 if [[ -e $H/.local/state/omarchy/done/finalize-user ]]; then
+  provision_ok=1
   # --first-install wymusza całość od nowa: przestawia przeglądarkę i mailto, nadpisuje ~/.XCompose
   # i oznacza WSZYSTKIE migracje jako wykonane — po podbiciu wersji nowe migracje by przepadły.
   wynik omarchy-provision-user użytkownik pominięty "już wykonane (znacznik finalize-user)"
@@ -673,6 +691,7 @@ else
   if (( rc == 0 )); then
     wynik omarchy-provision-user użytkownik ok
     echo "  ok           omarchy-provision-user"
+    provision_ok=1
   else
     wynik omarchy-provision-user użytkownik "BŁĄD rc=$rc" "$LOGDIR/provision-user.log"
     echo "  BŁĄD rc=$rc   omarchy-provision-user — $LOGDIR/provision-user.log"
@@ -681,13 +700,24 @@ else
   fi
 fi
 
+# Dodatki dystrybucji po provision (Gentoo: Chrome jako domyślna przeglądarka) — raz na konto, ze
+# znacznikiem: po udanym przebiegu nie nadpisują późniejszego wyboru użytkownika, a nieudany idzie
+# ponownie przy następnym uruchomieniu orkiestratora (provision ma już wtedy swój znacznik).
+if (( provision_ok )) && [[ ! -e $STATE/po-provision-$U ]]; then
+  if dyst_po_provision "$U"; then
+    touch "$STATE/po-provision-$U"
+  else
+    wynik "po provision ($DYSTR)" użytkownik BŁĄD "share/$DYSTR/backend.sh: dyst_po_provision — szczegóły wyżej w logu"
+    BLEDY=$((BLEDY + 1))
+  fi
+fi
+
 # ---------------------------------------------------------------------------------------------
 etap "9/9 usługi i logowanie"
-# Przez shim systemctl (ta sama logika co w krokach Omarchy, łącznie z plikiem down i startem przy
-# boocie). elogind celowo bez usługi runit: startuje z aktywacji D-Bus, a usługa obok kręci się
-# w pętli „already running” (sprawdzone w VM). chronyd zamiast systemd-timesyncd, który na Archu
-# dochodzi z systemd. NetworkManager, sddm, cups itd. włącza krok config/enable-services.sh.
-for s in dbus polkitd chronyd; do
+# Przez systemctl (na runit: shim portu, ta sama logika co w krokach Omarchy, łącznie z plikiem down
+# i startem przy boocie). Lista usług bazowych i jej uzasadnienie: share/init/<init>.sh.
+# NetworkManager, sddm, cups itd. włącza krok config/enable-services.sh.
+for s in "${USLUGI_BAZOWE[@]}"; do
   if systemctl enable "$s.service"; then
     echo "  włączona     $s"
   else

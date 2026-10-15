@@ -1,0 +1,148 @@
+arch	stan	gentoo	na_archu_z
+aether	brak		omarchy-pkgs
+alsa-utils	jest	media-sound/alsa-utils	
+asdcontrol	brak		omarchy-pkgs
+avahi	jest	net-dns/avahi	
+bash-completion	jest	app-shells/bash-completion	
+bat	jest	sys-apps/bat	
+bluez	jest	net-wireless/bluez	
+bluez-tools	jest	net-wireless/bluez-tools	
+bluez-utils	zamiennik	net-wireless/bluez	
+bolt	jest	sys-apps/bolt	
+brightnessctl	jest	app-misc/brightnessctl	
+btop	jest	sys-process/btop	
+chromium	zamiennik	www-client/google-chrome	
+clang	jest	llvm-core/clang	
+cliamp	brak		omarchy-pkgs
+cups	jest	net-print/cups	
+cups-filters	jest	net-print/cups-filters	
+cups-pk-helper	jest	net-print/cups-pk-helper	
+ddcutil	jest	app-misc/ddcutil	
+docker	jest	app-containers/docker	
+docker-buildx	jest	app-containers/docker-buildx	
+docker-compose	jest	app-containers/docker-compose	
+dosfstools	jest	sys-fs/dosfstools	
+dotnet-runtime	brak		
+dua-cli	jest	sys-fs/dua-cli	
+evince	jest	app-text/evince	
+exfatprogs	jest	sys-fs/exfatprogs	
+expac	brak		
+eza	jest	sys-apps/eza	
+fakeroot	jest	sys-apps/fakeroot	
+fastfetch	jest	app-misc/fastfetch	
+fcitx5	zamiennik	app-i18n/fcitx	
+fcitx5-gtk	zamiennik	app-i18n/fcitx-gtk	
+fcitx5-qt	zamiennik	app-i18n/fcitx-qt	
+fd	jest	sys-apps/fd	
+ffmpegthumbnailer	jest	media-video/ffmpegthumbnailer	
+fontconfig	jest	media-libs/fontconfig	
+foot	jest	gui-apps/foot	
+fzf	jest	app-shells/fzf	
+git	jest	dev-vcs/git	
+gnome-disk-utility	jest	sys-apps/gnome-disk-utility	
+gnome-keyring	jest	gnome-base/gnome-keyring	
+gnome-themes-extra	zamiennik	x11-themes/gnome-themes-standard	
+gpu-screen-recorder	jest	media-video/gpu-screen-recorder	
+grim	jest	gui-apps/grim	
+gum	port		
+gvfs-mtp	zamiennik	gnome-base/gvfs	
+gvfs-nfs	zamiennik	gnome-base/gvfs	
+gvfs-smb	zamiennik	gnome-base/gvfs	
+herdr	brak		omarchy-pkgs
+hyprland	jest	gui-wm/hyprland	omarchy-pkgs
+hyprland-guiutils	jest	gui-libs/hyprland-guiutils	
+hyprland-preview-share-picker	brak		omarchy-pkgs
+hyprpicker	jest	gui-apps/hyprpicker	
+hyprsunset	jest	gui-apps/hyprsunset	
+imagemagick	jest	media-gfx/imagemagick	
+imv	jest	media-gfx/imv	
+inetutils	jest	net-misc/inetutils	
+inotify-tools	jest	sys-fs/inotify-tools	
+inxi	jest	sys-apps/inxi	
+jq	jest	app-misc/jq	
+kdenlive	jest	kde-apps/kdenlive	
+kernel-modules-hook	brak		
+lazydocker	port		
+lazygit	jest	dev-vcs/lazygit	
+less	jest	sys-apps/less	
+libreoffice-fresh	zamiennik	app-office/libreoffice-bin	
+libsecret	jest	app-crypt/libsecret	
+libvips	zamiennik	media-libs/vips	
+libyaml	jest	dev-libs/libyaml	
+llvm	jest	llvm-core/llvm	
+localsend	port		omarchy-pkgs
+lua51	zamiennik	dev-lang/lua:5.1	
+luarocks	jest	dev-lua/luarocks	
+man-db	jest	sys-apps/man-db	
+mariadb-libs	zamiennik	dev-db/mariadb-connector-c	
+mise-bin	port		omarchy-pkgs
+moonlight-qt	zamiennik	net-misc/moonlight	
+mpv	jest	media-video/mpv	
+mpv-mpris	jest	mpv-plugin/mpv-mpris	
+nautilus	jest	gnome-base/nautilus	
+nautilus-python	jest	dev-python/nautilus-python	
+networkmanager	jest	net-misc/networkmanager	
+noto-fonts	zamiennik	media-fonts/noto	
+noto-fonts-cjk	zamiennik	media-fonts/noto-cjk	
+noto-fonts-emoji	zamiennik	media-fonts/noto-emoji	
+nss-mdns	jest	sys-auth/nss-mdns	
+nvim	zamiennik	app-editors/neovim	
+obs-studio	jest	media-video/obs-studio	omarchy-pkgs
+obsidian	jest	app-office/obsidian	omarchy-pkgs
+omacalc	brak		omarchy-pkgs
+omacut	brak		omarchy-pkgs
+omarchy-nvim	brak		omarchy-pkgs
+omawrite	brak		omarchy-pkgs
+pacman-contrib	brak		
+pamixer	jest	media-sound/pamixer	
+pinta	jest	media-gfx/pinta	omarchy-pkgs
+plocate	jest	sys-apps/plocate	
+plymouth	jest	sys-boot/plymouth	
+postgresql-libs	zamiennik	dev-db/postgresql	
+power-profiles-daemon	jest	sys-power/power-profiles-daemon	
+python-gobject	zamiennik	dev-python/pygobject	
+python-poetry-core	zamiennik	dev-python/poetry-core	
+qemu-user-static-binfmt	brak		
+qrencode	jest	media-gfx/qrencode	
+qt6-imageformats	zamiennik	dev-qt/qtimageformats:6	
+quickshell	jest	gui-apps/quickshell	omarchy-pkgs
+ripgrep	jest	sys-apps/ripgrep	
+ruby	jest	dev-lang/ruby	
+sddm	jest	x11-misc/sddm	
+slurp	jest	gui-apps/slurp	
+socat	jest	net-misc/socat	
+starship	jest	app-shells/starship	
+sushi	jest	gnome-extra/sushi	
+system-config-printer	jest	app-admin/system-config-printer	
+tensaku	brak		omarchy-pkgs
+tesseract	jest	app-text/tesseract	
+tesseract-data-eng	zamiennik	app-text/tessdata_fast	
+tldr	jest	app-text/tldr	
+tmux	jest	app-misc/tmux	
+tobi-try	brak		omarchy-pkgs
+tree-sitter-cli	jest	dev-util/tree-sitter-cli	
+ttf-ia-writer	brak		omarchy-pkgs
+ttf-jetbrains-mono-nerd-basic	zamiennik	media-fonts/nerdfonts	omarchy-pkgs
+ttfx	brak		omarchy-pkgs
+tzupdate	jest	app-misc/tzupdate	omarchy-pkgs
+udiskie	jest	sys-fs/udiskie	
+ufw	jest	net-firewall/ufw	
+ufw-docker	port		omarchy-pkgs
+unzip	jest	app-arch/unzip	
+usage	port		
+uwsm	jest	gui-apps/uwsm	
+whois	jest	net-misc/whois	
+wireless-regdb	jest	net-wireless/wireless-regdb	
+wireplumber	jest	media-video/wireplumber	
+wl-clipboard	jest	gui-apps/wl-clipboard	
+woff2-font-awesome	zamiennik	media-fonts/fontawesome	
+wtype	jest	gui-apps/wtype	
+xdg-desktop-portal-gtk	jest	sys-apps/xdg-desktop-portal-gtk	
+xdg-desktop-portal-hyprland	jest	gui-libs/xdg-desktop-portal-hyprland	
+xdg-terminal-exec	brak		
+xournalpp	jest	app-text/xournalpp	
+yaru-icon-theme	brak		omarchy-pkgs
+yay	brak		omarchy-pkgs
+yt-dlp	jest	net-misc/yt-dlp	
+zbar	jest	media-gfx/zbar	
+zoxide	jest	app-shells/zoxide	
