@@ -66,6 +66,32 @@ Przebieg:
 - **31 zmian listy pakietów.** Nowe bez mapy Voida: m.in. `base-devel`, `ffmpeg`, `qt6-*`, `fcitx5-*` (CJK), `omasnap`, `owe`, `gliff`, `superwhisper-bin`. Usunięte: m.in. `clang`, `llvm`, `kdenlive`, `xournalpp`, `lazydocker`, `dua-cli`.
 - **Łatka blokady na `quattro` nie pasuje** — poprawka jest tam z innym kontekstem (zgodnie z #10). Przy podbiciu do wydania z `d1a614ce` łatkę się usuwa.
 
+### Poprawki po review PR #4
+
+Review (zwykły) dał 15 ustaleń. Wszystkie sprawdziłem sam: 14 poprawionych, 1 odrzucone.
+
+| Ustalenie | Co zrobione | Test |
+|---|---|---|
+| **świeża instalacja przerywała etap 3**: `cat` brakujących manifestów pod `pipefail` | `{ cat … || true; }` | test od zera na czystej VM (niżej) |
+| `xbps-query -o` ma kod 0 także bez właściciela → pytanie o restart po aktualizacji jądra nigdy nie wychodziło | sprawdzane wyjście, nie kod | jądro bez właściciela: nowa logika „zaktualizowane”, stara „bez zmian”; prawdziwej aktualizacji jądra nie było |
+| przerwanie między etapem 3 a 5 zostawiało linki na pacmana i migracje bez zaślepek | pułapka nakłada warstwę ponownie, gdy dysk już się zmienił | `false` po wypakowaniu: `KOD=2`, w logu pułapki 17 przekierowań, zaślepka migracji z powrotem |
+| manifesty zapisywane per pakiet przed usuwaniem — przerwanie gubiło pliki do usunięcia | stan poprzedniej wersji (`manifest-poprzedni.txt`, `kopie-poprzednie.sums`) trzymany do pełnego przebiegu; etap 3 w kolejności pacmana: budowa i sprawdzenia obu pakietów → usunięcie → wypakowanie | po przerwaniu stan został, ponowna próba `KOD=0` i sprzątnięty |
+| ścieżka zmieniająca się z pliku w katalog (i odwrotnie) wywracała usuwanie albo tar | usuwanie przed wypakowaniem, katalog na dysku pomijany | — (przypadku nie było w teście) |
+| bramka nie pokazywała zmian upstreamu w skryptach, które port nakłada | wiersze `nakładka` (D/M + skala) | `quattro`: 11 nakładek, m.in. `omarchy-update` +130/−16 |
+| sierota w xbps może być serią działającego jądra (zmiana metapakietu `linux`) | pakiety jądra pomijane (stare jądra: `vkpurge`), usuwane tylko pokazane pakiety | filtr na przykładowej liście; prawdziwej zmiany serii nie było |
+| bramka pokazywała tylko nowe migracje | także usunięte i zmienione, z licznikiem dla tych z `migracje.tsv` | `quattro`: 87 nowych + 4 zmienione/usunięte |
+| `safe.directory` tylko dla `$REPO` | także dla klonu (`install.sh`, `omarchy-port-update`); czytelny komunikat przy nieudanym `pull --ff-only` | — |
+| przebieg z błędami zapisywał nową wersję → wskaźnik mówił „up to date” | wersja „niepełna” przy `BLEDY>0` | — |
+| klon przed upstreamem (lokalny commit) świecił „aktualizacja” na zawsze | `merge-base --is-ancestor` na obiektach klonu | lokalny commit w `/opt`: „up to date” (stara logika: aktualizacja) |
+| **`omarchy update` przez SSH/TTY szło w pacmana** — dyspozytor szuka podpoleceń obok siebie (`/usr/bin`) | dyspozytor `omarchy` w `/usr/local/bin` woła prawdziwy przez `/usr/share/omarchy/bin` | przez SSH: `omarchy version` → `4.0.5-1`, `omarchy pkg present foot` → 0; `/usr/bin/omarchy` → oba rc=1. Dotyczyło też `omarchy pkg …` z rundy 3 |
+| GNU-owe `\s` w bramce (macOS) | `[[:space:]]` | — |
+| łatki w bramce sprawdzane tylko na `shell/` | całe drzewo wydania | — |
+| **odrzucone:** trzy kopie parsowania TSV | różne zasady są celowe — orkiestrator przerywa przed zmianami, samodzielna warstwa tylko ostrzega (działa na zainstalowanym Omarchy) | — |
+
+Przy teście wyszła jeszcze jedna rzecz: log nie pokazywał, **które** pliki usunął (licznik „5” bez listy). Teraz każdy usunięty plik ma linię w logu.
+
+Powrót z `v4.0.5-test` do prawdziwego v4.0.4 przez menu (kod po review): pliki 4.0.5-test zniknęły, usunięte wróciły, stan poprzedniej wersji sprzątnięty, Hyprland żyje.
+
 ### Zostaje
 
 - Prawdziwe podbicie: przegląd 87 migracji do `migracje.tsv`, mapa pakietów, podmiana `user/mise.sh` — przy pierwszym wydaniu po v4.0.4.
