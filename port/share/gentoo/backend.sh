@@ -57,6 +57,17 @@ synchronizuj() {
   echo "  UWAGA        emaint sync nie przeszedł 3 razy — instalacja na drzewie z poprzedniej synchronizacji"
 }
 
+# Po udanym omarchy-provision-user: Omarchy ustawia tam na sztywno chromium.desktop (u nas alias z
+# share/gentoo/applications), a przeglądarką na Gentoo jest Chrome (omarchy-port#5). Jak
+# `omarchy-install-browser chrome` bez instalacji pakietu: katalog polityk Chrome (kolor motywu
+# z omarchy-theme-set-browser) i Chrome jako domyślna przeglądarka konta.
+dyst_po_provision() { # dyst_po_provision <użytkownik>
+  bash -c 'source /usr/share/omarchy/install/helpers/browser-policy.sh && browser_policy_setup_dir /etc/opt/chrome/policies/managed' ||
+    echo "UWAGA: katalog polityk Chrome nie powstał — motyw Omarchy nie pokoloruje przeglądarki"
+  su - "$1" -c 'env -u BROWSER xdg-settings set default-web-browser google-chrome.desktop' </dev/null ||
+    echo "UWAGA: domyślna przeglądarka $1 nie przestawiona na Chrome (Setup > Defaults > Browser)"
+}
+
 dyst_pakiety() { # dyst_pakiety <atom…> — pełna aktualizacja systemu, potem lista Omarchy (do @world)
   emerge --ask=n --quiet-build --update --deep --newuse --with-bdeps=y @world </dev/null
   emerge --ask=n --quiet-build --noreplace "$@" </dev/null

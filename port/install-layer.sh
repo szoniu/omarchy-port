@@ -33,6 +33,12 @@ install -m 644 "$SRC/share/pkg-map.sh" "$SRC/share/runit-services.tsv" "$SRC/sha
 install -m 644 "$REPO/dane/mapa-pakietow-$DYSTR.tsv" /usr/share/omarchy-port/mapa-pakietow.tsv
 install -m 644 "$DYST/pkg.sh" /usr/share/omarchy-port/pkg-backend.sh
 rm -f /usr/share/omarchy-port/mapa-pakietow-void.tsv
+# pliki .desktop dystrybucji (Gentoo: alias chromium.desktop → Chrome)
+for d in "$DYST"/applications/*.desktop; do
+  [[ -e $d ]] || continue
+  install -m 644 "$d" /usr/share/applications/
+  echo "aplikacja: /usr/share/applications/${d##*/}"
+done
 
 for shim in systemctl systemd-run systemd-cat systemd-inhibit timedatectl uwsm uwsm-app xdg-terminal-exec; do
   real=$(PATH=/usr/bin:/bin:/usr/sbin:/sbin command -v "$shim" || true)

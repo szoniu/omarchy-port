@@ -664,6 +664,7 @@ else
   if (( rc == 0 )); then
     wynik omarchy-provision-user użytkownik ok
     echo "  ok           omarchy-provision-user"
+    dyst_po_provision "$U"
   else
     wynik omarchy-provision-user użytkownik "BŁĄD rc=$rc" "$LOGDIR/provision-user.log"
     echo "  BŁĄD rc=$rc   omarchy-provision-user — $LOGDIR/provision-user.log"

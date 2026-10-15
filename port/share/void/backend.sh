@@ -47,6 +47,8 @@ synchro() {
   die "$* nie powiodło się — jeśli xbps pytał wyżej o klucz, repo blackhole podpisuje inny klucz niż przypięty ($BH_FP); repo usunięte"
 }
 
+dyst_po_provision() { :; }   # Void: Chromium z repo, provision-user ustawia go sam
+
 dyst_pakiety() { # dyst_pakiety <nazwa…> — pełna aktualizacja, potem lista Omarchy
   xbps-install -yu </dev/null   # pełna aktualizacja przed doinstalowaniem — xbps nie robi aktualizacji częściowych
   xbps-install -y "$@" </dev/null
