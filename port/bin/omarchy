@@ -1,0 +1,11 @@
+#!/bin/bash
+# omarchy-port: dyspozytor `omarchy <polecenie>` przez /usr/share/omarchy/bin. Prawdziwy dyspozytor
+# szuka podpoleceń w katalogu, z którego go wywołano (bez rozwijania linku): wołany jako
+# /usr/share/omarchy/bin/omarchy trafia w przekierowane nakładki portu (omarchy update → nakładka
+# z xbps), jako /usr/bin/omarchy — w wersje z pacmanem. W sesji PATH zaczyna się od
+# /usr/share/omarchy/bin, ale przez SSH i na TTY pierwszy jest /usr/local/bin — stąd ten plik.
+# NIE przekierowywać na niego linku /usr/share/omarchy/bin/omarchy (wołałby sam siebie).
+if [[ -x /usr/share/omarchy/bin/omarchy ]]; then
+  exec /usr/share/omarchy/bin/omarchy "$@"
+fi
+exec /usr/bin/omarchy "$@"

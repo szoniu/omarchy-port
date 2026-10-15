@@ -4,12 +4,15 @@
 # omarchy:requires-sudo=true
 
 # omarchy-port (Void): nakładka na /usr/bin/omarchy-update-orphan-pkgs (pacman -Qtdq / -Rns →
-# xbps-query -O / xbps-remove -o). Sierota w xbps = pakiet zainstalowany jako zależność, której już
-# nic nie potrzebuje — ta sama definicja co -Qtd w pacmanie. Reszta jak upstream.
+# xbps-query -O / xbps-remove). Sierota w xbps = pakiet zainstalowany jako zależność, której już
+# nic nie potrzebuje — ta sama definicja co -Qtd w pacmanie. Inaczej niż na Archu: gdy metapakiet
+# `linux` przechodzi na nową serię, poprzednia seria jądra (także ta, która właśnie działa) staje się
+# sierotą — pakiety jądra są więc pomijane (stare jądra sprząta vkpurge, po restarcie). Usuwane są
+# tylko pokazane pakiety, nie wszystkie sieroty (xbps-remove -o).
 
 set -e
 
-mapfile -t orphans < <(xbps-query -O 2>/dev/null || true)
+mapfile -t orphans < <(xbps-query -O 2>/dev/null | grep -Ev '^linux[0-9]+\.[0-9]+(-headers|-dbg)?-[0-9]' || true)
 (( ${#orphans[@]} )) || exit 0
 
 echo -e "\e[32m\nOrphan system packages\e[0m"
@@ -29,5 +32,6 @@ if ! gum confirm --default=false "Remove ${#orphans[@]} orphaned package(s)?"; t
 fi
 
 echo -e "\e[32m\nRemoving orphan system packages\e[0m"
-sudo xbps-remove -oy
+mapfile -t names < <(for o in "${orphans[@]}"; do xbps-uhelper getpkgname "$o"; done)
+sudo xbps-remove -Ry "${names[@]}"
 echo

@@ -3,7 +3,7 @@
 #   shimy (systemctl, systemd-run, systemd-cat, uwsm-app, xdg-terminal-exec) → /usr/local/bin,
 #       TYLKO gdy prawdziwego polecenia nie ma (na Gentoo z systemd żaden nie powstaje);
 #   nakładki (omarchy-pkg-*, omarchy-version*, omarchy-update*), polecenia portu (omarchy-port-*)
-#       → /usr/local/bin, zawsze —
+#       i dyspozytor `omarchy` przez /usr/share/omarchy/bin (SSH, TTY) → /usr/local/bin, zawsze —
 #       /usr/local/bin jest w PATH i w secure_path sudo PRZED /usr/bin z plikami Omarchy,
 #       a linki w /usr/share/omarchy/bin (PATH sesji) są przekierowane na nakładki;
 #   dane → /usr/share/omarchy-port, sesja → /usr/libexec/omarchy-port + wayland-sessions,
@@ -34,7 +34,7 @@ done
 # nakładki na polecenia Omarchy, które pytają pacmana (pakiety, wersja/kanał/data aktualizacji,
 # kroki omarchy-update); omarchy-port-* to polecenia samego portu (bez odpowiednika w Omarchy)
 NAKLADKI=("$SRC"/bin/omarchy-pkg-* "$SRC"/bin/omarchy-version* "$SRC"/bin/omarchy-update*)
-for f in "${NAKLADKI[@]}" "$SRC"/bin/omarchy-port-*; do
+for f in "${NAKLADKI[@]}" "$SRC"/bin/omarchy-port-* "$SRC/bin/omarchy"; do
   install -m 755 "$f" /usr/local/bin/
   echo "nakładka: /usr/local/bin/$(basename "$f")"
 done

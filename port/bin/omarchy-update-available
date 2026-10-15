@@ -31,7 +31,10 @@ if IFS=$'\t' read -r installed url ref </var/lib/omarchy-port/wersja-portu 2>/de
   [[ -n $installed && -n $url && -n $ref ]]; then
   # ls-remote nie potrzebuje repo, ale git i tak czyta bieżący katalog — z nieczytelnego pada po cichu
   remote=$(cd / && GIT_TERMINAL_PROMPT=0 timeout 10 git ls-remote "$url" "$ref" 2>/dev/null | cut -f1 || true)
-  if [[ -n $remote && $remote != "$installed" ]]; then
+  # Klon przed upstreamem (lokalny commit, cofnięta gałąź) to nie aktualizacja — pull --ff-only i tak
+  # nic by nie zmienił. Obiekty klonu czytamy bez zapisu (safe.directory: repo należy do roota).
+  if [[ -n $remote && $remote != "$installed" ]] &&
+    ! git -c safe.directory=/opt/omarchy-port -C /opt/omarchy-port merge-base --is-ancestor "$remote" "$installed" 2>/dev/null; then
     updates+=("omarchy-port ${installed:0:7} -> ${remote:0:7} (${ref#refs/heads/})")
   fi
 fi

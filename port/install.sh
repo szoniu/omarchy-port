@@ -69,9 +69,18 @@ fi
 KONIEC=0
 STRAZNIK=/usr/bin/omarchy-hyprland-reload-guard
 wstrzymane=0   # przeładowania Hyprlanda wstrzymane na czas etapu 3 — przerwanie musi je wznowić
+# Etap 3 kładzie surowe pliki Omarchy: linki /usr/share/omarchy/bin na wersje z pacmanem, migracje bez
+# zaślepek portu. Przerwanie przed etapem 5 zostawiłoby menu Update i powiadomienie o migracjach
+# wskazujące na nie — pułapka nakłada wtedy warstwę jeszcze raz.
+wypakowywanie=0 warstwa_ok=0
 koniec() {
   local rc=$?
   if ((wstrzymane)); then "$STRAZNIK" resume || true; fi
+  if ((wypakowywanie && !warstwa_ok)); then
+    echo "install.sh: przerwane w trakcie podmiany plików Omarchy — nakładam warstwę portu ponownie" >&2
+    bash "$SRC/install-layer.sh" >"${LOGDIR:-/tmp}/warstwa-po-przerwaniu.log" 2>&1 ||
+      echo "install.sh: UWAGA — warstwa się nie nałożyła (${LOGDIR:-/tmp}/warstwa-po-przerwaniu.log); uruchom port/install-layer.sh" >&2
+  fi
   ((KONIEC)) && exit "$rc"
   ((rc == 2)) || echo "install.sh: przerwane (rc=$rc) — przyczyna wyżej${LOGDIR:+; log: $LOGDIR}" >&2
   exit 2
@@ -247,10 +256,18 @@ if [[ -x $STRAZNIK ]]; then
   fi
 fi
 
-# Stan poprzedniej wersji (oba pakiety razem — plik może przejść z jednego do drugiego) do usunięcia
-# plików, których nowa wersja nie ma; pętla niżej nadpisuje manifesty i sumy.
-cat "$STATE"/manifest-omarchy-settings.txt "$STATE"/manifest-omarchy.txt 2>/dev/null | LC_ALL=C sort -u >"$CACHE/manifest-stary.txt"
-cat "$STATE"/kopie-omarchy-settings.sums "$STATE"/kopie-omarchy.sums 2>/dev/null >"$CACHE/kopie-stare.sums" || true
+# Kolejność jak w pacmanie: najpierw budowa i sprawdzenia obu pakietów (bez zmian na dysku), potem
+# usunięcie plików poprzedniej wersji, na końcu wypakowanie. Stan poprzedniej wersji (oba pakiety
+# razem — plik może przejść z jednego do drugiego) zostaje w $STATE aż do pełnego przebiegu: przerwanie
+# po wypakowaniu części nie gubi plików do usunięcia przy ponownej próbie.
+POPRZ_MANIFEST="$STATE/manifest-poprzedni.txt"
+POPRZ_SUMY="$STATE/kopie-poprzednie.sums"
+if [[ ! -f $POPRZ_MANIFEST ]]; then
+  { cat "$STATE"/manifest-omarchy-settings.txt "$STATE"/manifest-omarchy.txt 2>/dev/null || true; } |
+    LC_ALL=C sort -u >"$POPRZ_MANIFEST.tmp"
+  { cat "$STATE"/kopie-omarchy-settings.sums "$STATE"/kopie-omarchy.sums 2>/dev/null || true; } >"$POPRZ_SUMY"
+  mv "$POPRZ_MANIFEST.tmp" "$POPRZ_MANIFEST"
+fi
 
 for p in omarchy-settings omarchy; do
   st="$CACHE/stage/$p"
@@ -264,19 +281,16 @@ for p in omarchy-settings omarchy; do
   (cd "$st" && find . ! -type d ! -path './usr/share/libalpm/*' | sed 's|^\.||' | LC_ALL=C sort) >"$CACHE/manifest-$p.new"
   # Plik, który już jest na dysku, a nie pochodzi z poprzedniej instalacji portu, może należeć do
   # pakietu Voida — takiego nie nadpisujemy po cichu.
-  stary="$STATE/manifest-$p.txt"
-  [[ -f $stary ]] || : >"$stary"
   konflikty=()
   while IFS= read -r f; do
     if [[ -e $f || -L $f ]]; then konflikty+=("$f ($(xbps-query -o "$f" 2>/dev/null | head -1 | cut -d: -f1))"); fi
-  done < <(LC_ALL=C comm -23 "$CACHE/manifest-$p.new" "$stary" | LC_ALL=C comm -12 - "$CACHE/pliki-xbps.txt")
+  done < <(LC_ALL=C comm -23 "$CACHE/manifest-$p.new" "$POPRZ_MANIFEST" | LC_ALL=C comm -12 - "$CACHE/pliki-xbps.txt")
   (( ${#konflikty[@]} == 0 )) || die "$p nadpisałby pliki pakietów Voida: ${konflikty[*]}"
 
   # backup=() z PKGBUILD-a jak w pacmanie: plik zmieniony przez admina (albo istniejący wcześniej,
   # nie nasz) zostaje, nowa wersja obok jako .omarchy-new; niezmieniony — nadpisujemy nowszą.
   mapfile -t KOPIE < <(bash -c 'CARCH=x86_64; cd "$1"; source ./PKGBUILD >/dev/null 2>&1; for b in "${backup[@]}"; do echo "/$b"; done' \
     bash "$CACHE/omarchy-pkgs/pkgbuilds/$p")
-  sumy="$STATE/kopie-$p.sums"
   wyklucz="$CACHE/wyklucz-$p.txt"
   : >"$wyklucz"
   : >"$CACHE/kopie-$p.new"
@@ -287,25 +301,21 @@ for p in omarchy-settings omarchy; do
     [[ -f $f ]] || continue
     dysk=$(sha256sum <"$f" | cut -d' ' -f1)
     [[ $dysk == "$nowa" ]] && continue
-    stara=
-    if [[ -f $sumy ]]; then stara=$(awk -v f="$f" '$2 == f { print $1 }' "$sumy"); fi
+    stara=$(awk -v f="$f" '$2 == f { print $1 }' "$POPRZ_SUMY")
     [[ -n $stara && $dysk == "$stara" ]] && continue
     cp -p "$st$f" "$f.omarchy-new"
     echo ".$f" >>"$wyklucz"
     echo "  zachowany zmieniony $f — nowa wersja: $f.omarchy-new"
     wynik "$f" root "zachowany" "zmieniony przez admina; wersja Omarchy w $f.omarchy-new"
   done
-
-  tar -C "$st" --exclude=./usr/share/libalpm -X "$wyklucz" -cf - . | tar -C / --no-overwrite-dir -xpf -
-  mv "$CACHE/manifest-$p.new" "$stary"
-  mv "$CACHE/kopie-$p.new" "$sumy"
-  echo "$p: $(wc -l <"$stary") plików"
 done
 
-# Pliki poprzedniej wersji, których nowa nie ma — pacman usuwa je przy aktualizacji pakietu. Plik
-# z backup=() zmieniony przez admina zostaje jako .omarchy-save (jak .pacsave); plik, który należy
-# dziś do pakietu Voida, nie jest już nasz i zostaje.
-cat "$STATE"/manifest-omarchy-settings.txt "$STATE"/manifest-omarchy.txt | LC_ALL=C sort -u >"$CACHE/manifest-nowy.txt"
+# Pliki poprzedniej wersji, których nowa nie ma — pacman usuwa je przy aktualizacji pakietu, przed
+# wypakowaniem nowej (ścieżka może zmienić się z pliku w katalog i odwrotnie). Plik z backup=()
+# zmieniony przez admina zostaje jako .omarchy-save (jak .pacsave); plik, który należy dziś do pakietu
+# Voida, nie jest już nasz i zostaje. Od tego miejsca dysk się zmienia — przerwanie przywraca warstwę.
+wypakowywanie=1
+cat "$CACHE"/manifest-omarchy-settings.new "$CACHE"/manifest-omarchy.new | LC_ALL=C sort -u >"$CACHE/manifest-nowy.txt"
 # katalogi nowej wersji (także puste) zostają; reszta opróżnionych — tylko we własnym drzewie, bo
 # gdzie indziej katalog mógł założyć pakiet Voida
 for p in omarchy-settings omarchy; do (cd "$CACHE/stage/$p" && find . -type d | sed 's|^\.||'); done |
@@ -313,7 +323,8 @@ for p in omarchy-settings omarchy; do (cd "$CACHE/stage/$p" && find . -type d | 
 usuniete=0
 while IFS= read -r f; do
   [[ -e $f || -L $f ]] || continue
-  stara=$(awk -v f="$f" '$2 == f { print $1 }' "$CACHE/kopie-stare.sums")
+  [[ -d $f && ! -L $f ]] && continue   # dziś katalog (np. podmieniony ręcznie) — nie nasz plik
+  stara=$(awk -v f="$f" '$2 == f { print $1 }' "$POPRZ_SUMY")
   if [[ -n $stara && -f $f && ! -L $f && $(sha256sum <"$f" | cut -d' ' -f1) != "$stara" ]]; then
     mv -f "$f" "$f.omarchy-save"
     echo "  zachowany zmieniony $f — nie ma go w $OMARCHY_TAG, kopia: $f.omarchy-save"
@@ -326,8 +337,16 @@ while IFS= read -r f; do
   while [[ $d == /usr/share/omarchy/* ]] && ! grep -qxF "$d" "$CACHE/katalogi-nowe.txt" && rmdir "$d" 2>/dev/null; do
     d=${d%/*}
   done
-done < <(LC_ALL=C comm -23 "$CACHE/manifest-stary.txt" "$CACHE/manifest-nowy.txt" | LC_ALL=C comm -23 - "$CACHE/pliki-xbps.txt")
+done < <(LC_ALL=C comm -23 "$POPRZ_MANIFEST" "$CACHE/manifest-nowy.txt" | LC_ALL=C comm -23 - "$CACHE/pliki-xbps.txt")
 echo "pliki poprzedniej wersji usunięte: $usuniete"
+
+for p in omarchy-settings omarchy; do
+  tar -C "$CACHE/stage/$p" --exclude=./usr/share/libalpm -X "$CACHE/wyklucz-$p.txt" -cf - . | tar -C / --no-overwrite-dir -xpf -
+  mv "$CACHE/manifest-$p.new" "$STATE/manifest-$p.txt"
+  mv "$CACHE/kopie-$p.new" "$STATE/kopie-$p.sums"
+  echo "$p: $(wc -l <"$STATE/manifest-$p.txt") plików"
+done
+rm -f "$POPRZ_MANIFEST" "$POPRZ_SUMY"   # pełny przebieg — następna aktualizacja liczy od tej wersji
 if ((wstrzymane)); then
   # resume jak hook PostTransaction: jedno `hyprctl reload` na nowych plikach, potem stare ustawienia
   "$STRAZNIK" resume || echo "UWAGA: $STRAZNIK resume nie powiódł się — auto-reload Hyprlanda może zostać wyłączony do wylogowania"
@@ -365,6 +384,7 @@ echo "            plymouthd.conf (Void w porcie bez plymouth), cups-files.conf (
 etap "5/9 warstwa zgodności"
 # Etap 3 wypakował pliki Omarchy od nowa — łatka, której cofnięcie pasuje, jest już w samym wydaniu.
 OMARCHY_PORT_SWIEZE_PLIKI=1 bash "$SRC/install-layer.sh"
+warstwa_ok=1
 # Łatka, która nie weszła (inna wersja Omarchy), nie może zginąć w logu warstwy: trafia do
 # podsumowania i kodu wyjścia. Łatki bezpieczeństwa mają to słowo w pierwszej linii nagłówka.
 for l in "$SRC"/share/latki/*.patch; do
@@ -547,18 +567,21 @@ fi
 # Wersja zainstalowanego portu i upstream klonu — nakładka omarchy-update-available porównuje je
 # jako użytkownik (git ls-remote), bez dostępu do repo roota.
 if [[ -d $PORT_DIR/.git ]]; then
-  zrodlo_ref=$(git -C "$PORT_DIR" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null) || zrodlo_ref=
+  # safe.directory: klon albo checkout innego właściciela (np. w domu użytkownika, przez sudo)
+  zrodlo_ref=$(git -c safe.directory="$PORT_DIR" -C "$PORT_DIR" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null) || zrodlo_ref=
   zrodlo_url='' zrodlo_galaz=''
   if [[ -n $zrodlo_ref ]]; then
-    zrodlo_url=$(git -C "$PORT_DIR" remote get-url "${zrodlo_ref%%/*}" 2>/dev/null) || zrodlo_url=
+    zrodlo_url=$(git -c safe.directory="$PORT_DIR" -C "$PORT_DIR" remote get-url "${zrodlo_ref%%/*}" 2>/dev/null) || zrodlo_url=
     zrodlo_galaz=refs/heads/${zrodlo_ref#*/}
   fi
-  # wersja tylko z repo, którego korzeniem jest port (nie z cudzego repo, w którym leży kopia);
-  # safe.directory: checkout innego właściciela (np. w domu użytkownika, uruchomiony przez sudo)
+  # wersja tylko z repo, którego korzeniem jest port (nie z cudzego repo, w którym leży kopia)
   wersja=
   if [[ $(git -c safe.directory="$REPO" -C "$REPO" rev-parse --show-toplevel 2>/dev/null) == "$REPO" ]]; then
     wersja=$(git -c safe.directory="$REPO" -C "$REPO" rev-parse HEAD)
   fi
+  # Przebieg z błędami (kod 1) nie jest pełną wersją: omarchy-update staje przed migracjami, więc
+  # wskaźnik ma dalej zapraszać do ponownej próby, zamiast mówić „up to date”.
+  if (( BLEDY > 0 )) && [[ -n $wersja ]]; then wersja=niepełna; fi
   printf '%s\t%s\t%s\n' "$wersja" "$zrodlo_url" "$zrodlo_galaz" >"$STATE/wersja-portu"
   chmod 644 "$STATE/wersja-portu"
   echo "  wersja portu: ${wersja:-nieznana (instalacja spoza gita)}, aktualizacje z: ${zrodlo_url:-brak upstreamu} ${zrodlo_galaz#refs/heads/}"

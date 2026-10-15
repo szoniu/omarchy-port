@@ -1,90 +1,94 @@
-migracja	1786609204.sh	—	—
-migracja	1786719479.sh	—	—
-migracja	1786967403.sh	—	—
-migracja	1787215824.sh	—	—
-migracja	1787342993.sh	—	—
-migracja	1787573629.sh	—	—
-migracja	1787666837.sh	—	—
-migracja	1787679775.sh	—	—
-migracja	1788129995.sh	pakiety	—
-migracja	1788163635.sh	sudo	—
-migracja	1788256455.sh	sudo	—
-migracja	1788261467.sh	systemd	—
-migracja	1788279117.sh	pacman,pakiety,sudo	—
-migracja	1788281348.sh	—	—
-migracja	1788595060.sh	—	—
-migracja	1788596255.sh	pakiety	—
-migracja	1788862626.sh	systemd,sudo	—
-migracja	1788941927.sh	—	—
-migracja	1788996284.sh	pacman	—
-migracja	1789091250.sh	—	—
-migracja	1789095456.sh	—	—
-migracja	1789130779.sh	systemd	—
-migracja	1789294350.sh	sudo	—
-migracja	1789310715.sh	—	—
-migracja	1789764927.sh	systemd,pakiety	—
-migracja	1790017600.sh	—	—
-migracja	1790042972.sh	—	—
-migracja	1790114905.sh	systemd	—
-migracja	1790282866.sh	—	—
-migracja	1790364978.sh	sudo	—
-migracja	1790397381.sh	—	—
-migracja	1790457067.sh	—	—
-migracja	1790517230.sh	limine,initramfs,sudo	—
-migracja	1790528634.sh	pakiety	—
-migracja	1790539857.sh	pakiety	—
-migracja	1790542069.sh	pakiety	—
-migracja	1790702362.sh	pakiety	—
-migracja	1790702606.sh	—	—
-migracja	1790863209.sh	—	—
-migracja	1790917415.sh	sudo	—
-migracja	1790917571.sh	systemd	—
-migracja	1790917620.sh	pacman,sudo	—
-migracja	1790917773.sh	limine,initramfs,sudo	—
-migracja	1790950659.sh	systemd,limine,initramfs,plymouth,sudo	—
-migracja	1790953795.sh	limine,initramfs,sudo	—
-migracja	1790973240.sh	pakiety	—
-migracja	1790984400.sh	limine,initramfs,sudo	—
-migracja	1790984500.sh	systemd,pakiety,sudo	—
-migracja	1790984600.sh	limine,initramfs,sudo	—
-migracja	1790984700.sh	limine,initramfs,sudo	—
-migracja	1791077437.sh	systemd,limine,initramfs,plymouth,pakiety,sudo	—
-migracja	1791112479.sh	—	—
-migracja	1791123731.sh	—	—
-migracja	1791125650.sh	systemd,sudo	—
-migracja	1791134093.sh	sudo	—
-migracja	1791147791.sh	sudo	—
-migracja	1791152480.sh	pacman,limine,initramfs,sudo	—
-migracja	1791265613.sh	—	—
-migracja	1791345484.sh	pakiety	—
-migracja	1791367434.sh	pakiety	—
-migracja	1791376887.sh	—	—
-migracja	1791403252.sh	pacman,sudo	—
-migracja	1791403310.sh	pakiety	—
-migracja	1791408113.sh	limine,initramfs,sudo	—
-migracja	1791470456.sh	—	—
-migracja	1791479273.sh	—	—
-migracja	1791542175.sh	pakiety	—
-migracja	1791581004.sh	limine,initramfs,sudo	—
-migracja	1791640449.sh	—	—
-migracja	1791676907.sh	—	—
-migracja	1791696584.sh	—	—
-migracja	1791698594.sh	—	—
-migracja	1791705142.sh	—	—
-migracja	1791708587.sh	pakiety	—
-migracja	1791722809.sh	—	—
-migracja	1791723398.sh	—	—
-migracja	1791769486.sh	pacman,systemd,limine,initramfs,pakiety,sudo	—
-migracja	1791784278.sh	limine,initramfs,sudo	—
-migracja	1791867831.sh	sudo	—
-migracja	1791875754.sh	—	—
-migracja	1791898365.sh	limine,sudo	—
-migracja	1791934674.sh	—	—
-migracja	1791935188.sh	—	—
-migracja	1791968925.sh	—	—
-migracja	1791969355.sh	—	—
-migracja	1792020559.sh	—	—
-migracja	1792041364.sh	pakiety	—
+migracja	1786391100.sh	M sudo	—
+migracja	1786605598.sh	M pacman,limine,initramfs,sudo	—
+migracja	1786609204.sh	A —	—
+migracja	1786719479.sh	A —	—
+migracja	1786967403.sh	A —	—
+migracja	1787215824.sh	A —	—
+migracja	1787342993.sh	A —	—
+migracja	1787573629.sh	A —	—
+migracja	1787580187.sh	M —	—
+migracja	1787666837.sh	A —	—
+migracja	1787679775.sh	A —	—
+migracja	1787760281.sh	M —	—
+migracja	1788129995.sh	A pakiety	—
+migracja	1788163635.sh	A sudo	—
+migracja	1788256455.sh	A sudo	—
+migracja	1788261467.sh	A systemd	—
+migracja	1788279117.sh	A pacman,pakiety,sudo	—
+migracja	1788281348.sh	A —	—
+migracja	1788595060.sh	A —	—
+migracja	1788596255.sh	A pakiety	—
+migracja	1788862626.sh	A systemd,sudo	—
+migracja	1788941927.sh	A —	—
+migracja	1788996284.sh	A pacman	—
+migracja	1789091250.sh	A —	—
+migracja	1789095456.sh	A —	—
+migracja	1789130779.sh	A systemd	—
+migracja	1789294350.sh	A sudo	—
+migracja	1789310715.sh	A —	—
+migracja	1789764927.sh	A systemd,pakiety	—
+migracja	1790017600.sh	A —	—
+migracja	1790042972.sh	A —	—
+migracja	1790114905.sh	A systemd	—
+migracja	1790282866.sh	A —	—
+migracja	1790364978.sh	A sudo	—
+migracja	1790397381.sh	A —	—
+migracja	1790457067.sh	A —	—
+migracja	1790517230.sh	A limine,initramfs,sudo	—
+migracja	1790528634.sh	A pakiety	—
+migracja	1790539857.sh	A pakiety	—
+migracja	1790542069.sh	A pakiety	—
+migracja	1790702362.sh	A pakiety	—
+migracja	1790702606.sh	A —	—
+migracja	1790863209.sh	A —	—
+migracja	1790917415.sh	A sudo	—
+migracja	1790917571.sh	A systemd	—
+migracja	1790917620.sh	A pacman,sudo	—
+migracja	1790917773.sh	A limine,initramfs,sudo	—
+migracja	1790950659.sh	A systemd,limine,initramfs,plymouth,sudo	—
+migracja	1790953795.sh	A limine,initramfs,sudo	—
+migracja	1790973240.sh	A pakiety	—
+migracja	1790984400.sh	A limine,initramfs,sudo	—
+migracja	1790984500.sh	A systemd,pakiety,sudo	—
+migracja	1790984600.sh	A limine,initramfs,sudo	—
+migracja	1790984700.sh	A limine,initramfs,sudo	—
+migracja	1791077437.sh	A systemd,limine,initramfs,plymouth,pakiety,sudo	—
+migracja	1791112479.sh	A —	—
+migracja	1791123731.sh	A —	—
+migracja	1791125650.sh	A systemd,sudo	—
+migracja	1791134093.sh	A sudo	—
+migracja	1791147791.sh	A sudo	—
+migracja	1791152480.sh	A pacman,limine,initramfs,sudo	—
+migracja	1791265613.sh	A —	—
+migracja	1791345484.sh	A pakiety	—
+migracja	1791367434.sh	A pakiety	—
+migracja	1791376887.sh	A —	—
+migracja	1791403252.sh	A pacman,sudo	—
+migracja	1791403310.sh	A pakiety	—
+migracja	1791408113.sh	A limine,initramfs,sudo	—
+migracja	1791470456.sh	A —	—
+migracja	1791479273.sh	A —	—
+migracja	1791542175.sh	A pakiety	—
+migracja	1791581004.sh	A limine,initramfs,sudo	—
+migracja	1791640449.sh	A —	—
+migracja	1791676907.sh	A —	—
+migracja	1791696584.sh	A —	—
+migracja	1791698594.sh	A —	—
+migracja	1791705142.sh	A —	—
+migracja	1791708587.sh	A pakiety	—
+migracja	1791722809.sh	A —	—
+migracja	1791723398.sh	A —	—
+migracja	1791769486.sh	A pacman,systemd,limine,initramfs,pakiety,sudo	—
+migracja	1791784278.sh	A limine,initramfs,sudo	—
+migracja	1791867831.sh	A sudo	—
+migracja	1791875754.sh	A —	—
+migracja	1791898365.sh	A limine,sudo	—
+migracja	1791934674.sh	A —	—
+migracja	1791935188.sh	A —	—
+migracja	1791968925.sh	A —	—
+migracja	1791969355.sh	A —	—
+migracja	1792020559.sh	A —	—
+migracja	1792041364.sh	A pakiety	—
 krok	config/all.sh	M snapper	—
 krok	config/locale.sh	A —	—
 krok	hardware/all.sh	M pacman,limine,initramfs	—
@@ -130,6 +134,17 @@ krok	user/mise.sh	M —	podmień
 krok	user/platform-setup.sh	A —	—
 krok	user/theme.sh	M —	—
 krok	user/xcompose.sh	M —	—
+nakładka	omarchy-pkg-add	M 3 insertions(+), 3 deletions(-)
+nakładka	omarchy-pkg-aur-add	M 2 insertions(+), 2 deletions(-)
+nakładka	omarchy-pkg-aur-install	M 2 insertions(+), 1 deletion(-)
+nakładka	omarchy-pkg-drop	M 14 insertions(+), 3 deletions(-)
+nakładka	omarchy-pkg-install	M 1 insertion(+), 1 deletion(-)
+nakładka	omarchy-pkg-missing	M 1 insertion(+), 1 deletion(-)
+nakładka	omarchy-pkg-present	M 1 insertion(+), 1 deletion(-)
+nakładka	omarchy-pkg-remove	M 1 insertion(+), 1 deletion(-)
+nakładka	omarchy-update	M 130 insertions(+), 16 deletions(-)
+nakładka	omarchy-update-orphan-pkgs	M 5 insertions(+), 3 deletions(-)
+nakładka	omarchy-update-restart	M 54 insertions(+), 36 deletions(-)
 pakiet	base-devel	+	—
 pakiet	clang	-	jest
 pakiet	disktree-bin	+	—

@@ -6,6 +6,7 @@
 # (pacman -Qo → xbps-query -o). Upstream pyta, czy pliki działającego jądra wciąż należą do pakietu;
 # na Archu aktualizacja je usuwa. Pakiety jądra Voida (preserve) zostawiają stare pliki na dysku, ale
 # po aktualizacji nie należą już do żadnego pakietu — to samo pytanie daje tę samą odpowiedź.
+# xbps-query -o kończy się kodem 0 także bez trafienia — liczy się wyjście, nie kod.
 
 echo
 
@@ -16,7 +17,7 @@ confirm_reboot() {
 running_kernel=$(uname -r)
 kernel_updated=true
 
-if xbps-query -o "/usr/lib/modules/$running_kernel/modules.order" &>/dev/null; then
+if [[ -n $(xbps-query -o "/usr/lib/modules/$running_kernel/modules.order" 2>/dev/null) ]]; then
   kernel_updated=false
 fi
 
