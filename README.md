@@ -12,13 +12,33 @@ Jako root, na działającym Voidzie (glibc, x86_64) z siecią i istniejącym uż
 
 ```sh
 xbps-install -Sy git
-git clone https://github.com/szoniu/omarchy-port
-omarchy-port/port/install.sh --user NAZWA --name "Imię Nazwisko" --email adres@example.com
+git clone https://github.com/szoniu/omarchy-port /opt/omarchy-port
+/opt/omarchy-port/port/install.sh --user NAZWA --name "Imię Nazwisko" --email adres@example.com
 ```
+
+`/opt/omarchy-port` to stałe miejsce klonu — z niego biorą się aktualizacje. Port zainstalowany z innego miejsca dostaje ten klon z GitHuba (gałąź `main`) na końcu instalacji.
 
 `git` nie wchodzi w `base-system` Voida, a instalator szoniu/void stawia go tylko przy części opcji. `--name` i `--email` trafiają do gita i XCompose; bez `--name` port bierze imię z pola GECOS konta. Usługi włączane w trakcie instalacji startują dopiero po restarcie, jak w systemd.
 
 Orkiestrator jest idempotentny, a logi zapisuje w `/var/log/omarchy-port/`. Kod 1 znaczy, że któryś krok padł: reszta jest doinstalowana, a lista błędów jest w podsumowaniu. Kroki `install/` Omarchy, które na Voidzie są pomijane albo podmieniane, opisuje [`port/share/void/kroki.tsv`](port/share/void/kroki.tsv).
+
+## Aktualizacja
+
+Tak jak w Omarchy: menu **Update → Omarchy**, ikona aktualizacji na pasku albo `omarchy-update` w terminalu. Na porcie to nakładka z tą samą kolejnością kroków, a kroki pacmana zastępuje `omarchy-port-update` (root):
+
+1. `git pull --ff-only` w `/opt/omarchy-port` — nowa wersja portu, a z nią ewentualnie nowy pin Omarchy;
+2. `port/install.sh --update`:
+   - pakiety Voida (`xbps-install -Su` i lista);
+   - pliki Omarchy przy nowym pinie, z usunięciem plików poprzedniej wersji (zmienione przez admina → `.omarchy-save`);
+   - warstwa i łatki;
+3. dalej jak upstream:
+   - migracje (`omarchy-migrate`; pominięte i podmienione na Voidzie: [`port/share/void/migracje.tsv`](port/share/void/migracje.tsv));
+   - hook `post-update`;
+   - `mise up --no-prune`;
+   - sieroty xbps;
+   - pytanie o restart (jądro, Hyprland) i restart powłoki.
+
+Pasek co 6 h sprawdza, czy gałąź, którą śledzi klon, ma nowy commit. **Podbicie wersji Omarchy** to commit w porcie, który zmienia [`port/share/upstream.env`](port/share/upstream.env). Najpierw [`prototyp/bramka/podbicie.sh`](prototyp/bramka/podbicie.sh) wypisuje nowe migracje, kroki `install/`, zmiany listy pakietów i stan łatek do przejrzenia, potem idzie test w VM.
 
 ## Jak to działa
 
@@ -33,15 +53,16 @@ Orkiestrator jest idempotentny, a logi zapisuje w `/var/log/omarchy-port/`. Kod 
    - nadzorca unitów użytkownika zamiast `systemd --user`;
    - łatki z mastera Omarchy, których przypięte wydanie jeszcze nie ma (`port/share/latki/`, opis w nagłówku każdej).
 
-Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md), [`wyniki/2026-10-14-runda-4.md`](wyniki/2026-10-14-runda-4.md) (orkiestrator, test od zera), [`wyniki/2026-10-15-blokada-fastfetch.md`](wyniki/2026-10-15-blokada-fastfetch.md) (łatki, nakładki `omarchy-version*`). Otwarte zadania: [issues w Forgejo](https://git.szoniu.pl/szoniu/omarchy-port/issues).
+Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md), [`wyniki/2026-10-14-runda-4.md`](wyniki/2026-10-14-runda-4.md) (orkiestrator, test od zera), [`wyniki/2026-10-15-blokada-fastfetch.md`](wyniki/2026-10-15-blokada-fastfetch.md) (łatki, nakładki `omarchy-version*`), [`wyniki/2026-10-15-aktualizacja.md`](wyniki/2026-10-15-aktualizacja.md) (ścieżka aktualizacji). Otwarte zadania: [issues w Forgejo](https://git.szoniu.pl/szoniu/omarchy-port/issues).
 
 ## Układ repo
 
 | Katalog | Zawartość |
 |---|---|
-| `port/` | **orkiestrator** `install.sh` i **warstwa zgodności** (Void/runit): shimy `systemctl`, `systemd-run`, `systemd-inhibit`, `timedatectl`, `uwsm`, `uwsm-app`, `systemd-cat`, `xdg-terminal-exec` (tylko gdy oryginału brak); nakładki `omarchy-pkg-*` (xbps) i `omarchy-version*`; łatki `share/latki/`; nadzorca unitów użytkownika `omarchy-port-units`; sesja; `install-layer.sh` |
+| `port/` | **orkiestrator** `install.sh` i **warstwa zgodności** (Void/runit): shimy `systemctl`, `systemd-run`, `systemd-inhibit`, `timedatectl`, `uwsm`, `uwsm-app`, `systemd-cat`, `xdg-terminal-exec` (tylko gdy oryginału brak); nakładki `omarchy-pkg-*` (xbps), `omarchy-version*` i `omarchy-update*`; `omarchy-port-update`; łatki `share/latki/`; migracje `share/void/migracje.tsv`; nadzorca unitów użytkownika `omarchy-port-units`; sesja; `install-layer.sh` |
 | `prototyp/vm/` | VM testowa: QEMU z Fedory w kontenerze podmana (virgl), VNC, QMP (klawisze, mysz), zrzuty przez VNC |
 | `prototyp/void/` | baza Voida w VM (`install-base.sh`) — odpowiednik instalatora szoniu/void do testów |
+| `prototyp/bramka/` | `podbicie.sh` — co przejrzeć przed zmianą pinu Omarchy (migracje, kroki, pakiety, łatki) |
 | `prototyp/test/` | zrzut skrótów z plików Lua Omarchy, test skrótów i menu w żywej sesji, test PAM, odcisk stanu systemu (`stan-systemu.sh`) |
 | `dane/` | mapa pakietów, lista do instalacji |
 | `wyniki/` | wyniki rund prototypu |
