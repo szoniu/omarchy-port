@@ -9,6 +9,8 @@
 #       (omarchy plymouth set) zostaje;
 #   About i fastfetch — void-logo-notext.svg → ASCII 54×26, jak omarchy-branding-about image;
 #   wygaszacz — same litery VOID z void-logo.svg → ASCII, jak omarchy-branding-screensaver image.
+#   ASCII w trybie block (pełne bloki), jak domyślne icon.txt i logo.txt Omarchy — braille, domyślny
+#   w omarchy-transcode-ascii, wychodzi w oknie About blado.
 # ASCII trafia do icon.txt i logo.txt Omarchy (Style → About/Screensaver → Restore Default) oraz do
 # /etc/skel (nowe konta; etap 6 orkiestratora kopiuje skel po warstwie). Konta sprzed brandingu dostają
 # logo przez migrację portu (share/void/migracje-portu).
@@ -31,10 +33,10 @@ command -v magick >/dev/null || { echo "branding: brak magick (ImageMagick)" >&2
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
-# Upstreamowe polecenie z menu Style. Braille składa gawk przez printf %c — w locale C wychodzą pojedyncze
-# bajty zamiast znaków (orkiestrator jako root przez SSH nie ma LANG), stąd C.UTF-8.
+# Upstreamowe polecenie z menu Style. Znaki składa gawk, który w locale C działa na bajtach (braille przez
+# printf %c wychodzi wtedy jako pojedyncze bajty) — orkiestrator jako root przez SSH nie ma LANG, stąd C.UTF-8.
 ascii() { # ascii <obraz> <wyjście> [opcje omarchy-transcode-ascii]
-  LC_ALL=C.UTF-8 OMARCHY_PATH=$O PATH="$O/bin:$PATH" omarchy-transcode-ascii "$@" >/dev/null
+  LC_ALL=C.UTF-8 OMARCHY_PATH=$O PATH="$O/bin:$PATH" omarchy-transcode-ascii "$@" --mode block >/dev/null
 }
 
 wstaw() { # wstaw <plik> <cel>… — tylko istniejące cele: brak = Omarchy przeniosło plik (sprawdzić po podbiciu)
