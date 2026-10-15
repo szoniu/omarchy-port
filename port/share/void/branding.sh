@@ -2,18 +2,20 @@
 # omarchy-port#7: branding Voida (decyzja 7 w szoniu/dotfiles#169) — logo dystrybucji tam, gdzie Omarchy
 # pokazuje swoje; teksty UI zostają przy Omarchy. Jako root, z install-layer.sh, po każdym wypakowaniu
 # plików Omarchy (etap 3 orkiestratora kładzie oryginały od nowa). Menu i przycisk paska to łatki
-# share/void/latki. Grafiki powstają tu z void-artwork (zależność base-system), w repo nie ma logo:
+# share/void/latki. Grafiki powstają tu z void-artwork (na liście pakietów portu), w repo nie ma logo:
 #   ekran logowania SDDM — void-logo.svg z białym napisem i obrysami w kolorze tła motywu → logo.png
-#       motywu i jego wzorzec w drzewie Omarchy (omarchy-refresh-sddm i Style → Unlock → default
-#       odtwarzają motyw z wzorca, więc dają Voida). Logo motywu ustawione przez użytkownika
-#       (omarchy plymouth set) zostaje;
+#       motywu i jego wzorzec w drzewie Omarchy (omarchy-refresh-sddm odtwarza motyw z wzorca, więc
+#       daje Voida; Style → Unlock → default pada na Voidzie wcześniej, na plymouth/mkinitcpio).
+#       Logo motywu ustawione przez użytkownika (omarchy plymouth set) zostaje przy samodzielnym
+#       uruchomieniu warstwy; aktualizacja kładzie motyw od nowa (etap 3), tak jak pacman na Archu;
 #   About i fastfetch — void-logo-notext.svg → ASCII 54×26, jak omarchy-branding-about image;
 #   wygaszacz — same litery VOID z void-logo.svg → ASCII, jak omarchy-branding-screensaver image.
 #   ASCII w trybie block (pełne bloki), jak domyślne icon.txt i logo.txt Omarchy — braille, domyślny
 #   w omarchy-transcode-ascii, wychodzi w oknie About blado.
 # ASCII trafia do icon.txt i logo.txt Omarchy (Style → About/Screensaver → Restore Default) oraz do
 # /etc/skel (nowe konta; etap 6 orkiestratora kopiuje skel po warstwie). Konta sprzed brandingu dostają
-# logo przez migrację portu (share/void/migracje-portu).
+# logo przez migrację portu (share/void/migracje-portu). Założenia o plikach Omarchy (cele, tło motywu,
+# tryb block) sprawdza bramka podbicia (prototyp/bramka/podbicie.sh, wiersze „branding”).
 # Kod 1 = któryś element nie przeszedł (reszta nałożona); install-layer.sh przekazuje to orkiestratorowi.
 set -euo pipefail
 O=/usr/share/omarchy
@@ -33,8 +35,9 @@ command -v magick >/dev/null || { echo "branding: brak magick (ImageMagick)" >&2
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
-# Upstreamowe polecenie z menu Style. Znaki składa gawk, który w locale C działa na bajtach (braille przez
-# printf %c wychodzi wtedy jako pojedyncze bajty) — orkiestrator jako root przez SSH nie ma LANG, stąd C.UTF-8.
+# Upstreamowe polecenie z menu Style. Tryb block składa gotowe znaki UTF-8 i daje ten sam wynik w każdym
+# locale; C.UTF-8 chroni tryb braille, który w locale C (orkiestrator jako root przez SSH nie ma LANG)
+# wychodzi z printf %c gawka jako pojedyncze bajty — gdyby ktoś do niego wrócił.
 ascii() { # ascii <obraz> <wyjście> [opcje omarchy-transcode-ascii]
   LC_ALL=C.UTF-8 OMARCHY_PATH=$O PATH="$O/bin:$PATH" omarchy-transcode-ascii "$@" --mode block >/dev/null
 }
@@ -71,7 +74,7 @@ else
       install -m 644 "$tmp/sddm.png" "$MOTYW"
       echo "branding: $MOTYW"
     else
-      echo "branding: $MOTYW ustawione przez użytkownika (omarchy plymouth set) — zostaje"
+      echo "branding: $MOTYW ustawione przez użytkownika (omarchy plymouth set) — zostaje do aktualizacji"
     fi
     install -m 644 "$tmp/sddm.png" "$WZOR"
     echo "branding: $WZOR"

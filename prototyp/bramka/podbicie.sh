@@ -9,6 +9,8 @@
 #                                                                       zastępuje własnym (port/bin): przejrzeć
 #   pakiet    <nazwa> <+|->                 <stan w mapie Voida>     — zmiany install/omarchy-base.packages
 #   łatka     <plik>  <pasuje|już w wydaniu|nie pasuje>            — share/latki i share/void/latki (branding)
+#   branding  <założenie> <ok|nie spełnione>                       — pliki i kolory Omarchy, na których stoi
+#                                                                       share/void/branding.sh
 # Wykrywanie to grep po treści (pacman, systemd, limine, snapper, initramfs, plymouth, sudo, kroki
 # install/ z kroki.tsv) — podpowiedź do przeglądu, nie wyrok: każdą migrację i tak trzeba przeczytać.
 # Działa na maszynie deweloperskiej (git); niczego nie instaluje.
@@ -52,7 +54,7 @@ stan_listy() { # stan_listy <plik tsv> <nazwa>
   awk -F'\t' -v n="$2" '$1 == n { print $2; f = 1 } END { if (!f) print "—" }' "$1"
 }
 
-n_mig=0 n_mig_flag=0 n_mig_lista=0 n_krok=0 n_nakl=0 n_pak=0 n_latka_zle=0
+n_mig=0 n_mig_flag=0 n_mig_lista=0 n_krok=0 n_nakl=0 n_pak=0 n_latka_zle=0 n_brand=0
 
 while IFS=$'\t' read -r st plik; do
   m=${plik#migrations/}
@@ -109,6 +111,19 @@ for l in "$PORT"/port/share/latki/*.patch "$PORT"/port/share/void/latki/*.patch;
   printf 'łatka\t%s\t%s\n' "${l#"$PORT"/port/share/}" "$w"
 done
 
+# Branding Voida: brak celu albo inne tło motywu SDDM wyjdzie dopiero w instalacji (UWAGA) albo
+# na ekranie (obrysy logo w złym kolorze) — tu widać je przed podbiciem.
+zalozenie() { # zalozenie <opis> <polecenie…>
+  local opis=$1 w=ok
+  shift
+  "$@" || { w="nie spełnione — przejrzeć port/share/void/branding.sh"; n_brand=$((n_brand + 1)); }
+  printf 'branding\t%s\t%s\n' "$opis" "$w"
+}
+tlo=$(sed -n "s/^SDDM_TLO='\([^']*\)'.*/\1/p" "$PORT/port/share/void/branding.sh")
+for f in icon.txt logo.txt default/sddm/omarchy/logo.png; do zalozenie "$f" test -f "$d/$f"; done
+zalozenie "tło motywu SDDM $tlo (Main.qml)" grep -qF "color: \"$tlo\"" "$d/default/sddm/omarchy/Main.qml"
+zalozenie "omarchy-transcode-ascii --mode block" grep -qF 'mode != "block"' "$d/bin/omarchy-transcode-ascii"
+
 {
   echo
   echo "Omarchy $STARY → $NOWY ($NOWY_SHA)"
@@ -118,5 +133,6 @@ done
   echo "  kroki install/ zmienione: $n_krok — kroki z kroki.tsv: podmiany przejrzeć ze zmianą upstreamu"
   echo "  zmiany listy pakietów: $n_pak — brak w mapie Voida = dopisać do dane/mapa-pakietow-void.tsv"
   echo "  łatki do przejrzenia: $n_latka_zle"
+  echo "  założenia brandingu Voida niespełnione: $n_brand"
   echo "Dalej: migracje.tsv / kroki.tsv / mapa, upstream.env, test w VM (orkiestrator --update + omarchy-update)."
 } >&2

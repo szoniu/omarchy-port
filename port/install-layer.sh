@@ -8,8 +8,8 @@
 #       a linki w /usr/share/omarchy/bin (PATH sesji) są przekierowane na nakładki;
 #   dane → /usr/share/omarchy-port, sesja → /usr/libexec/omarchy-port + wayland-sessions,
 #   greeter SDDM → config portu (upstreamowy + no_update_news) przez /etc/sddm.conf.d,
-#   migracje pominięte/podmienione na Voidzie (share/void/migracje.tsv) i migracje samego portu
-#       (share/void/migracje-portu) → /usr/share/omarchy/migrations,
+#   migracje pominięte/podmienione na Voidzie (share/void/migracje.tsv) i migracje samego portu, gdy
+#       branding przeszedł (share/void/migracje-portu) → /usr/share/omarchy/migrations,
 #   łatki z upstreamu, których przypięte wydanie nie ma (share/latki), i łatki Voida (share/void/latki:
 #       branding menu i paska) → pliki /usr/share/omarchy,
 #   branding Voida: logo w greeterze SDDM, About/fastfetch i wygaszaczu (share/void/branding.sh).
@@ -110,14 +110,6 @@ if [[ -d /usr/share/omarchy/migrations ]]; then
     esac
     echo "migracja: $mig — $akcja"
   done <"$SRC/share/void/migracje.tsv"
-  # Migracje samego portu: omarchy-migrate uruchamia je jak upstreamowe — raz na konto, jako użytkownik
-  # (po omarchy-update i przy logowaniu). Świeża instalacja oznacza je jako wykonane razem z resztą
-  # (omarchy-provision-user --first-install), bo nowe konto dostaje ich skutek ze /etc/skel.
-  for m in "$SRC"/share/void/migracje-portu/*.sh; do
-    [[ -e $m ]] || continue
-    install -m 644 "$m" /usr/share/omarchy/migrations/
-    echo "migracja portu: $(basename "$m")"
-  done
 fi
 
 # Łatki (ścieżki względem /usr/share/omarchy): share/latki — poprawki z mastera Omarchy, których
@@ -158,18 +150,45 @@ else
   done
 fi
 
-# Branding Voida (omarchy-port#7). Kosmetyka, więc błąd nie przerywa warstwy, ale nie może zginąć w jej
-# logu: plik $STATE/branding-blad orkiestrator wpisuje do podsumowania i kodu wyjścia, jak łatkę,
-# która nie weszła.
-if [[ ! -d /usr/share/omarchy/bin ]]; then
+# Branding Voida (omarchy-port#7). Błąd to UWAGA, nie BŁĄD jak przy łatce: to kosmetyka, a przyczyna
+# bywa w systemie (np. usunięty void-artwork), więc nie może zatrzymać aktualizacji przed migracjami
+# Omarchy. Nie ginie jednak w logu warstwy: orkiestrator wpisuje plik $STATE/branding-blad do podsumowania.
+if [[ ! -d /usr/share/omarchy/migrations ]]; then
   echo "UWAGA: brak plików Omarchy w /usr/share/omarchy — branding pominięty, puść install-layer.sh ponownie po ich instalacji" >&2
 else
   install -d "$STATE"
+  branding_ok=0
   if bash "$SRC/share/void/branding.sh"; then
+    branding_ok=1
     rm -f "$STATE/branding-blad"
   else
-    echo "branding Voida niepełny — przyczyna w logu warstwy, w liniach z prefiksem branding:" >"$STATE/branding-blad"
+    echo "branding Voida niepełny (przyczyna w logu warstwy, linie z prefiksem branding:) — po naprawie: port/install-layer.sh" >"$STATE/branding-blad"
     echo "UWAGA: $(cat "$STATE/branding-blad")" >&2
+  fi
+  # Migracje samego portu (share/void/migracje-portu, nazwy omarchy-port-*): upstreamowe omarchy-migrate
+  # uruchamia je raz na konto, jako użytkownik (po omarchy-update i przy logowaniu). Są w drzewie Omarchy
+  # tylko wtedy, gdy branding przeszedł — inaczej konto oznaczyłoby migrację jako wykonaną bez skutku
+  # (świeża instalacja oznacza wszystkie obecne migracje), a tak dostaje ją przy pierwszym udanym
+  # przebiegu. Nowe konta mają logo Voida ze /etc/skel, więc skel dostaje znacznik, jak upstreamowe
+  # migracje w package(). Migracja, której port już nie ma (zmiana nazwy), znika — nie ma jej w manifeście.
+  MIG=/usr/share/omarchy/migrations
+  SKEL_ZN=/etc/skel/.local/state/omarchy/migrations
+  for f in "$MIG"/omarchy-port-*.sh; do
+    [[ -e $f ]] || continue
+    n=${f##*/}
+    if (( ! branding_ok )) || [[ ! -f $SRC/share/void/migracje-portu/$n ]]; then
+      rm -f "$f" "$SKEL_ZN/$n"
+      echo "migracja portu: $n — wycofana z drzewa Omarchy"
+    fi
+  done
+  if (( branding_ok )); then
+    install -d "$SKEL_ZN"
+    for m in "$SRC"/share/void/migracje-portu/omarchy-port-*.sh; do
+      [[ -e $m ]] || continue
+      install -m 644 "$m" "$MIG/"
+      touch "$SKEL_ZN/${m##*/}"
+      echo "migracja portu: ${m##*/}"
+    done
   fi
 fi
 echo LAYER-OK

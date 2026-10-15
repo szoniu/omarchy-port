@@ -395,11 +395,11 @@ for l in "$SRC"/share/latki/*.patch "$SRC"/share/void/latki/*.patch; do
   echo "  BŁĄD         łatka ${l#"$SRC"/share/} nie nałożona — przejrzyj ją przy zmianie wersji Omarchy"
   BLEDY=$((BLEDY + 1))
 done
-# To samo dla brandingu Voida — warstwa zostawia plik, gdy któryś element nie przeszedł.
+# Branding Voida, który nie przeszedł (warstwa zostawia plik), też trafia do podsumowania, ale jako uwaga
+# bez kodu 1: kosmetyka nie zatrzymuje omarchy-update przed migracjami Omarchy (install-layer.sh).
 if [[ -e $STATE/branding-blad ]]; then
-  wynik share/void/branding.sh root BŁĄD "$(cat "$STATE/branding-blad")"
-  echo "  BŁĄD         $(cat "$STATE/branding-blad")"
-  BLEDY=$((BLEDY + 1))
+  wynik share/void/branding.sh root uwaga "$(cat "$STATE/branding-blad")"
+  echo "  UWAGA        $(cat "$STATE/branding-blad")"
 fi
 
 # Etapy 6–9 tylko przy instalacji: przy aktualizacji zmiany w systemie i domu użytkownika niosą
