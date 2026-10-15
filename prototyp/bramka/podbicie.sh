@@ -8,7 +8,7 @@
 #   nakładka  <plik>  <D|M + skala zmiany>                           — upstream zmienił skrypt, który port
 #                                                                       zastępuje własnym (port/bin): przejrzeć
 #   pakiet    <nazwa> <+|->                 <stan w mapie Voida>     — zmiany install/omarchy-base.packages
-#   łatka     <plik>  <pasuje|już w wydaniu|nie pasuje>
+#   łatka     <plik>  <pasuje|już w wydaniu|nie pasuje>            — share/latki i share/void/latki (branding)
 # Wykrywanie to grep po treści (pacman, systemd, limine, snapper, initramfs, plymouth, sudo, kroki
 # install/ z kroki.tsv) — podpowiedź do przeglądu, nie wyrok: każdą migrację i tak trzeba przeczytać.
 # Działa na maszynie deweloperskiej (git); niczego nie instaluje.
@@ -101,12 +101,12 @@ done < <(diff <(pakiety "$STARY") <(pakiety "$NOWY_SHA") | sed -n 's/^< /-/p; s/
 d=$(mktemp -d)
 trap 'rm -rf "$d"' EXIT
 git -C "$SRC" archive "$NOWY_SHA" | tar -x -C "$d"   # całe drzewo — łatka może dotyczyć dowolnej ścieżki
-for l in "$PORT"/port/share/latki/*.patch; do
+for l in "$PORT"/port/share/latki/*.patch "$PORT"/port/share/void/latki/*.patch; do
   [[ -e $l ]] || continue
   if git -C "$d" apply --check -R -p1 "$l" 2>/dev/null; then w="już w wydaniu — do usunięcia"
   elif git -C "$d" apply --check -p1 "$l" 2>/dev/null; then w="pasuje"
   else w="nie pasuje — przejrzeć"; n_latka_zle=$((n_latka_zle + 1)); fi
-  printf 'łatka\t%s\t%s\n' "${l##*/}" "$w"
+  printf 'łatka\t%s\t%s\n' "${l#"$PORT"/port/share/}" "$w"
 done
 
 {

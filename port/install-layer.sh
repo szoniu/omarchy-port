@@ -8,11 +8,15 @@
 #       a linki w /usr/share/omarchy/bin (PATH sesji) są przekierowane na nakładki;
 #   dane → /usr/share/omarchy-port, sesja → /usr/libexec/omarchy-port + wayland-sessions,
 #   greeter SDDM → config portu (upstreamowy + no_update_news) przez /etc/sddm.conf.d,
-#   migracje pominięte/podmienione na Voidzie (share/void/migracje.tsv) → /usr/share/omarchy/migrations,
-#   łatki z upstreamu, których przypięte wydanie nie ma (share/latki) → pliki /usr/share/omarchy.
+#   migracje pominięte/podmienione na Voidzie (share/void/migracje.tsv) i migracje samego portu
+#       (share/void/migracje-portu) → /usr/share/omarchy/migrations,
+#   łatki z upstreamu, których przypięte wydanie nie ma (share/latki), i łatki Voida (share/void/latki:
+#       branding menu i paska) → pliki /usr/share/omarchy,
+#   branding Voida: logo w greeterze SDDM, About/fastfetch i wygaszaczu (share/void/branding.sh).
 set -euo pipefail
 SRC="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$SRC/.." && pwd)"
+STATE=/var/lib/omarchy-port
 (( EUID == 0 )) || { echo "install-layer: uruchom jako root" >&2; exit 1; }
 command -v xbps-install >/dev/null || { echo "install-layer: na razie tylko Void (xbps) — Gentoo: omarchy-port#5" >&2; exit 1; }
 
@@ -106,11 +110,20 @@ if [[ -d /usr/share/omarchy/migrations ]]; then
     esac
     echo "migracja: $mig — $akcja"
   done <"$SRC/share/void/migracje.tsv"
+  # Migracje samego portu: omarchy-migrate uruchamia je jak upstreamowe — raz na konto, jako użytkownik
+  # (po omarchy-update i przy logowaniu). Świeża instalacja oznacza je jako wykonane razem z resztą
+  # (omarchy-provision-user --first-install), bo nowe konto dostaje ich skutek ze /etc/skel.
+  for m in "$SRC"/share/void/migracje-portu/*.sh; do
+    [[ -e $m ]] || continue
+    install -m 644 "$m" /usr/share/omarchy/migrations/
+    echo "migracja portu: $(basename "$m")"
+  done
 fi
 
-# Łatki (ścieżki względem /usr/share/omarchy): poprawki z mastera Omarchy, których przypięte wydanie
-# jeszcze nie ma — każda opisuje w nagłówku, skąd jest. Etap 3 orkiestratora wypakowuje pliki od
-# nowa przy każdym przebiegu, więc łatka idzie za każdym razem. Cofnięcie pasuje = plik ma już tę
+# Łatki (ścieżki względem /usr/share/omarchy): share/latki — poprawki z mastera Omarchy, których
+# przypięte wydanie jeszcze nie ma; share/void/latki — zmiany Voida, których upstream mieć nie będzie
+# (branding menu i paska). Każda opisuje w nagłówku, skąd jest i po co. Etap 3 orkiestratora wypakowuje
+# pliki od nowa przy każdym przebiegu, więc łatka idzie za każdym razem. Cofnięcie pasuje = plik ma już tę
 # zmianę: po świeżym wypakowaniu (OMARCHY_PORT_SWIEZE_PLIKI od orkiestratora) to znaczy, że wydanie ją
 # zawiera i łatkę można usunąć, a przy samodzielnym ponownym uruchomieniu — że port ją już nałożył.
 # Nie pasuje ani łatka, ani cofnięcie (inna wersja Omarchy) = UWAGA i bez zmian; orkiestrator
@@ -118,8 +131,10 @@ fi
 # zmienionych plików QML sama — łatka działa od restartu powłoki albo systemu (na Archu
 # omarchy-update-restart woła po aktualizacji omarchy-restart-shell; orkiestrator kończy się
 # poleceniem restartu systemu).
-latki=("$SRC"/share/latki/*.patch)
-if [[ ! -e ${latki[0]} ]]; then
+shopt -s nullglob
+latki=("$SRC"/share/latki/*.patch "$SRC"/share/void/latki/*.patch)
+shopt -u nullglob
+if (( ${#latki[@]} == 0 )); then
   :
 elif [[ ! -d /usr/share/omarchy/shell ]]; then
   echo "UWAGA: brak plików Omarchy w /usr/share/omarchy — łatki pominięte, puść install-layer.sh ponownie po ich instalacji" >&2
@@ -127,7 +142,7 @@ elif ! command -v git >/dev/null; then
   echo "UWAGA: brak gita (łatki nakłada git apply) — łatki pominięte: xbps-install -S git" >&2
 else
   for l in "${latki[@]}"; do
-    n=$(basename "$l")
+    n=${l#"$SRC"/share/}
     if git -C /usr/share/omarchy apply --check -R -p1 "$l" 2>/dev/null; then
       if [[ ${OMARCHY_PORT_SWIEZE_PLIKI:-} == 1 ]]; then
         echo "UWAGA: łatka $n — wydanie Omarchy ma już tę zmianę, łatkę można usunąć" >&2
@@ -141,5 +156,20 @@ else
       echo "UWAGA: łatka $n nie pasuje do plików Omarchy w /usr/share/omarchy — przejrzyj ją przy zmianie wersji" >&2
     fi
   done
+fi
+
+# Branding Voida (omarchy-port#7). Kosmetyka, więc błąd nie przerywa warstwy, ale nie może zginąć w jej
+# logu: plik $STATE/branding-blad orkiestrator wpisuje do podsumowania i kodu wyjścia, jak łatkę,
+# która nie weszła.
+if [[ ! -d /usr/share/omarchy/bin ]]; then
+  echo "UWAGA: brak plików Omarchy w /usr/share/omarchy — branding pominięty, puść install-layer.sh ponownie po ich instalacji" >&2
+else
+  install -d "$STATE"
+  if bash "$SRC/share/void/branding.sh"; then
+    rm -f "$STATE/branding-blad"
+  else
+    echo "branding Voida niepełny — przyczyna w logu warstwy, w liniach z prefiksem branding:" >"$STATE/branding-blad"
+    echo "UWAGA: $(cat "$STATE/branding-blad")" >&2
+  fi
 fi
 echo LAYER-OK
