@@ -33,6 +33,11 @@ install -m 644 "$SRC/share/pkg-map.sh" "$SRC/share/runit-services.tsv" "$SRC/sha
 install -m 644 "$REPO/dane/mapa-pakietow-$DYSTR.tsv" /usr/share/omarchy-port/mapa-pakietow.tsv
 install -m 644 "$DYST/pkg.sh" /usr/share/omarchy-port/pkg-backend.sh
 rm -f /usr/share/omarchy-port/mapa-pakietow-void.tsv
+# dodatki warstwy tylko dla tej dystrybucji (Gentoo: Chrome z flagami Omarchy)
+if [[ -f $DYST/warstwa.sh ]]; then
+  # shellcheck source=share/gentoo/warstwa.sh
+  source "$DYST/warstwa.sh"
+fi
 # pliki .desktop dystrybucji (Gentoo: alias chromium.desktop → Chrome)
 for d in "$DYST"/applications/*.desktop; do
   [[ -e $d ]] || continue
