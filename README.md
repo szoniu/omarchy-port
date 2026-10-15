@@ -2,7 +2,7 @@
 
 **Pełne [Omarchy](https://github.com/basecamp/omarchy), tylko na Voidzie albo Gentoo zamiast Archa.** Hyprland, shell na Quickshellu, keybindy, menu, motywy i config Omarchy. Wszystko przy przypiętym tagu upstreamu, plus cienka warstwa zgodności dla runit/OpenRC i xbps/emerge.
 
-Status: **prototyp** (Void działa w VM, Gentoo z systemd w drodze — [#5](https://git.szoniu.pl/szoniu/omarchy-port/issues/5); wyniki w [`wyniki/`](wyniki/)). Port nie jest jeszcze gotowy do instalacji na sprzęcie.
+Status: **prototyp** (Void i Gentoo z systemd działają w VM, Gentoo z OpenRC w drodze — [#5](https://git.szoniu.pl/szoniu/omarchy-port/issues/5); wyniki w [`wyniki/`](wyniki/)). Port nie jest jeszcze gotowy do instalacji na sprzęcie.
 
 Kontekst i decyzje: epik [szoniu/dotfiles#169](https://git.szoniu.pl/szoniu/dotfiles/issues/169). Instalatory, które będą wołać port: [szoniu/void](https://github.com/szoniu/void), [szoniu/gentoo](https://github.com/szoniu/gentoo).
 
@@ -37,7 +37,10 @@ Port włącza repozytoria GURU (quickshell, brightnessctl, nerdfonts) i hyprover
 Różnice wobec Omarchy na Archu:
 - przeglądarka to `google-chrome`, bo Chromium nie ma w binhoście (kompilacja trwałaby godziny przy każdej aktualizacji), a webappy Omarchy wymagają przeglądarki z rodziny Chromium;
 - `gum`, `mise`, `usage`, `lazydocker` i `localsend` nie mają odpowiednika w `::gentoo`, GURU ani hyproverlay, więc instaluje je sam port z wydań upstreamu (wersja i suma przypięte w [`port/share/pakiety/`](port/share/pakiety/) albo w omarchy-pkgs);
-- `yaru-icon-theme` na razie brak.
+- `yaru-icon-theme` na razie brak;
+- Chrome dostaje flagi Omarchy (Wayland, rozszerzenia, libsecret) przez wrapper `/usr/local/bin/google-chrome-stable`, który czyta `~/.config/chrome-flags.conf` jak wrapper z AUR; launcher Google na Gentoo tego pliku nie czyta.
+
+Instalacja od zera na bazie z binhostem trwa w VM (8 rdzeni) około 75 minut: Hyprland, Quickshell i kilkadziesiąt pakietów ze zmienionymi USE się kompiluje. Wyniki: [`wyniki/2026-10-15-gentoo.md`](wyniki/2026-10-15-gentoo.md).
 
 ## Aktualizacja
 
@@ -75,7 +78,7 @@ Pasek co 6 h sprawdza, czy gałąź, którą śledzi klon, ma nowy commit. **Pod
    - menu **Update → Void**, **Learn → Void** (Void Handbook) i logo Voida na przycisku paska — łatki [`port/share/void/latki/`](port/share/void/latki/);
    - konta sprzed brandingu dostają logo przez migrację portu (`port/share/void/migracje-portu/`), a plik zmieniony przez użytkownika zostaje.
 
-Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md), [`wyniki/2026-10-14-runda-4.md`](wyniki/2026-10-14-runda-4.md) (orkiestrator, test od zera), [`wyniki/2026-10-15-blokada-fastfetch.md`](wyniki/2026-10-15-blokada-fastfetch.md) (łatki, nakładki `omarchy-version*`), [`wyniki/2026-10-15-aktualizacja.md`](wyniki/2026-10-15-aktualizacja.md) (ścieżka aktualizacji), [`wyniki/2026-10-15-branding.md`](wyniki/2026-10-15-branding.md) (branding Voida), [`wyniki/2026-10-15-firewall.md`](wyniki/2026-10-15-firewall.md) (firewall). Otwarte zadania: [issues w Forgejo](https://git.szoniu.pl/szoniu/omarchy-port/issues).
+Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md), [`wyniki/2026-10-14-runda-4.md`](wyniki/2026-10-14-runda-4.md) (orkiestrator, test od zera), [`wyniki/2026-10-15-blokada-fastfetch.md`](wyniki/2026-10-15-blokada-fastfetch.md) (łatki, nakładki `omarchy-version*`), [`wyniki/2026-10-15-aktualizacja.md`](wyniki/2026-10-15-aktualizacja.md) (ścieżka aktualizacji), [`wyniki/2026-10-15-branding.md`](wyniki/2026-10-15-branding.md) (branding Voida), [`wyniki/2026-10-15-firewall.md`](wyniki/2026-10-15-firewall.md) (firewall), [`wyniki/2026-10-15-gentoo.md`](wyniki/2026-10-15-gentoo.md) (Gentoo z systemd, refaktor na backendy). Otwarte zadania: [issues w Forgejo](https://git.szoniu.pl/szoniu/omarchy-port/issues).
 
 ## Układ repo
 
