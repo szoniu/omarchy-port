@@ -18,19 +18,20 @@ git clone https://github.com/szoniu/omarchy-port /opt/omarchy-port
 
 `/opt/omarchy-port` to stałe miejsce klonu — z niego biorą się aktualizacje. Port zainstalowany z innego miejsca dostaje ten klon z GitHuba (gałąź `main`) na końcu instalacji.
 
-`git` nie wchodzi w `base-system` Voida, a instalator szoniu/void stawia go tylko przy części opcji. `--name` i `--email` trafiają do gita i XCompose; bez `--name` port bierze imię z pola GECOS konta. Usługi włączane w trakcie instalacji startują dopiero po restarcie, jak w systemd.
+`git` nie wchodzi w `base-system` Voida, a instalator szoniu/void stawia go tylko przy części opcji. `--name` i `--email` trafiają do gita i XCompose; bez `--name` port bierze imię z pola GECOS konta. Usługi włączane w trakcie instalacji startują dopiero po restarcie, jak w systemd. Dotyczy to też firewalla: ufw z regułami Omarchy (ruch przychodzący zamknięty poza LocalSend, porty kontenerów Dockera chronione przez `ufw-docker`). Gdy sshd jest włączony, port dodaje przed tym krokiem `ufw limit 22/tcp`, czyli regułę z Setup > Security > SSH, żeby instalacja przez SSH nie odcięła dostępu po restarcie.
 
 Orkiestrator jest idempotentny, a logi zapisuje w `/var/log/omarchy-port/`. Kod 1 znaczy, że któryś krok padł: reszta jest doinstalowana, a lista błędów jest w podsumowaniu. Kroki `install/` Omarchy, które na Voidzie są pomijane albo podmieniane, opisuje [`port/share/void/kroki.tsv`](port/share/void/kroki.tsv).
 
 ## Aktualizacja
 
-Tak jak w Omarchy: menu **Update → Omarchy**, ikona aktualizacji na pasku albo `omarchy-update` w terminalu. Na porcie to nakładka z tą samą kolejnością kroków, a kroki pacmana zastępuje `omarchy-port-update` (root):
+Tak jak w Omarchy: menu **Update → Void**, ikona aktualizacji na pasku albo `omarchy-update` w terminalu. Na porcie to nakładka z tą samą kolejnością kroków, a kroki pacmana zastępuje `omarchy-port-update` (root):
 
 1. `git pull --ff-only` w `/opt/omarchy-port` — nowa wersja portu, a z nią ewentualnie nowy pin Omarchy;
 2. `port/install.sh --update`:
    - pakiety Voida (`xbps-install -Su` i lista);
    - pliki Omarchy przy nowym pinie, z usunięciem plików poprzedniej wersji (zmienione przez admina → `.omarchy-save`);
    - warstwa i łatki;
+   - instalacja sprzed [#8](https://git.szoniu.pl/szoniu/omarchy-port/issues/8) raz dostaje firewall (krok `config/firewall.sh` z regułą SSH; ufw włączony wcześniej przez kogoś innego zostaje bez zmian), a ufw rusza po restarcie;
 3. dalej jak upstream:
    - migracje (`omarchy-migrate`; pominięte i podmienione na Voidzie: [`port/share/void/migracje.tsv`](port/share/void/migracje.tsv));
    - hook `post-update`;
@@ -42,10 +43,10 @@ Pasek co 6 h sprawdza, czy gałąź, którą śledzi klon, ma nowy commit. **Pod
 
 ## Jak to działa
 
-1. **Pakiety:** lista Omarchy (`install/omarchy-base.packages`) zmapowana na nazwy Voida → [`dane/mapa-pakietow-void.tsv`](dane/mapa-pakietow-void.tsv). Ma trzy stany: jest / zamiennik / brak.
-2. **Pliki Omarchy:** przy commicie przypiętym w [`port/share/upstream.env`](port/share/upstream.env) — upstreamowe funkcje `package()` z PKGBUILD-ów `omarchy` i `omarchy-settings` ([omacom/omarchy-pkgs](https://github.com/omacom/omarchy-pkgs)) wywołane bez makepkg. Wynik trafia do `/usr/share/omarchy`, `/usr/bin/omarchy-*`, `/etc/skel` i `/etc`. Nie ma ręcznej mapy plików.
+1. **Pakiety:** lista Omarchy (`install/omarchy-base.packages`) zmapowana na nazwy Voida → [`dane/mapa-pakietow-void.tsv`](dane/mapa-pakietow-void.tsv). Ma cztery stany: jest / zamiennik / brak / port. „Port” to pakiet z omarchy-pkgs bez odpowiednika w Voidzie, który instaluje sam port (dziś `ufw-docker`).
+2. **Pliki Omarchy:** przy commicie przypiętym w [`port/share/upstream.env`](port/share/upstream.env) — upstreamowe funkcje `package()` z PKGBUILD-ów `omarchy` i `omarchy-settings` ([omacom/omarchy-pkgs](https://github.com/omacom/omarchy-pkgs)) wywołane bez makepkg. Tak samo pakiety w stanie „port”, ze źródłami z `source=` ich PKGBUILD-a, sprawdzonymi sumami `b2sums=` (inna suma przerywa instalację, zanim cokolwiek zmieni się na dysku). Wynik trafia do `/usr/share/omarchy`, `/usr/bin/omarchy-*`, `/etc/skel` i `/etc`. Nie ma ręcznej mapy plików.
 3. **`post_install` wybiórczo:** NIE nadpisujemy `os-release` (`ID_LIKE=arch` zmyliłby narzędzia rozpoznające dystrybucję) ani `nsswitch.conf`.
-4. **Kroki `install/` Omarchy pojedynczo:** te zależne od pacmana, systemd czy limine pomijamy albo podmieniamy (lista jako dane: `port/share/void/kroki.tsv`). Część użytkownika robi upstreamowe `omarchy-provision-user` na tym samym drzewie kroków.
+4. **Kroki `install/` Omarchy pojedynczo:** te zależne od pacmana, systemd czy limine pomijamy albo podmieniamy (lista jako dane: `port/share/void/kroki.tsv`). `config/firewall.sh` idzie z upstreamu bez zmian. Część użytkownika robi upstreamowe `omarchy-provision-user` na tym samym drzewie kroków.
 5. **Sesja bez uwsm:** `dbus-run-session` → PipeWire → `start-hyprland`; SDDM z motywem Omarchy.
 6. **Warstwa zgodności** (`port/`, instalacja: `port/install-layer.sh`):
    - shimy w `/usr/local/bin` — powstają **tylko tam, gdzie oryginału nie ma**, więc na Gentoo z systemd nie zakłada się żaden;
@@ -57,7 +58,7 @@ Pasek co 6 h sprawdza, czy gałąź, którą śledzi klon, ma nowy commit. **Pod
    - menu **Update → Void**, **Learn → Void** (Void Handbook) i logo Voida na przycisku paska — łatki [`port/share/void/latki/`](port/share/void/latki/);
    - konta sprzed brandingu dostają logo przez migrację portu (`port/share/void/migracje-portu/`), a plik zmieniony przez użytkownika zostaje.
 
-Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md), [`wyniki/2026-10-14-runda-4.md`](wyniki/2026-10-14-runda-4.md) (orkiestrator, test od zera), [`wyniki/2026-10-15-blokada-fastfetch.md`](wyniki/2026-10-15-blokada-fastfetch.md) (łatki, nakładki `omarchy-version*`), [`wyniki/2026-10-15-aktualizacja.md`](wyniki/2026-10-15-aktualizacja.md) (ścieżka aktualizacji), [`wyniki/2026-10-15-branding.md`](wyniki/2026-10-15-branding.md) (branding Voida). Otwarte zadania: [issues w Forgejo](https://git.szoniu.pl/szoniu/omarchy-port/issues).
+Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md), [`wyniki/2026-10-14-runda-4.md`](wyniki/2026-10-14-runda-4.md) (orkiestrator, test od zera), [`wyniki/2026-10-15-blokada-fastfetch.md`](wyniki/2026-10-15-blokada-fastfetch.md) (łatki, nakładki `omarchy-version*`), [`wyniki/2026-10-15-aktualizacja.md`](wyniki/2026-10-15-aktualizacja.md) (ścieżka aktualizacji), [`wyniki/2026-10-15-branding.md`](wyniki/2026-10-15-branding.md) (branding Voida), [`wyniki/2026-10-15-firewall.md`](wyniki/2026-10-15-firewall.md) (firewall). Otwarte zadania: [issues w Forgejo](https://git.szoniu.pl/szoniu/omarchy-port/issues).
 
 ## Układ repo
 
@@ -67,7 +68,7 @@ Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2
 | `prototyp/vm/` | VM testowa: QEMU z Fedory w kontenerze podmana (virgl), VNC, QMP (klawisze, mysz), zrzuty przez VNC |
 | `prototyp/void/` | baza Voida w VM (`install-base.sh`) — odpowiednik instalatora szoniu/void do testów |
 | `prototyp/bramka/` | `podbicie.sh` — co przejrzeć przed zmianą pinu Omarchy (migracje, kroki, pakiety, łatki) |
-| `prototyp/test/` | zrzut skrótów z plików Lua Omarchy, test skrótów i menu w żywej sesji, test PAM, odcisk stanu systemu (`stan-systemu.sh`) |
+| `prototyp/test/` | zrzut skrótów z plików Lua Omarchy, test skrótów i menu w żywej sesji, test PAM, odcisk stanu systemu (`stan-systemu.sh`), test firewalla prawdziwymi pakietami (`firewall.sh`) |
 | `dane/` | mapa pakietów, lista do instalacji |
 | `wyniki/` | wyniki rund prototypu |
 
@@ -88,6 +89,8 @@ prototyp/vm/shot.sh shots/x.png     # zrzut ekranu (przez VNC)
 python3 prototyp/vm/qmp.py key meta_l-ctrl-t   # wciśnięcie skrótu na klawiaturze VM
 prototyp/vm/hx.sh 'hyprctl clients'            # polecenie w sesji Hyprlanda użytkownika
 ```
+
+`ssh_config` VM ma `ControlMaster`. Firewall portu ma na SSH `limit`, a ze slirp wszystkie połączenia przychodzą z jednego adresu, więc seria osobnych połączeń zostałaby odcięta.
 
 Podgląd z innej maszyny: `ssh -L 5901:127.0.0.1:5901 <host>`, potem klient VNC na `localhost:5901`.
 
