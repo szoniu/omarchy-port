@@ -1,0 +1,24 @@
+#!/bin/bash
+# omarchy-port (Void): nakładka na /usr/bin/omarchy-version (pacman -Q omarchy → plik stanu portu).
+# Wersja pakietu omarchy (pkgver-pkgrel z przypiętego PKGBUILD-a), zapisana przez orkiestrator —
+# format jak `pacman -Q`, więc fastfetch pokazuje „Omarchy 4.0.4-2” jak na Archu.
+# Gałąź dev (OMARCHY_PATH poza /usr/share/omarchy) — bez zmian względem upstreamu.
+omarchy_path=${OMARCHY_PATH:-/usr/share/omarchy}
+omarchy_path=${omarchy_path%/}
+
+if [[ $omarchy_path != "/usr/share/omarchy" ]]; then
+  hash=$(git -C "$omarchy_path" rev-parse --short HEAD 2>/dev/null || true)
+
+  if [[ -n $hash ]]; then
+    echo "dev ($hash)"
+  else
+    echo "dev"
+  fi
+
+  exit 0
+fi
+
+version=$(cat /var/lib/omarchy-port/wersja-pakietu-omarchy 2>/dev/null)
+[[ -n $version ]] || exit 1
+
+echo "$version"

@@ -255,6 +255,11 @@ if ((wstrzymane)); then
   echo "Hyprland: przeładowania wznowione"
 fi
 echo "$OMARCHY_TAG $OMARCHY_COMMIT" >"$STATE/wersja-omarchy"
+# Wersja pakietu omarchy w formacie `pacman -Q` (pkgver-pkgrel) — czyta ją nakładka omarchy-version
+# (fastfetch: „Omarchy 4.0.4-2”, jak na Archu).
+wp=$(bash -c 'cd "$1"; source ./PKGBUILD >/dev/null 2>&1; echo "$pkgver-$pkgrel"' bash "$CACHE/omarchy-pkgs/pkgbuilds/omarchy")
+[[ $wp =~ ^[0-9][^[:space:]]*-[0-9]+$ ]] || die "PKGBUILD omarchy: nieczytelne pkgver-pkgrel ($wp)"
+echo "$wp" >"$STATE/wersja-pakietu-omarchy"
 
 # ---------------------------------------------------------------------------------------------
 etap "4/9 post_install omarchy-settings (wybiórczo)"
