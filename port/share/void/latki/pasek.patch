@@ -1,0 +1,20 @@
+omarchy-port#7 branding Voida: logo Voida na przycisku menu w pasku zamiast logo Omarchy.
+
+Przycisk menu Omarchy (lewy górny róg paska) rysuje glif U+E900 z fontu Omarchy, wpisany na sztywno
+w QML. Na porcie glif U+F32E (linux-void) z fontu paska — monospace, czyli font Omarchy (domyślnie
+JetBrainsMono Nerd Font; Nerd Fonts mają ten glif w zestawie Font Logos). Działa od restartu
+powłoki (omarchy-update restartuje ją sam; ręcznie: omarchy-restart-shell).
+Łatka nie pasuje po podbiciu Omarchy = BŁĄD w podsumowaniu orkiestratora i w bramce podbicia.
+
+--- a/shell/plugins/menu/BarWidget.qml
++++ b/shell/plugins/menu/BarWidget.qml
+@@ -12,8 +12,7 @@ BarWidget {
+     id: button
+     anchors.fill: parent
+     bar: root.bar
+-    text: "\ue900"
+-    fontFamily: "omarchy"
++    text: "\uf32e"
+     horizontalMargin: 7.5
+     onPressed: function(button) {
+       if (!root.bar) return

@@ -21,7 +21,7 @@
 #      pliki poprzedniej wersji, których nowa nie ma, znikają (zmienione przez admina → .omarchy-save);
 #      przeładowania działającego Hyprlanda wstrzymane na czas podmiany (jak hooki libalpm Omarchy)
 #   4. post_install omarchy-settings wybiórczo (bez os-release i nsswitch.conf)
-#   5. warstwa zgodności: install-layer.sh
+#   5. warstwa zgodności: install-layer.sh (z łatkami i brandingiem Voida)
 #   6. dom użytkownika z /etc/skel — tylko przy pierwszej instalacji, jako użytkownik
 #   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/void/kroki.tsv
 #   8. omarchy-provision-user jako użytkownik, na tym samym drzewie kroków — tylko dopóki nie przeszło
@@ -388,13 +388,19 @@ OMARCHY_PORT_SWIEZE_PLIKI=1 bash "$SRC/install-layer.sh"
 warstwa_ok=1
 # Łatka, która nie weszła (inna wersja Omarchy), nie może zginąć w logu warstwy: trafia do
 # podsumowania i kodu wyjścia. Łatki bezpieczeństwa mają to słowo w pierwszej linii nagłówka.
-for l in "$SRC"/share/latki/*.patch; do
+for l in "$SRC"/share/latki/*.patch "$SRC"/share/void/latki/*.patch; do
   [[ -e $l ]] || continue
   git -C /usr/share/omarchy apply --check -R -p1 "$l" 2>/dev/null && continue
-  wynik "share/latki/${l##*/}" root BŁĄD "nie nałożona — $(head -1 "$l")"
-  echo "  BŁĄD         łatka ${l##*/} nie nałożona — przejrzyj ją przy zmianie wersji Omarchy"
+  wynik "${l#"$SRC"/}" root BŁĄD "nie nałożona — $(head -1 "$l")"
+  echo "  BŁĄD         łatka ${l#"$SRC"/share/} nie nałożona — przejrzyj ją przy zmianie wersji Omarchy"
   BLEDY=$((BLEDY + 1))
 done
+# Branding Voida, który nie przeszedł (warstwa zostawia plik), też trafia do podsumowania, ale jako uwaga
+# bez kodu 1: kosmetyka nie zatrzymuje omarchy-update przed migracjami Omarchy (install-layer.sh).
+if [[ -e $STATE/branding-blad ]]; then
+  wynik share/void/branding.sh root uwaga "$(cat "$STATE/branding-blad")"
+  echo "  UWAGA        $(cat "$STATE/branding-blad")"
+fi
 
 # Etapy 6–9 tylko przy instalacji: przy aktualizacji zmiany w systemie i domu użytkownika niosą
 # migracje Omarchy (omarchy-migrate jako użytkownik, po tym skrypcie), jak na Archu.

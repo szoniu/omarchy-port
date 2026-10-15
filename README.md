@@ -52,14 +52,18 @@ Pasek co 6 h sprawdza, czy gałąź, którą śledzi klon, ma nowy commit. **Pod
    - nakładki `omarchy-pkg-*` → xbps oraz `omarchy-version`, `-channel`, `-pkgs` (fastfetch) → stan portu i baza xbps;
    - nadzorca unitów użytkownika zamiast `systemd --user`;
    - łatki z mastera Omarchy, których przypięte wydanie jeszcze nie ma (`port/share/latki/`, opis w nagłówku każdej).
+7. **Branding Voida** (teksty UI zostają przy Omarchy — to nazwa warstwy pulpitu):
+   - logo Voida w greeterze SDDM, w About/fastfetch i w wygaszaczu — [`port/share/void/branding.sh`](port/share/void/branding.sh) generuje je przy instalacji z `void-artwork`, także jako „Restore Default” z menu Style;
+   - menu **Update → Void**, **Learn → Void** (Void Handbook) i logo Voida na przycisku paska — łatki [`port/share/void/latki/`](port/share/void/latki/);
+   - konta sprzed brandingu dostają logo przez migrację portu (`port/share/void/migracje-portu/`), a plik zmieniony przez użytkownika zostaje.
 
-Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md), [`wyniki/2026-10-14-runda-4.md`](wyniki/2026-10-14-runda-4.md) (orkiestrator, test od zera), [`wyniki/2026-10-15-blokada-fastfetch.md`](wyniki/2026-10-15-blokada-fastfetch.md) (łatki, nakładki `omarchy-version*`), [`wyniki/2026-10-15-aktualizacja.md`](wyniki/2026-10-15-aktualizacja.md) (ścieżka aktualizacji). Otwarte zadania: [issues w Forgejo](https://git.szoniu.pl/szoniu/omarchy-port/issues).
+Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md), [`wyniki/2026-10-14-runda-4.md`](wyniki/2026-10-14-runda-4.md) (orkiestrator, test od zera), [`wyniki/2026-10-15-blokada-fastfetch.md`](wyniki/2026-10-15-blokada-fastfetch.md) (łatki, nakładki `omarchy-version*`), [`wyniki/2026-10-15-aktualizacja.md`](wyniki/2026-10-15-aktualizacja.md) (ścieżka aktualizacji), [`wyniki/2026-10-15-branding.md`](wyniki/2026-10-15-branding.md) (branding Voida). Otwarte zadania: [issues w Forgejo](https://git.szoniu.pl/szoniu/omarchy-port/issues).
 
 ## Układ repo
 
 | Katalog | Zawartość |
 |---|---|
-| `port/` | **orkiestrator** `install.sh` i **warstwa zgodności** (Void/runit): shimy `systemctl`, `systemd-run`, `systemd-inhibit`, `timedatectl`, `uwsm`, `uwsm-app`, `systemd-cat`, `xdg-terminal-exec` (tylko gdy oryginału brak); nakładki `omarchy-pkg-*` (xbps), `omarchy-version*` i `omarchy-update*`; `omarchy-port-update`; łatki `share/latki/`; migracje `share/void/migracje.tsv`; nadzorca unitów użytkownika `omarchy-port-units`; sesja; `install-layer.sh` |
+| `port/` | **orkiestrator** `install.sh` i **warstwa zgodności** (Void/runit): shimy `systemctl`, `systemd-run`, `systemd-inhibit`, `timedatectl`, `uwsm`, `uwsm-app`, `systemd-cat`, `xdg-terminal-exec` (tylko gdy oryginału brak); nakładki `omarchy-pkg-*` (xbps), `omarchy-version*` i `omarchy-update*`; `omarchy-port-update`; łatki `share/latki/`; migracje `share/void/migracje.tsv`; branding Voida (`share/void/branding.sh`, łatki `share/void/latki/`, migracja `share/void/migracje-portu/`); nadzorca unitów użytkownika `omarchy-port-units`; sesja; `install-layer.sh` |
 | `prototyp/vm/` | VM testowa: QEMU z Fedory w kontenerze podmana (virgl), VNC, QMP (klawisze, mysz), zrzuty przez VNC |
 | `prototyp/void/` | baza Voida w VM (`install-base.sh`) — odpowiednik instalatora szoniu/void do testów |
 | `prototyp/bramka/` | `podbicie.sh` — co przejrzeć przed zmianą pinu Omarchy (migracje, kroki, pakiety, łatki) |

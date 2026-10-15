@@ -1,0 +1,33 @@
+omarchy-port#7 branding Voida: Update → Void i Learn → Void (Void Handbook) w menu Omarchy.
+
+Decyzja 7 w szoniu/dotfiles#169: na Voidzie widać Void, teksty UI zostają przy Omarchy. Pozycja
+Update → Omarchy uruchamia na porcie aktualizację całego systemu (xbps, pliki Omarchy, port), tak jak
+na Archu pacmana — dostaje logo i nazwę Voida, akcja zostaje upstreamowa. Learn → Arch (Arch Wiki)
+prowadzi do Void Handbook. Glif U+F32E (linux-void) z fontu menu (font Omarchy, domyślnie JetBrainsMono
+Nerd Font — sprawdzone w zainstalowanym foncie).
+
+Nie przez ~/.config/omarchy/extensions/omarchy-menu.jsonc: w v4.0.4 (i na quattro) normalizeItem
+w shell/plugins/menu/MenuModel.js uzupełnia brakujące pola pustymi wartościami, więc wpis z samą
+etykietą i ikoną kasuje akcję, a pozycja znika z menu (sprawdzone w VM, 15.10.2026).
+Łatka nie pasuje po podbiciu Omarchy = BŁĄD w podsumowaniu orkiestratora i w bramce podbicia.
+
+--- a/default/omarchy/omarchy-menu.jsonc
++++ b/default/omarchy/omarchy-menu.jsonc
+@@ -40,7 +40,7 @@
+   "learn.keybindings": {"icon":"","label":"Keybindings","action":"omarchy-menu-keybindings"},
+   "learn.omarchy": {"icon":"","label":"Omarchy","action":"omarchy-launch-webapp 'https://omarchy.org/manual/'"},
+   "learn.hyprland": {"icon":"","label":"Hyprland","action":"omarchy-launch-webapp 'https://wiki.hypr.land/'"},
+-  "learn.arch": {"icon":"󰣇","label":"Arch","action":"omarchy-launch-webapp 'https://wiki.archlinux.org/title/Main_page'"},
++  "learn.arch": {"icon":"","label":"Void","action":"omarchy-launch-webapp 'https://docs.voidlinux.org/'"},
+   "learn.neovim": {"icon":"","label":"Neovim","action":"omarchy-launch-webapp 'https://www.lazyvim.org/keymaps'"},
+   "learn.bash": {"icon":"󱆃","label":"Bash","action":"omarchy-launch-webapp 'https://devhints.io/bash'"},
+   "learn.tmux-keybindings": {"icon":"","label":"Tmux","action":"omarchy-menu-tmux-keybindings"},
+@@ -338,7 +338,7 @@
+   "remove.ai.perplexity": {"icon":"","iconFont":"omarchy","label":"Perplexity","when":"omarchy-pkg-present perplexity","action":"omarchy-launch-floating-terminal-with-presentation omarchy-remove-ai-perplexity"},
+ 
+   // Update
+-  "update.omarchy": {"icon":"","iconFont":"omarchy","label":"Omarchy","action":"omarchy-launch-floating-terminal-with-presentation omarchy-update"},
++  "update.omarchy": {"icon":"","label":"Void","action":"omarchy-launch-floating-terminal-with-presentation omarchy-update"},
+   "update.channel": {"icon":"󰔫","label":"Channel"},
+   "update.config": {"icon":"","label":"Config","title":"Reset to default"},
+   "update.themes": {"icon":"󰸌","label":"Extra Themes","when":"omarchy-theme-extras","action":"omarchy-launch-floating-terminal-with-presentation omarchy-theme-update"},
