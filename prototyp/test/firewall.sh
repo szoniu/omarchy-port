@@ -25,16 +25,16 @@ sprawdz "ufw status" active "$st"
 sprawdz "ENABLED w /etc/ufw/ufw.conf" yes "$(sed -n 's/^ENABLED=//p' /etc/ufw/ufw.conf)"
 sprawdz "usługa runit ufw (/var/service/ufw, bez down)" tak \
   "$([[ -L /var/service/ufw && ! -e /etc/sv/ufw/down ]] && echo tak || echo nie)"
-reguly=$(ufw status | tr -s ' ')
-for r in '53317/udp ALLOW IN Anywhere' '53317/tcp ALLOW IN Anywhere' \
-         '172.17.0.1 53/udp ALLOW IN 172.16.0.0/12 # allow-docker-dns' \
-         '172.17.0.1 53/udp ALLOW IN 192.168.0.0/16 # allow-docker-dns'; do
+reguly=$(ufw show added)
+for r in 'ufw allow 53317/udp' 'ufw allow 53317/tcp' \
+         "ufw allow from 172.16.0.0/12 to 172.17.0.1 port 53 proto udp comment 'allow-docker-dns'" \
+         "ufw allow from 192.168.0.0/16 to 172.17.0.1 port 53 proto udp comment 'allow-docker-dns'"; do
   sprawdz "reguła: $r" jest "$(grep -qxF "$r" <<<"$reguly" && echo jest || echo brak)"
 done
 ssh_ocz=brak
 systemctl -q is-enabled sshd.service && ssh_ocz=jest
-sprawdz "reguła: 22/tcp LIMIT IN Anywhere # omarchy-sshd (gdy sshd włączony)" "$ssh_ocz" \
-  "$(grep -qxF '22/tcp LIMIT IN Anywhere # omarchy-sshd' <<<"$reguly" && echo jest || echo brak)"
+sprawdz "reguła: ufw limit 22/tcp comment 'omarchy-sshd' (gdy sshd włączony)" "$ssh_ocz" \
+  "$(grep -qxF "ufw limit 22/tcp comment 'omarchy-sshd'" <<<"$reguly" && echo jest || echo brak)"
 sprawdz "domyślnie: deny (incoming), allow (outgoing)" tak \
   "$(ufw status verbose | grep -qF 'Default: deny (incoming), allow (outgoing)' && echo tak || echo nie)"
 sprawdz "ufw-docker w /usr/bin (pakiet portu)" tak "$([[ -x /usr/bin/ufw-docker ]] && echo tak || echo nie)"

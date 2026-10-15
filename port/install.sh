@@ -24,8 +24,8 @@
 #   4. post_install omarchy-settings wybiórczo (bez os-release i nsswitch.conf)
 #   5. warstwa zgodności: install-layer.sh (z łatkami i brandingiem Voida)
 #   6. dom użytkownika z /etc/skel — tylko przy pierwszej instalacji, jako użytkownik
-#   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/void/kroki.tsv; po
-#      config/firewall.sh działający sshd dostaje regułę z Setup > Security > SSH (ufw limit 22/tcp)
+#   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/void/kroki.tsv; przed
+#      config/firewall.sh włączony sshd dostaje regułę z Setup > Security > SSH (ufw limit 22/tcp)
 #   8. omarchy-provision-user jako użytkownik, na tym samym drzewie kroków — tylko dopóki nie przeszło
 #   9. usługi: dbus, polkitd, chronyd (NTP); dhcpcd wyłączony, gdy sieć przejmuje NetworkManager;
 #      SDDM dostaje ostatniego użytkownika (motyw Omarchy nie ma pola użytkownika)
@@ -464,46 +464,60 @@ uruchom_krok() { # uruchom_krok <krok> <plik> [dopisek do „ok”] — krok ins
   return "$rc"
 }
 
-# Po udanym config/firewall.sh (omarchy-port#8). Omarchy z ISO nie włącza sshd, więc „deny incoming”
+# SSH a firewall (omarchy-port#8). Omarchy z ISO nie włącza sshd, więc „deny incoming” z config/firewall.sh
 # niczego tam nie odcina. Na Voidzie sshd zwykle działa (włącza go instalator), a maszyna instalowana
 # zdalnie po restarcie straciłaby dostęp — włączony sshd dostaje regułę z Setup > Security > SSH
 # (omarchy-setup-security-sshd; omarchy-remove-security-sshd usuwa ją tak samo jak na Archu).
-# Znacznik $STATE/firewall: aktualizacja nie puszcza już kroku sama (firewall_przy_aktualizacji).
-po_firewallu() {
-  local porty
-  if systemctl -q is-enabled sshd.service; then
-    if ! ufw limit 22/tcp comment omarchy-sshd >/dev/null; then
-      wynik "SSH w firewallu" root BŁĄD "ufw limit 22/tcp nie powiódł się — po restarcie systemu SSH będzie zablokowany"
-      echo "  BŁĄD         SSH w firewallu (ufw limit 22/tcp)"
-      BLEDY=$((BLEDY + 1))
-      return 0
-    fi
-    wynik "SSH w firewallu" root ok "sshd włączony: ufw limit 22/tcp comment omarchy-sshd"
-    echo "  ok           SSH w firewallu (sshd włączony: ufw limit 22/tcp)"
-    porty=$(sshd -T 2>/dev/null | awk '$1 == "port" && $2 != 22 { printf "%s ", $2 }') || porty=
-    if [[ -n $porty ]]; then
-      wynik "SSH w firewallu" root uwaga "sshd słucha też na: ${porty% } — firewall otwiera tylko 22 (sudo ufw limit <port>/tcp)"
-    fi
+# Reguła idzie PRZED krokiem, póki ufw.conf ma ENABLED=no. Nowa reguła `limit` przy ENABLED=yes
+# i niezaładowanym jeszcze firewallu (ruszy dopiero po restarcie) każe ufw przeładować łańcuchy, których
+# nie ma: „ERROR: problem running” i kod 1, choć plik reguł jest już zapisany (sprawdzone w VM). Dlatego
+# o wyniku decyduje obecność reguły w `ufw show added`, nie kod wyjścia.
+ssh_w_firewallu() { # rc 1 = sshd włączony, a reguły nie ma
+  local porty dodane
+  systemctl -q is-enabled sshd.service || return 0
+  ufw limit 22/tcp comment omarchy-sshd >/dev/null 2>&1 || true
+  dodane=$(ufw show added 2>&1) || true
+  if ! grep -qxF "ufw limit 22/tcp comment 'omarchy-sshd'" <<<"$dodane"; then
+    wynik "SSH w firewallu" root BŁĄD "brak reguły ufw limit 22/tcp po jej dodaniu — firewall nie włączony, żeby nie odciąć sshd"
+    echo "  BŁĄD         SSH w firewallu (ufw limit 22/tcp)"
+    BLEDY=$((BLEDY + 1))
+    return 1
   fi
-  touch "$STATE/firewall"
+  wynik "SSH w firewallu" root ok "sshd włączony: ufw limit 22/tcp comment omarchy-sshd"
+  echo "  ok           SSH w firewallu (sshd włączony: ufw limit 22/tcp)"
+  porty=$(sshd -T 2>/dev/null | awk '$1 == "port" && $2 != 22 { printf "%s ", $2 }') || porty=
+  if [[ -n $porty ]]; then
+    wynik "SSH w firewallu" root uwaga "sshd słucha też na: ${porty% } — firewall otwiera tylko 22 (sudo ufw limit <port>/tcp)"
+  fi
+}
+
+# Upstreamowy config/firewall.sh z regułą SSH przed nim. Bez reguły krok nie idzie (firewall wyłączony,
+# jak przed #8, i BŁĄD w podsumowaniu) — włączony firewall odciąłby po restarcie sshd. Znacznik
+# $STATE/firewall: aktualizacja nie puszcza już kroku sama (firewall_przy_aktualizacji).
+krok_firewall() { # krok_firewall <plik kroku> [dopisek do „ok”]
+  if ! ssh_w_firewallu; then
+    wynik config/firewall.sh root pominięty "bez reguły SSH — krok pójdzie w następnym przebiegu"
+    return 0
+  fi
+  if uruchom_krok config/firewall.sh "$1" "${2:-}"; then
+    touch "$STATE/firewall"
+  fi
 }
 
 # Instalacja sprzed omarchy-port#8 ma krok config/firewall.sh pominięty (firewall wyłączony), a kroki
 # install/ idą tylko przy instalacji — aktualizacja puszcza go ten jeden raz, wprost z plików Omarchy
-# z etapu 3. ufw, który już działa (ktoś skonfigurował go sam), zostaje taki, jaki jest.
+# z etapu 3. ufw włączony przez kogoś innego (usługa i ENABLED=yes) zostaje taki, jaki jest.
 firewall_przy_aktualizacji() {
   etap "firewall (omarchy-port#8, jednorazowo)"
-  if [[ -L /var/service/ufw ]] && grep -qiE '^ENABLED=yes' /etc/ufw/ufw.conf; then
-    wynik config/firewall.sh root uwaga "ufw już działał — port zostawia jego konfigurację (reguły Omarchy: sudo bash /usr/share/omarchy/install/config/firewall.sh)"
-    echo "  UWAGA        ufw już działa — konfiguracja bez zmian"
+  # shim systemctl jak w etapie 7: ufw włączony bez startu, firewall ruszy przy następnym starcie systemu
+  export OMARCHY_PATH=/usr/share/omarchy OMARCHY_PORT_INSTALL=1
+  if systemctl -q is-enabled ufw.service && grep -qiE '^ENABLED=yes' /etc/ufw/ufw.conf; then
+    wynik config/firewall.sh root uwaga "ufw był już włączony — port zostawia jego konfigurację (reguły Omarchy: sudo bash $OMARCHY_PATH/install/config/firewall.sh)"
+    echo "  UWAGA        ufw był już włączony — konfiguracja bez zmian"
     touch "$STATE/firewall"
     return 0
   fi
-  # jak w etapie 7: shim systemctl włącza ufw bez startu, firewall ruszy przy następnym starcie systemu
-  export OMARCHY_PATH=/usr/share/omarchy OMARCHY_PORT_INSTALL=1
-  if uruchom_krok config/firewall.sh "$OMARCHY_PATH/install/config/firewall.sh"; then
-    po_firewallu
-  fi
+  krok_firewall "$OMARCHY_PATH/install/config/firewall.sh"
   if [[ -s $STATE/start-at-boot ]]; then
     echo "  wstaną przy następnym starcie: $(tr '\n' ' ' <"$STATE/start-at-boot")"
   fi
@@ -574,8 +588,10 @@ for grp in config hardware login post-install; do
       echo "  pominięty    $s"
       continue
     fi
-    if uruchom_krok "$s" "$OV/$s" "${AKCJA[$s]:+ (podmieniony)}" && [[ $s == config/firewall.sh ]]; then
-      po_firewallu
+    if [[ $s == config/firewall.sh ]]; then
+      krok_firewall "$OV/$s" "${AKCJA[$s]:+ (podmieniony)}"
+    else
+      uruchom_krok "$s" "$OV/$s" "${AKCJA[$s]:+ (podmieniony)}" || true
     fi
   done
 done
