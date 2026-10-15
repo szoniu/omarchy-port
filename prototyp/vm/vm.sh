@@ -8,7 +8,8 @@
 # SSH:   ssh -p 2229 -i id_vm root@127.0.0.1   (hostfwd w slirp)
 # QMP:   $VM_DIR/qmp.sock (python3 qmp.py …)
 # Stan VM (ISO, dysk, OVMF, klucz SSH, logi) leży w $VM_DIR, POZA repo.
-# Osobny dysk (np. świeża instalacja obok starej VM): VM_DISK=fresh.qcow2 VM_VARS=OVMF_VARS.fresh.fd ./vm.sh …
+# Dysk: domyślnie fresh.qcow2 (Void) z OVMF_VARS.fresh.fd; inny, np. Gentoo: VM_DISK=gentoo.qcow2
+# VM_VARS=OVMF_VARS.gentoo.fd ./vm.sh … — brakujący plik powstaje pusty (60 GB, rośnie w miarę zapisu).
 # Druga VM naraz (np. regresja Voida obok Gentoo): VM_NR=2 — osobny kontener, SSH 127.0.0.1:2230,
 # VNC :2 (5902), qmp2.sock, serial2.log; host „vm2” w ssh_config; qmp.py, shot.sh i hx.sh biorą VM_NR.
 set -euo pipefail
@@ -21,8 +22,8 @@ if [[ $VM_NR == 1 ]]; then SUF='' NAME=vm-void-omarchy; else SUF=$VM_NR NAME=vm-
 SSH_PORT=$((2228 + VM_NR))
 IMG=localhost/qemu-virgl:latest
 ISO=void-live-x86_64-20250202-base.iso
-VM_DISK="${VM_DISK:-void.qcow2}"
-VM_VARS="${VM_VARS:-OVMF_VARS.fd}"
+VM_DISK="${VM_DISK:-fresh.qcow2}"
+VM_VARS="${VM_VARS:-OVMF_VARS.fresh.fd}"
 mode="${1:-}"
 
 if [ "$mode" = stop ]; then

@@ -118,7 +118,7 @@ Instalacja od zera:
 4. `install-base.sh` przez SSH, z `PASS_HASH`;
 5. `git archive HEAD port dane` do VM i `port/install.sh --user szoniu`.
 
-Osobny dysk obok istniejącej VM: `VM_DISK=fresh.qcow2 VM_VARS=OVMF_VARS.fresh.fd prototyp/vm/vm.sh live|disk`. Druga VM naraz: `VM_NR=2` (SSH `vm2` na 2230, VNC 5902, `qmp2.sock`; `qmp.py`, `shot.sh` i `hx.sh` biorą tę samą zmienną).
+Dysk domyślny to `fresh.qcow2` (Void, migawki `czysta-baza` i `przed-8`); Gentoo: `VM_DISK=gentoo.qcow2 VM_VARS=OVMF_VARS.gentoo.fd prototyp/vm/vm.sh live|disk` (migawka `gentoo-baza`). Druga VM naraz: `VM_NR=2` (SSH `vm2` na 2230, VNC 5902, `qmp2.sock`; `qmp.py`, `shot.sh` i `hx.sh` biorą tę samą zmienną).
 
 ## Upstream i licencje
 
