@@ -47,9 +47,15 @@ BACKEND_PODGLAD_RECZNE='for d in /var/db/pkg/{1}-[0-9]*; do echo "${d#/var/db/pk
 # Lista z wiersza „All selected packages: =kat/pakiet-wersja …” — jest z --quiet i bez (nagłówka
 # „These are the packages that would be unmerged” przy --quiet nie ma), a dokładne wersje usuwają tylko
 # pokazane pakiety, nawet gdy w międzyczasie coś doszło.
+# Pakiety, o których portage ostrzega „is part of your system profile” (np. nano jako dostawca
+# virtual/editor, gdy doszedł neovim), są pomijane: ich usunięcie zostawia EDITOR=/bin/nano bez pliku
+# (sprawdzone w VM 15.10.2026), a profil systemu to zakres Gentoo, nie Omarchy.
 backend_sieroty() {
-  emerge --pretend --depclean --quiet </dev/null 2>/dev/null |
-    awk '/^All selected packages:/ { for (i = 4; i <= NF; i++) print $i }'
+  emerge --pretend --depclean --quiet </dev/null 2>&1 |
+    awk '/is part of your system profile/ { if (match($0, /'"'"'[^'"'"']+'"'"'/)) chron[substr($0, RSTART + 1, RLENGTH - 2)] = 1 }
+         /^All selected packages:/ {
+           for (i = 4; i <= NF; i++) { a = $i; sub(/^=/, "", a); sub(/-[0-9].*$/, "", a); if (!(a in chron)) print $i }
+         }'
 }
 backend_usun_sieroty() { emerge --ask=n --depclean "$@" </dev/null; }   # jako root; atomy z backend_sieroty
 
