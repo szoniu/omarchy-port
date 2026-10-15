@@ -8,11 +8,14 @@ PORT_DYSTR_NAZWA=Gentoo
 PORT_NA="na Gentoo"   # do komunikatów: „pakietu X nie ma na Gentoo”
 
 # Obecność z bazy /var/db/pkg (bez Pythona portageq — Omarchy pyta o pakiety seriami). Atom ze slotem
-# (dev-lang/lua:5.1) — dowolna zainstalowana wersja w tym slocie.
+# (dev-lang/lua:5.1) — dowolna zainstalowana wersja w tym slocie. Nazwa bez kategorii (pakiet spoza
+# mapy pod nazwą z Archa, np. sof-firmware z hardware/intel/sof-firmware.sh) — w dowolnej kategorii,
+# tak jak przyjmuje ją emerge.
 backend_pkg_installed() {
   local atom=${1%%:*} slot='' d
   [[ $1 == *:* ]] && slot=${1#*:}
-  for d in /var/db/pkg/"$atom"-[0-9]*; do
+  [[ $atom == */* ]] || atom="*/$atom"
+  for d in /var/db/pkg/$atom-[0-9]*; do
     [[ -d $d ]] || continue
     [[ -z $slot ]] && return 0
     [[ $(cut -d/ -f1 "$d/SLOT" 2>/dev/null) == "$slot" ]] && return 0
