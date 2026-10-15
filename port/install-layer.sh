@@ -2,11 +2,12 @@
 # omarchy-port: instalacja warstwy zgodności (Void/runit). Jako root, idempotentnie.
 #   shimy (systemctl, systemd-run, systemd-cat, uwsm-app, xdg-terminal-exec) → /usr/local/bin,
 #       TYLKO gdy prawdziwego polecenia nie ma (na Gentoo z systemd żaden nie powstaje);
-#   nakładki pakietowe (omarchy-pkg-*) i nadzorca unitów → /usr/local/bin, zawsze —
+#   nakładki (omarchy-pkg-*, omarchy-version*) i nadzorca unitów → /usr/local/bin, zawsze —
 #       /usr/local/bin jest w PATH i w secure_path sudo PRZED /usr/bin z plikami Omarchy,
 #       a linki w /usr/share/omarchy/bin (PATH sesji) są przekierowane na nakładki;
 #   dane → /usr/share/omarchy-port, sesja → /usr/libexec/omarchy-port + wayland-sessions,
-#   greeter SDDM → config portu (upstreamowy + no_update_news) przez /etc/sddm.conf.d.
+#   greeter SDDM → config portu (upstreamowy + no_update_news) przez /etc/sddm.conf.d,
+#   łatki z upstreamu, których przypięte wydanie nie ma (share/latki) → pliki /usr/share/omarchy.
 set -euo pipefail
 SRC="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$SRC/.." && pwd)"
@@ -28,7 +29,9 @@ for shim in systemctl systemd-run systemd-cat systemd-inhibit timedatectl uwsm u
   fi
 done
 
-for f in "$SRC"/bin/omarchy-pkg-* "$SRC/bin/omarchy-port-units"; do
+# nakładki na polecenia Omarchy, które pytają pacmana (pakiety, wersja/kanał/data aktualizacji)
+NAKLADKI=("$SRC"/bin/omarchy-pkg-* "$SRC"/bin/omarchy-version*)
+for f in "${NAKLADKI[@]}" "$SRC/bin/omarchy-port-units"; do
   install -m 755 "$f" /usr/local/bin/
   echo "nakładka: /usr/local/bin/$(basename "$f")"
 done
@@ -38,7 +41,7 @@ done
 # Bez przekierowania nakładka działa tylko z SSH i sudo, a w sesji (menu, skróty) wygrywa pacman.
 # Każda reinstalacja plików Omarchy odtwarza te linki — po niej ten skrypt trzeba puścić ponownie.
 if [[ -d /usr/share/omarchy/bin ]]; then
-  for f in "$SRC"/bin/omarchy-pkg-*; do
+  for f in "${NAKLADKI[@]}"; do
     b=$(basename "$f")
     [[ -L /usr/share/omarchy/bin/$b ]] || continue
     ln -sfn "/usr/local/bin/$b" "/usr/share/omarchy/bin/$b"
@@ -77,5 +80,40 @@ if [[ -f /usr/share/sddm/hyprland.lua ]] && /usr/bin/grep -qxF "$GREETER_UPSTREA
 else
   rm -f /etc/sddm.conf.d/30-omarchy-port-greeter.conf
   echo "UWAGA: Omarchy woła greeter inaczej niż w v4.0.4 (10-wayland.conf) — config greetera portu pominięty, przejrzyj session/sddm-hyprland.lua" >&2
+fi
+
+# Łatki (ścieżki względem /usr/share/omarchy): poprawki z mastera Omarchy, których przypięte wydanie
+# jeszcze nie ma — każda opisuje w nagłówku, skąd jest. Etap 3 orkiestratora wypakowuje pliki od
+# nowa przy każdym przebiegu, więc łatka idzie za każdym razem. Cofnięcie pasuje = plik ma już tę
+# zmianę: po świeżym wypakowaniu (OMARCHY_PORT_SWIEZE_PLIKI od orkiestratora) to znaczy, że wydanie ją
+# zawiera i łatkę można usunąć, a przy samodzielnym ponownym uruchomieniu — że port ją już nałożył.
+# Nie pasuje ani łatka, ani cofnięcie (inna wersja Omarchy) = UWAGA i bez zmian; orkiestrator
+# dodatkowo liczy to jako błąd w podsumowaniu. Działająca powłoka (Quickshell) NIE przeładowuje
+# zmienionych plików QML sama — łatka działa od restartu powłoki albo systemu (na Archu
+# omarchy-update-restart woła po aktualizacji omarchy-restart-shell; orkiestrator kończy się
+# poleceniem restartu systemu).
+latki=("$SRC"/share/latki/*.patch)
+if [[ ! -e ${latki[0]} ]]; then
+  :
+elif [[ ! -d /usr/share/omarchy/shell ]]; then
+  echo "UWAGA: brak plików Omarchy w /usr/share/omarchy — łatki pominięte, puść install-layer.sh ponownie po ich instalacji" >&2
+elif ! command -v git >/dev/null; then
+  echo "UWAGA: brak gita (łatki nakłada git apply) — łatki pominięte: xbps-install -S git" >&2
+else
+  for l in "${latki[@]}"; do
+    n=$(basename "$l")
+    if git -C /usr/share/omarchy apply --check -R -p1 "$l" 2>/dev/null; then
+      if [[ ${OMARCHY_PORT_SWIEZE_PLIKI:-} == 1 ]]; then
+        echo "UWAGA: łatka $n — wydanie Omarchy ma już tę zmianę, łatkę można usunąć" >&2
+      else
+        echo "łatka: $n — już nałożona"
+      fi
+    elif git -C /usr/share/omarchy apply --check -p1 "$l" 2>/dev/null; then
+      git -C /usr/share/omarchy apply -p1 "$l"
+      echo "łatka: $n (działa od restartu powłoki: omarchy-restart-shell w sesji albo restart systemu)"
+    else
+      echo "UWAGA: łatka $n nie pasuje do plików Omarchy w /usr/share/omarchy — przejrzyj ją przy zmianie wersji" >&2
+    fi
+  done
 fi
 echo LAYER-OK

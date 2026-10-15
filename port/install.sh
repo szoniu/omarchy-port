@@ -181,6 +181,15 @@ for p in omarchy omarchy-settings; do
   c=$(sed -n "s/^_commit='\(.*\)'$/\1/p" "$CACHE/omarchy-pkgs/pkgbuilds/$p/PKGBUILD")
   [[ $c == "$OMARCHY_COMMIT" ]] || die "PKGBUILD $p ma _commit=$c, a upstream.env $OMARCHY_COMMIT — popraw upstream.env"
 done
+# Wersja pakietu omarchy w formacie `pacman -Q` ([epoch:]pkgver-pkgrel) dla nakładki omarchy-version
+# (fastfetch: „Omarchy 4.0.4-2”, jak na Archu). Czytana przed zmianami na dysku; to dane kosmetyczne,
+# więc nieczytelna wersja to UWAGA, a nie przerwanie.
+WERSJA_PAKIETU=$(bash -c 'cd "$1"; source ./PKGBUILD >/dev/null 2>&1; echo "${epoch:+$epoch:}$pkgver-$pkgrel"' \
+  bash "$CACHE/omarchy-pkgs/pkgbuilds/omarchy")
+if [[ ! $WERSJA_PAKIETU =~ ^([0-9]+:)?[0-9A-Za-z._+~]+-[0-9]+(\.[0-9]+)?$ ]]; then
+  echo "UWAGA: PKGBUILD omarchy — nieczytelna wersja ($WERSJA_PAKIETU); omarchy-version pokaże sam tag"
+  WERSJA_PAKIETU=
+fi
 
 # Ścieżki należące do pakietów Voida — raz, z list plików w bazie xbps (xbps-query -o na plik to
 # ~0,25 s, a plików Omarchy jest ~2000).
@@ -255,6 +264,13 @@ if ((wstrzymane)); then
   echo "Hyprland: przeładowania wznowione"
 fi
 echo "$OMARCHY_TAG $OMARCHY_COMMIT" >"$STATE/wersja-omarchy"
+# czyta go nakładka omarchy-version w sesji użytkownika — prawa jawnie, niezależnie od umaski roota
+if [[ -n $WERSJA_PAKIETU ]]; then
+  echo "$WERSJA_PAKIETU" >"$STATE/wersja-pakietu-omarchy"
+  chmod 644 "$STATE/wersja-pakietu-omarchy"
+else
+  rm -f "$STATE/wersja-pakietu-omarchy"   # wersja z poprzedniego pinu byłaby fałszywa
+fi
 
 # ---------------------------------------------------------------------------------------------
 etap "4/9 post_install omarchy-settings (wybiórczo)"
@@ -276,7 +292,17 @@ echo "            plymouthd.conf (Void w porcie bez plymouth), cups-files.conf (
 
 # ---------------------------------------------------------------------------------------------
 etap "5/9 warstwa zgodności"
-bash "$SRC/install-layer.sh"
+# Etap 3 wypakował pliki Omarchy od nowa — łatka, której cofnięcie pasuje, jest już w samym wydaniu.
+OMARCHY_PORT_SWIEZE_PLIKI=1 bash "$SRC/install-layer.sh"
+# Łatka, która nie weszła (inna wersja Omarchy), nie może zginąć w logu warstwy: trafia do
+# podsumowania i kodu wyjścia. Łatki bezpieczeństwa mają to słowo w pierwszej linii nagłówka.
+for l in "$SRC"/share/latki/*.patch; do
+  [[ -e $l ]] || continue
+  git -C /usr/share/omarchy apply --check -R -p1 "$l" 2>/dev/null && continue
+  wynik "share/latki/${l##*/}" root BŁĄD "nie nałożona — $(head -1 "$l")"
+  echo "  BŁĄD         łatka ${l##*/} nie nałożona — przejrzyj ją przy zmianie wersji Omarchy"
+  BLEDY=$((BLEDY + 1))
+done
 
 # ---------------------------------------------------------------------------------------------
 etap "6/9 dom użytkownika $U"

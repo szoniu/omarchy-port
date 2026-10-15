@@ -38,7 +38,10 @@ files() { # files <sekcja> <katalog> — pliki z sumą, linki z celem
   for f in /etc/security/faillock.conf /etc/skel/.bashrc /etc/os-release /etc/nsswitch.conf /etc/ufw/ufw.conf /etc/rc.conf; do
     row plik-etc "$f" "$(sum "$f")"
   done
-  for f in /usr/share/omarchy/bin/omarchy-pkg-*; do row omarchy-bin "$(basename "$f")" "-> $(readlink "$f")"; done
+  for f in /usr/share/omarchy/bin/omarchy-pkg-* /usr/share/omarchy/bin/omarchy-version*; do row omarchy-bin "$(basename "$f")" "-> $(readlink "$f")"; done
+  # łatki portu (share/latki): bez nich blokada ekranu działa raz na sesję (#10)
+  row omarchy "łatka blokada (currentlyLocked)" "$(grep -c "currentlyLocked" /usr/share/omarchy/shell/plugins/lock/Service.qml 2>/dev/null)"
+  row port "wersja-pakietu-omarchy" "$(cat /var/lib/omarchy-port/wersja-pakietu-omarchy 2>/dev/null) $(stat -c %a /var/lib/omarchy-port/wersja-pakietu-omarchy 2>/dev/null)"
   row omarchy "wersja" "$(cat /usr/share/omarchy/version 2>/dev/null)"
   row omarchy "pliki /usr/share/omarchy" "$(find /usr/share/omarchy -type f | wc -l)"
   row omarchy "polecenia /usr/bin/omarchy-*" "$(find /usr/bin -maxdepth 1 -name 'omarchy-*' | wc -l)"

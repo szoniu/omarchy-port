@@ -1,0 +1,10 @@
+#!/bin/bash
+# omarchy-port (Void): nakładka na /usr/bin/omarchy-version-pkgs (ostatnie „upgraded” z pacman.log →
+# ostatnia instalacja lub aktualizacja pakietu xbps). xbps nie prowadzi logu transakcji, ale przy
+# instalacji i aktualizacji pakietu zapisuje jego listę plików /var/db/xbps/.<pakiet>-files.plist —
+# najnowszy czas modyfikacji = ostatnia zmiana pakietów (przebieg bez zmian go nie rusza). Nie
+# install-date z pkgdb: ma skrót strefy (w bazie mieszają się CEST i UTC z chroota instalatora),
+# którego `date -d` nie zna poza własną tabelą. Format daty jak upstream.
+last=$(find /var/db/xbps -maxdepth 1 -name '.*-files.plist' -printf '%T@\n' 2>/dev/null | sort -n | tail -1)
+[[ -n $last ]] || exit 1
+date -d "@${last%.*}" "+%A, %B %d %Y at %H:%M"
