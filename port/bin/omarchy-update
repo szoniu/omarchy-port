@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# omarchy:summary=Update Omarchy and system packages
+# omarchy:args=[-y]
+# omarchy:examples=omarchy update | omarchy update -y
+# omarchy:requires-sudo=true
+
+# omarchy-port (Void): nakładka na /usr/bin/omarchy-update (v4.0.4) — ta sama kolejność i te same
+# polecenia pomocnicze tam, gdzie nie zależą od pacmana. Kroki pacmana (pkg-prune, keyring,
+# system-pkgs) zastępuje omarchy-port-update jako root: nowa wersja portu z /opt/omarchy-port
+# (git pull), pakiety Voida (xbps), pliki Omarchy przy pinie tej wersji, warstwa i łatki. Bez AUR
+# (Void go nie ma) i bez analizy logu initcpio (Void: dracut). mise, sieroty, sprawdzenie dostępnych
+# aktualizacji i restart — przez nakładki portu o tych samych nazwach.
+
+set -e
+
+if [[ -z ${OMARCHY_UPDATE_LOGGED:-} ]]; then
+  script_command=$(printf '%q ' "$0" "$@")
+  exec env OMARCHY_UPDATE_LOGGED=1 script -qefc "$script_command" "/tmp/omarchy-update.log"
+fi
+
+if ! omarchy-update-lock held; then
+  exec omarchy-update-lock run "$0" "$@"
+fi
+
+trap 'echo ""; echo -e "\033[0;31mSomething went wrong during the update!\n\nPlease review the output above carefully, correct the error, and retry the update.\n\nomarchy-port (Void): https://git.szoniu.pl/szoniu/omarchy-port/issues\033[0m"' ERR
+trap 'omarchy-update-stay-awake stop' EXIT
+
+omarchy-update-requires-free-space
+
+# -y is a promise not to ask anything. Steps that would need an answer report
+# and move on instead of waiting on a prompt nobody is here to give.
+[[ ${1:-} != "-y" ]] || export OMARCHY_UPDATE_UNATTENDED=1
+
+if [[ ${1:-} == "-y" ]] || omarchy-update-confirm; then
+  # 127 = brak snappera (port go nie ma) — upstream pomija aktualizację bez snapshotu tak samo
+  omarchy-snapshot create || (($? == 127)) ||
+    echo -e "\e[33mContinuing the update without a snapshot.\e[0m" >&2
+
+  omarchy-update-stay-awake start
+  omarchy-update-dev
+
+  # Migracje są pisane pod pliki z tej aktualizacji, więc wszystko niżej czeka na jej koniec.
+  sudo omarchy-port-update
+
+  omarchy-migrate
+  omarchy-hook post-update
+  omarchy-update-mise
+  omarchy-update-orphan-pkgs
+  omarchy-update-status
+
+  # Release update-owned inhibitors before offering a reboot. A confirmed
+  # reboot can terminate this process before its EXIT trap gets a chance to
+  # remove the persistent Stay Awake marker.
+  omarchy-update-stay-awake stop
+  trap - EXIT
+  omarchy-update-restart
+fi

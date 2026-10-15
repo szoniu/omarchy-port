@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# omarchy:summary=Review and optionally remove orphaned system packages after updates
+# omarchy:requires-sudo=true
+
+# omarchy-port (Void): nakładka na /usr/bin/omarchy-update-orphan-pkgs (pacman -Qtdq / -Rns →
+# xbps-query -O / xbps-remove -o). Sierota w xbps = pakiet zainstalowany jako zależność, której już
+# nic nie potrzebuje — ta sama definicja co -Qtd w pacmanie. Reszta jak upstream.
+
+set -e
+
+mapfile -t orphans < <(xbps-query -O 2>/dev/null || true)
+(( ${#orphans[@]} )) || exit 0
+
+echo -e "\e[32m\nOrphan system packages\e[0m"
+printf '  %s\n' "${orphans[@]}"
+echo
+
+if [[ ! -t 0 || ! -t 1 ]]; then
+  echo "${#orphans[@]} orphaned package(s) found. Re-run omarchy-update-orphan-pkgs in a terminal to review/remove them."
+  echo
+  exit 0
+fi
+
+if ! gum confirm --default=false "Remove ${#orphans[@]} orphaned package(s)?"; then
+  echo "Keeping orphaned packages."
+  echo
+  exit 0
+fi
+
+echo -e "\e[32m\nRemoving orphan system packages\e[0m"
+sudo xbps-remove -oy
+echo

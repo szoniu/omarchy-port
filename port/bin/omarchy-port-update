@@ -1,0 +1,18 @@
+#!/bin/bash
+# omarchy-port: część root aktualizacji (woła ją omarchy-update). Najpierw nowa wersja portu z klonu
+# /opt/omarchy-port — `git pull --ff-only` na gałęzi, którą klon śledzi (domyślnie main z GitHuba;
+# podbicie wersji Omarchy to commit w porcie po teście w VM) — potem orkiestrator tej NOWEJ wersji
+# w trybie --update: pakiety Voida, pliki Omarchy przy jej pinie, warstwa, łatki.
+set -euo pipefail
+PORT_DIR=/opt/omarchy-port
+(( EUID == 0 )) || exec sudo "$0" "$@"
+if [[ ! -d $PORT_DIR/.git ]]; then
+  echo "omarchy-port-update: brak klonu portu w $PORT_DIR — sklonuj: git clone https://github.com/szoniu/omarchy-port.git $PORT_DIR" >&2
+  exit 2
+fi
+echo -e "\e[32m\nUpdate omarchy-port ($PORT_DIR)\e[0m"
+przed=$(git -C "$PORT_DIR" rev-parse --short HEAD)
+git -C "$PORT_DIR" pull --ff-only
+po=$(git -C "$PORT_DIR" rev-parse --short HEAD)
+if [[ $przed == "$po" ]]; then echo "port bez zmian ($po)"; else echo "port: $przed → $po"; fi
+exec "$PORT_DIR/port/install.sh" --update
