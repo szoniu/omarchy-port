@@ -92,6 +92,24 @@ Przy teście wyszła jeszcze jedna rzecz: log nie pokazywał, **które** pliki u
 
 Powrót z `v4.0.5-test` do prawdziwego v4.0.4 przez menu (kod po review): pliki 4.0.5-test zniknęły, usunięte wróciły, stan poprzedniej wersji sprzątnięty, Hyprland żyje.
 
+**Test od zera po poprawkach** (czysta VM z migawki `czysta-baza`, dokładnie według README):
+1. `git clone … /opt/omarchy-port` (tu gałąź PR-a) → `/opt/omarchy-port/port/install.sh --user szoniu …`;
+2. wynik instalacji:
+   - `OMARCHY-PORT-INSTALL-OK`, `KOD=0`;
+   - etapy 6–9 w nowej funkcji przeszły (46 kroków `ok`, `provision-user` ok, `finalize-user`, 106 migracji oznaczonych);
+   - pełna aktualizacja xbps podniosła openssh, a orkiestrator sam zrestartował `sshd` (poprawka z rundy 4 w prawdziwym przypadku);
+   - istniejący klon `/opt` użyty bez ponownego klonowania;
+   - `wersja-portu`: https GitHuba, gałąź PR-a;
+3. restart → logowanie hasłem w greeterze → sesja.
+
+**Aktualizacja przez GitHuba (https)**:
+- nowy commit wypchnięty na gałąź PR-a → w terminalu sesji `omarchy-port 5c4bd6e -> d691da4 (aktualizacja)` i ikona na pasku;
+- menu Update → Omarchy:
+  - `git pull` fast-forward z `https://github.com/szoniu/omarchy-port`;
+  - `OMARCHY-PORT-UPDATE-OK`, kod 0;
+  - Hyprland ten sam proces;
+- wskaźnik po wszystkim: „up to date”.
+
 ### Zostaje
 
 - Prawdziwe podbicie: przegląd 87 migracji do `migracje.tsv`, mapa pakietów, podmiana `user/mise.sh` — przy pierwszym wydaniu po v4.0.4.
