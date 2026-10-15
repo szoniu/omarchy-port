@@ -127,7 +127,7 @@ ttf-jetbrains-mono-nerd-basic	zamiennik	nerd-fonts-ttf	omarchy-pkgs
 tzupdate	jest	tzupdate	omarchy-pkgs
 udiskie	jest	udiskie	
 ufw	jest	ufw	
-ufw-docker	brak		omarchy-pkgs
+ufw-docker	port		omarchy-pkgs
 unzip	jest	unzip	
 usage	jest	usage	
 uwsm	brak		

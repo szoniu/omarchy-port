@@ -7,6 +7,8 @@ names=()
 declare -A seen=()
 for pkg in "$@"; do
   name=$(port_pkg_name "$pkg" 2>/dev/null) || continue
+  # pakiet portu (stan „port” w mapie, np. ufw-docker dla config/firewall.sh) — nie z xbps, zostaje
+  [[ $name == port:* ]] && continue
   [[ -n ${seen[$name]:-} ]] && continue
   seen[$name]=1
   port_pkg_installed "$name" && names+=("$name")
