@@ -1,11 +1,11 @@
-omarchy-port#10: blokada ekranu działa raz na sesję.
+omarchy-port#10 BEZPIECZEŃSTWO: bez tej łatki blokada ekranu działa raz na sesję (potem ani skrót, ani bezczynność, ani uśpienie).
 
 Quickshell 0.3.2 nie emituje lockStateChanged przy odblokowaniu (quickshell-mirror/quickshell#1230),
 więc wiązanie `locked` w Service.qml Omarchy v4.0.4 zostaje `true` i każda kolejna blokada (skrót,
 menu, bezczynność, przed uśpieniem) jest pustym przebiegiem. Upstream naprawił to w basecamp/omarchy
 d1a614ce (#14978, 11.10.2026, „Decide lock requests from the current lock state”) — tylko na
 masterze. Ta łatka to ta sama zmiana przeniesiona na plik z v4.0.4; do usunięcia przy przejściu na
-wydanie, które ją zawiera (install-layer.sh zgłosi wtedy, że łatka nie pasuje).
+wydanie, które ją zawiera (install-layer.sh zgłosi wtedy, że łatka nie pasuje albo że wydanie już ma tę zmianę).
 
 --- a/shell/plugins/lock/Service.qml
 +++ b/shell/plugins/lock/Service.qml

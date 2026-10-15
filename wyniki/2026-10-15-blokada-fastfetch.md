@@ -53,4 +53,28 @@ Linia motywu pokazuje dosłowne `-e Tokyo Night \e[38m●…` zamiast kolorowych
 - Na Voidzie `/bin/sh` to `dash`, którego `echo` nie zna `-e` ani `\e`. Na Archu `/bin/sh` to bash.
 - Innych bashizmów wykonywanych przez `sh -c` w configu fastfetch, skrótach i autostarcie Hyprlanda nie znalazłem; Quickshell woła `bash -c`.
 - `/etc/fastfetch/config.jsonc` jest w `backup=()` `omarchy-settings`, więc łatka na config zderzy się z ochroną zmian admina.
-- Decyzja czeka.
+- Decyzja (15.10.2026): zadanie w backlogu → #12 (łatki dla plików z `backup=()` nakładane w etapie 3 na rozpakowany pakiet).
+
+### Poprawki po review PR #3
+
+Review (zwykły) dał 15 ustaleń. Wszystkie sprawdziłem sam: 12 poprawionych, 3 odrzucone z uzasadnieniem.
+
+| Ustalenie | Co zrobione | Test w VM |
+|---|---|---|
+| `die` przy nieczytelnej wersji stał **po** etapie 3 (przerwanie po nadpisaniu plików, nie do obejścia ponownym uruchomieniem) | wersja czytana i sprawdzana przed zmianami na dysku; zła = UWAGA i brak pliku, nie przerwanie; regex przyjmuje epoch i pkgrel z kropką | przebieg `KOD=0` |
+| niedopasowana łatka blokady ginęła w logu, a orkiestrator kończył się OK | po etapie 5 orkiestrator sprawdza każdą łatkę: brak = BŁĄD w `kroki.tsv`, kod 1; łatka bezpieczeństwa ma to słowo w 1. linii nagłówka → UWAGA w podsumowaniu | kopia z zepsutą łatką: BŁĄD, `UWAGA share/latki/…: … BEZPIECZEŃSTWO …`, `KOD=1` |
+| „już nałożona” łapała też wydanie z tą samą poprawką — sygnał do usunięcia łatki nie przychodził | orkiestrator woła warstwę z `OMARCHY_PORT_SWIEZE_PLIKI=1` (pliki świeżo wypakowane): cofnięcie pasuje → „wydanie ma już tę zmianę, łatkę można usunąć”; samodzielnie → „już nałożona” | obie gałęzie |
+| brak gita lub plików Omarchy dawał mylące „nie pasuje” | osobne komunikaty, łatki pominięte | — (niesprawdzone w VM; prosta gałąź) |
+| `omarchy-version` bez pliku wersji (sama warstwa) → linia OS znika | rezerwa: tag z `wersja-omarchy` (`4.0.4`) | bez pliku `4.0.4`, z plikiem `4.0.4-2` |
+| `install-date` ma skrót strefy: w bazie mieszają się CEST i UTC (174 wpisy z chroota), `date -d` nie zna np. AEDT, sort leksykalny myli kolejność | `omarchy-version-pkgs` z czasu modyfikacji `.<pakiet>-files.plist` (xbps zapisuje je przy instalacji i aktualizacji; przebieg bez zmian ich nie rusza — sprawdzone) | 07:37 = najnowsza lista (mesa) |
+| `ls -t` (SC2012) | znika razem z poprzednim | — |
+| plik stanu z umaską roota | `chmod 644` | `644` (przebieg z umaską 022; z 077 nie uruchamiałem całości) |
+| epoch pomijany | `[epoch:]pkgver-pkgrel` jak `pacman -Q` | — |
+| PKGBUILD wczytywany drugi raz po tar | odczyt przeniesiony przed zmiany (jedno miejsce) | — |
+| testy nie obejmowały nowych przekierowań ani łatki | `stan-systemu.sh`: przekierowania `omarchy-version*`, licznik `currentlyLocked`, plik wersji z prawami | nowe wiersze w odcisku |
+| README nie linkował wyników | linki do rundy 4, tego pliku i issues | — |
+| **odrzucone:** łatać sam Quickshell zamiast QML | port nie buduje własnych pakietów xbps; upstream Omarchy wybrał obejście w QML; `loadBackground: root.locked` zostaje jak upstream (nieaktualne `true` trzyma tylko tło w pamięci) | — |
+| **odrzucone:** stała ścieżki stanu we wspólnej bibliotece | `systemctl` i core-service też wpisują `/var/lib/omarchy-port` wprost — spójnie | — |
+| **odrzucone:** decyzja o linii motywu niezacommitowana | wchodzi w tym commicie (#12) | — |
+
+Przy okazji: `.cowsay-files.plist` z 14.10, 21:35 to instalacja z menu z testu ręcznego (punkt 3) — `cowsay-3.8.4_1` przez xbps, czyli ścieżka z sesji działa.

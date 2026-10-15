@@ -33,7 +33,7 @@ Orkiestrator jest idempotentny, a logi zapisuje w `/var/log/omarchy-port/`. Kod 
    - nadzorca unitów użytkownika zamiast `systemd --user`;
    - łatki z mastera Omarchy, których przypięte wydanie jeszcze nie ma (`port/share/latki/`, opis w nagłówku każdej).
 
-Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md).
+Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2.md`](wyniki/2026-10-14-runda-1-2.md), [`wyniki/2026-10-14-runda-3.md`](wyniki/2026-10-14-runda-3.md), [`wyniki/2026-10-14-runda-4.md`](wyniki/2026-10-14-runda-4.md) (orkiestrator, test od zera), [`wyniki/2026-10-15-blokada-fastfetch.md`](wyniki/2026-10-15-blokada-fastfetch.md) (łatki, nakładki `omarchy-version*`). Otwarte zadania: [issues w Forgejo](https://git.szoniu.pl/szoniu/omarchy-port/issues).
 
 ## Układ repo
 

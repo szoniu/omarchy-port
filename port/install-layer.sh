@@ -84,22 +84,36 @@ fi
 
 # Łatki (ścieżki względem /usr/share/omarchy): poprawki z mastera Omarchy, których przypięte wydanie
 # jeszcze nie ma — każda opisuje w nagłówku, skąd jest. Etap 3 orkiestratora wypakowuje pliki od
-# nowa przy każdym przebiegu, więc łatka idzie za każdym razem. Plik po łatce (cofnięcie pasuje) =
-# pomijamy; plik, do którego nie pasuje ani łatka, ani jej cofnięcie (inna wersja Omarchy) = UWAGA
-# i bez zmian — przy zmianie pinu łatkę trzeba przejrzeć albo usunąć. Działająca powłoka (Quickshell)
-# NIE przeładowuje zmienionych plików QML sama — łatka działa od restartu powłoki albo systemu (na
-# Archu omarchy-update-restart woła po aktualizacji omarchy-restart-shell; orkiestrator kończy się
+# nowa przy każdym przebiegu, więc łatka idzie za każdym razem. Cofnięcie pasuje = plik ma już tę
+# zmianę: po świeżym wypakowaniu (OMARCHY_PORT_SWIEZE_PLIKI od orkiestratora) to znaczy, że wydanie ją
+# zawiera i łatkę można usunąć, a przy samodzielnym ponownym uruchomieniu — że port ją już nałożył.
+# Nie pasuje ani łatka, ani cofnięcie (inna wersja Omarchy) = UWAGA i bez zmian; orkiestrator
+# dodatkowo liczy to jako błąd w podsumowaniu. Działająca powłoka (Quickshell) NIE przeładowuje
+# zmienionych plików QML sama — łatka działa od restartu powłoki albo systemu (na Archu
+# omarchy-update-restart woła po aktualizacji omarchy-restart-shell; orkiestrator kończy się
 # poleceniem restartu systemu).
-for l in "$SRC"/share/latki/*.patch; do
-  [[ -e $l ]] || continue
-  n=$(basename "$l")
-  if git -C /usr/share/omarchy apply --check -R -p1 "$l" 2>/dev/null; then
-    echo "łatka: $n — już nałożona"
-  elif git -C /usr/share/omarchy apply --check -p1 "$l" 2>/dev/null; then
-    git -C /usr/share/omarchy apply -p1 "$l"
-    echo "łatka: $n (działa od restartu powłoki: omarchy-restart-shell w sesji albo restart systemu)"
-  else
-    echo "UWAGA: łatka $n nie pasuje do plików Omarchy w /usr/share/omarchy — przejrzyj ją (może jest już w wydaniu)" >&2
-  fi
-done
+latki=("$SRC"/share/latki/*.patch)
+if [[ ! -e ${latki[0]} ]]; then
+  :
+elif [[ ! -d /usr/share/omarchy/shell ]]; then
+  echo "UWAGA: brak plików Omarchy w /usr/share/omarchy — łatki pominięte, puść install-layer.sh ponownie po ich instalacji" >&2
+elif ! command -v git >/dev/null; then
+  echo "UWAGA: brak gita (łatki nakłada git apply) — łatki pominięte: xbps-install -S git" >&2
+else
+  for l in "${latki[@]}"; do
+    n=$(basename "$l")
+    if git -C /usr/share/omarchy apply --check -R -p1 "$l" 2>/dev/null; then
+      if [[ ${OMARCHY_PORT_SWIEZE_PLIKI:-} == 1 ]]; then
+        echo "UWAGA: łatka $n — wydanie Omarchy ma już tę zmianę, łatkę można usunąć" >&2
+      else
+        echo "łatka: $n — już nałożona"
+      fi
+    elif git -C /usr/share/omarchy apply --check -p1 "$l" 2>/dev/null; then
+      git -C /usr/share/omarchy apply -p1 "$l"
+      echo "łatka: $n (działa od restartu powłoki: omarchy-restart-shell w sesji albo restart systemu)"
+    else
+      echo "UWAGA: łatka $n nie pasuje do plików Omarchy w /usr/share/omarchy — przejrzyj ją przy zmianie wersji" >&2
+    fi
+  done
+fi
 echo LAYER-OK
