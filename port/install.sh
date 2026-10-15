@@ -16,19 +16,23 @@
 #   1. repozytoria: nonfree + blackhole (Hyprland), klucz blackhole przypięty (share/void/xbps-keys)
 #   2. pakiety: dane/pakiety-do-instalacji.txt (lista Omarchy zmapowana na Voida); sshd restartowany,
 #      gdy aktualizacja podmieniła openssh pod działającą usługą
-#   3. pliki Omarchy: upstreamowe package() z omarchy-pkgs przy przypiętym commicie (share/upstream.env);
+#   3. pliki Omarchy: upstreamowe package() z omarchy-pkgs przy przypiętym commicie (share/upstream.env),
+#      także pakietów bez odpowiednika w repo Voida (ufw-docker — źródła sprawdzone sumami z PKGBUILD-a);
 #      zmienione przez admina pliki z backup=() PKGBUILD-a zostają, nowa wersja obok jako .omarchy-new;
 #      pliki poprzedniej wersji, których nowa nie ma, znikają (zmienione przez admina → .omarchy-save);
 #      przeładowania działającego Hyprlanda wstrzymane na czas podmiany (jak hooki libalpm Omarchy)
 #   4. post_install omarchy-settings wybiórczo (bez os-release i nsswitch.conf)
 #   5. warstwa zgodności: install-layer.sh (z łatkami i brandingiem Voida)
 #   6. dom użytkownika z /etc/skel — tylko przy pierwszej instalacji, jako użytkownik
-#   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/void/kroki.tsv
+#   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/void/kroki.tsv; przed
+#      config/firewall.sh włączony sshd dostaje regułę z Setup > Security > SSH (ufw limit 22/tcp)
 #   8. omarchy-provision-user jako użytkownik, na tym samym drzewie kroków — tylko dopóki nie przeszło
 #   9. usługi: dbus, polkitd, chronyd (NTP); dhcpcd wyłączony, gdy sieć przejmuje NetworkManager;
 #      SDDM dostaje ostatniego użytkownika (motyw Omarchy nie ma pola użytkownika)
 # Usługi włączane w trakcie (krok enable-services i etap 9) NIE startują od razu — jak w systemd
 # wstają przy następnym starcie systemu (shim systemctl w trybie OMARCHY_PORT_INSTALL).
+# Przy --update etapy 6–9 nie idą, z jednym wyjątkiem: instalacja sprzed omarchy-port#8 (krok
+# config/firewall.sh pominięty) dostaje firewall raz — ufw rusza przy następnym starcie systemu.
 #
 # Logi: /var/log/omarchy-port/install-<czas>/ albo update-<czas>/ (całość, log per krok, kroki.tsv).
 # Kod wyjścia: 0 — wszystko przeszło (pominięcia z kroki.tsv to nie błąd); 1 — któryś krok padł
@@ -238,6 +242,60 @@ lista_pasuje() { # lista_pasuje <plik .tsv> <katalog w źródle Omarchy> <katalo
 }
 lista_pasuje "$VOID/kroki.tsv" install "$VOID/kroki"
 lista_pasuje "$VOID/migracje.tsv" migrations "$VOID/migracje"
+# Krok firewalla port obsługuje po nazwie (krok_firewall: reguła SSH przed nim, raz przy aktualizacji) —
+# po zmianie nazwy albo wypadnięciu z config/all.sh szedłby jako zwykły krok bez reguły SSH albo wcale.
+grep -qxF 'run_logged "$OMARCHY_INSTALL/config/firewall.sh"' "$CACHE/src/omarchy/install/config/all.sh" ||
+  die "install/config/all.sh w Omarchy $OMARCHY_TAG nie woła już config/firewall.sh — przejrzyj krok_firewall (omarchy-port#8)"
+
+# Pakiety z omarchy-pkgs instalowane przez package(): omarchy i omarchy-settings ze źródeł Omarchy przy
+# przypiętym commicie ($CACHE/src), reszta — bez odpowiednika w repo Voida (stan „port” w
+# dane/mapa-pakietow-void.tsv) — ze źródeł z ich PKGBUILD-a, sprawdzonych jego sumami. ufw-docker:
+# krok config/firewall.sh bez niego pada przed włączeniem ufw (omarchy-port#8).
+PAKIETY_UPSTREAM=(omarchy-settings omarchy ufw-docker)
+declare -A ZRODLA=([omarchy-settings]="$CACHE/src" [omarchy]="$CACHE/src")
+zrodla() { # zrodla <pakiet> — source= i b2sums= z PKGBUILD-a, jak makepkg; wynik w ZRODLA[<pakiet>]
+  local p=$1 pb="$CACHE/omarchy-pkgs/pkgbuilds/$1" dl="$CACHE/pobrane/$1" sd="$CACHE/zrodla/$1"
+  local i s nazwa url plik typ wartosc
+  local -a src=() sumy=()
+  [[ -f $pb/PKGBUILD ]] || die "brak PKGBUILD-a $p w omarchy-pkgs ($OMARCHY_PKGS_COMMIT) — zmiana nazwy? popraw PAKIETY_UPSTREAM"
+  # jedno wczytanie PKGBUILD-a: S<tab>źródło, B<tab>suma (pusta tablica nie daje pustego elementu)
+  while IFS=$'\t' read -r typ wartosc; do
+    case $typ in S) src+=("$wartosc") ;; B) sumy+=("$wartosc") ;; esac
+  done < <(bash -c 'CARCH=x86_64; cd "$1" && source ./PKGBUILD >/dev/null 2>&1 || exit
+    for s in "${source[@]}"; do printf "S\t%s\n" "$s"; done
+    for s in "${b2sums[@]}"; do printf "B\t%s\n" "$s"; done' bash "$pb")
+  (( ${#src[@]} > 0 && ${#src[@]} == ${#sumy[@]} )) ||
+    die "PKGBUILD $p: source= (${#src[@]}) i b2sums= (${#sumy[@]}) nie do pary — port instaluje tylko źródła z sumą b2sum"
+  rm -rf "$sd"
+  mkdir -p "$sd" "$dl"
+  for i in "${!src[@]}"; do
+    s=${src[i]}
+    if [[ $s == *::* ]]; then nazwa=${s%%::*} url=${s#*::}; else nazwa=${s##*/} url=$s; fi
+    [[ ${sumy[i]} =~ ^[0-9a-f]{128}$ ]] || die "PKGBUILD $p: $nazwa bez sumy b2sum (${sumy[i]})"
+    case $url in
+      https://*)
+        plik="$dl/$nazwa"
+        if [[ ! -f $plik || $(b2sum <"$plik" | cut -d' ' -f1) != "${sumy[i]}" ]]; then
+          curl -fsSL --retry 3 --connect-timeout 20 --max-time 300 -o "$plik.part" "$url" ||
+            die "PKGBUILD $p: pobranie $url nie powiodło się"
+          mv -f "$plik.part" "$plik"
+        fi ;;
+      *://*) die "PKGBUILD $p: źródło $url — port obsługuje tylko https:// i pliki z omarchy-pkgs" ;;
+      *) plik="$pb/$url" ;;
+    esac
+    [[ $(b2sum <"$plik" | cut -d' ' -f1) == "${sumy[i]}" ]] ||
+      die "PKGBUILD $p: $nazwa ma inną sumę b2sum niż w PKGBUILD-zie ($plik)"
+    case $nazwa in
+      *.tar|*.tar.*|*.tgz) tar -xf "$plik" -C "$sd" --no-same-owner ;;
+      *) ln -s "$plik" "$sd/$nazwa" ;;
+    esac
+  done
+  ZRODLA[$p]=$sd
+  echo "$p: źródła zgodne z sumami z PKGBUILD-a (${#src[@]})"
+}
+for p in "${PAKIETY_UPSTREAM[@]}"; do
+  [[ -n ${ZRODLA[$p]:-} ]] || zrodla "$p"
+done
 
 # Ścieżki należące do pakietów Voida — raz, z list plików w bazie xbps (xbps-query -o na plik to
 # ~0,25 s, a plików Omarchy jest ~2000).
@@ -256,26 +314,26 @@ if [[ -x $STRAZNIK ]]; then
   fi
 fi
 
-# Kolejność jak w pacmanie: najpierw budowa i sprawdzenia obu pakietów (bez zmian na dysku), potem
-# usunięcie plików poprzedniej wersji, na końcu wypakowanie. Stan poprzedniej wersji (oba pakiety
+# Kolejność jak w pacmanie: najpierw budowa i sprawdzenia wszystkich pakietów (bez zmian na dysku), potem
+# usunięcie plików poprzedniej wersji, na końcu wypakowanie. Stan poprzedniej wersji (wszystkie pakiety
 # razem — plik może przejść z jednego do drugiego) zostaje w $STATE aż do pełnego przebiegu: przerwanie
 # po wypakowaniu części nie gubi plików do usunięcia przy ponownej próbie.
 POPRZ_MANIFEST="$STATE/manifest-poprzedni.txt"
 POPRZ_SUMY="$STATE/kopie-poprzednie.sums"
 if [[ ! -f $POPRZ_MANIFEST ]]; then
-  { cat "$STATE"/manifest-omarchy-settings.txt "$STATE"/manifest-omarchy.txt 2>/dev/null || true; } |
+  for p in "${PAKIETY_UPSTREAM[@]}"; do cat "$STATE/manifest-$p.txt" 2>/dev/null || true; done |
     LC_ALL=C sort -u >"$POPRZ_MANIFEST.tmp"
-  { cat "$STATE"/kopie-omarchy-settings.sums "$STATE"/kopie-omarchy.sums 2>/dev/null || true; } >"$POPRZ_SUMY"
+  for p in "${PAKIETY_UPSTREAM[@]}"; do cat "$STATE/kopie-$p.sums" 2>/dev/null || true; done >"$POPRZ_SUMY"
   mv "$POPRZ_MANIFEST.tmp" "$POPRZ_MANIFEST"
 fi
 
-for p in omarchy-settings omarchy; do
+for p in "${PAKIETY_UPSTREAM[@]}"; do
   st="$CACHE/stage/$p"
   rm -rf "$st"
   mkdir -p "$st"
   # Osobny proces bash: `set -e` w podpowłoce wołanej w warunku (|| / if) bash po cichu ignoruje.
   bash -e -c 'CARCH=x86_64 srcdir=$1 pkgdir=$2; cd "$3"; source ./PKGBUILD; package' \
-    bash "$CACHE/src" "$st" "$CACHE/omarchy-pkgs/pkgbuilds/$p" >"$LOGDIR/package-$p.log" 2>&1 ||
+    bash "${ZRODLA[$p]}" "$st" "$CACHE/omarchy-pkgs/pkgbuilds/$p" >"$LOGDIR/package-$p.log" 2>&1 ||
     die "package() $p padło — $LOGDIR/package-$p.log"
   # Hooki libalpm są dla pacmana — pauzę przeładowań Hyprlanda port robi sam (wyżej).
   (cd "$st" && find . ! -type d ! -path './usr/share/libalpm/*' | sed 's|^\.||' | LC_ALL=C sort) >"$CACHE/manifest-$p.new"
@@ -315,10 +373,10 @@ done
 # zmieniony przez admina zostaje jako .omarchy-save (jak .pacsave); plik, który należy dziś do pakietu
 # Voida, nie jest już nasz i zostaje. Od tego miejsca dysk się zmienia — przerwanie przywraca warstwę.
 wypakowywanie=1
-cat "$CACHE"/manifest-omarchy-settings.new "$CACHE"/manifest-omarchy.new | LC_ALL=C sort -u >"$CACHE/manifest-nowy.txt"
+for p in "${PAKIETY_UPSTREAM[@]}"; do cat "$CACHE/manifest-$p.new"; done | LC_ALL=C sort -u >"$CACHE/manifest-nowy.txt"
 # katalogi nowej wersji (także puste) zostają; reszta opróżnionych — tylko we własnym drzewie, bo
 # gdzie indziej katalog mógł założyć pakiet Voida
-for p in omarchy-settings omarchy; do (cd "$CACHE/stage/$p" && find . -type d | sed 's|^\.||'); done |
+for p in "${PAKIETY_UPSTREAM[@]}"; do (cd "$CACHE/stage/$p" && find . -type d | sed 's|^\.||'); done |
   LC_ALL=C sort -u >"$CACHE/katalogi-nowe.txt"
 usuniete=0
 while IFS= read -r f; do
@@ -341,7 +399,7 @@ while IFS= read -r f; do
 done < <(LC_ALL=C comm -23 "$POPRZ_MANIFEST" "$CACHE/manifest-nowy.txt" | LC_ALL=C comm -23 - "$CACHE/pliki-xbps.txt")
 echo "pliki poprzedniej wersji usunięte: $usuniete"
 
-for p in omarchy-settings omarchy; do
+for p in "${PAKIETY_UPSTREAM[@]}"; do
   tar -C "$CACHE/stage/$p" --exclude=./usr/share/libalpm -X "$CACHE/wyklucz-$p.txt" -cf - . | tar -C / --no-overwrite-dir -xpf -
   mv "$CACHE/manifest-$p.new" "$STATE/manifest-$p.txt"
   mv "$CACHE/kopie-$p.new" "$STATE/kopie-$p.sums"
@@ -401,6 +459,118 @@ if [[ -e $STATE/branding-blad ]]; then
   wynik share/void/branding.sh root uwaga "$(cat "$STATE/branding-blad")"
   echo "  UWAGA        $(cat "$STATE/branding-blad")"
 fi
+
+uruchom_krok() { # uruchom_krok <krok> <plik> [dopisek do „ok”] — krok install/ jako root; rc kroku
+  local log="$LOGDIR/kroki/${1//\//_}.log" rc=0
+  timeout 1200 bash -eE -c 'source "$1"' bash "$2" </dev/null >"$log" 2>&1 || rc=$?
+  if (( rc == 0 )); then
+    wynik "$1" root "ok${3:-}"
+    echo "  ok           $1"
+  else
+    wynik "$1" root "BŁĄD rc=$rc" "$log"
+    echo "  BŁĄD rc=$rc   $1 — $log"
+    BLEDY=$((BLEDY + 1))
+  fi
+  return "$rc"
+}
+
+# SSH a firewall (omarchy-port#8). Omarchy z ISO nie włącza sshd, więc „deny incoming” z config/firewall.sh
+# niczego tam nie odcina. Na Voidzie sshd zwykle działa (włącza go instalator), a maszyna instalowana
+# zdalnie po restarcie straciłaby dostęp — włączony sshd dostaje regułę z Setup > Security > SSH
+# (omarchy-setup-security-sshd: `ufw limit 22/tcp comment omarchy-sshd`), na każdym porcie, na którym
+# słucha (`sshd -T`: ListenAddress, inaczej Port — OpenSSH ≥ 10.5 pisze je wielką literą; brak = 22).
+# omarchy-remove-security-sshd usuwa tylko regułę dla 22.
+# Reguła idzie PRZED krokiem, póki ufw.conf ma ENABLED=no. Nowa reguła `limit` przy ENABLED=yes
+# i niezaładowanym jeszcze firewallu (ruszy dopiero po restarcie) każe ufw przeładować łańcuchy, których
+# nie ma: „ERROR: problem running” i kod 1, choć plik reguł jest już zapisany (sprawdzone w VM). Dlatego
+# o wyniku decyduje obecność reguły w `ufw show added`, nie kod wyjścia.
+ssh_w_firewallu() { # rc 1 = sshd włączony, a którejś reguły nie ma
+  local porty port wyjscie dodane
+  local -a brak=()
+  systemctl -q is-enabled sshd.service || return 0
+  porty=$(sshd -T 2>/dev/null | awk 'tolower($1) == "listenaddress" { n = split($2, a, ":"); print a[n] }' | sort -un) || porty=
+  [[ -n $porty ]] || porty=$(sshd -T 2>/dev/null | awk 'tolower($1) == "port" { print $2 }' | sort -un) || porty=
+  [[ -n $porty ]] || porty=22
+  for port in $porty; do
+    wyjscie=$(ufw limit "$port/tcp" comment omarchy-sshd 2>&1) || true
+    dodane=$(ufw show added 2>&1) || true
+    if ! grep -qxF "ufw limit $port/tcp comment 'omarchy-sshd'" <<<"$dodane"; then
+      brak+=("$port/tcp (ufw: ${wyjscie//$'\n'/ })")
+    fi
+  done
+  porty=$(printf '%s/tcp ' $porty)
+  if (( ${#brak[@]} )); then
+    wynik "SSH w firewallu" root BŁĄD "sshd na ${porty% } — brak reguły ufw limit dla ${brak[*]}"
+    echo "  BŁĄD         SSH w firewallu — brak reguły dla ${brak[*]}"
+    BLEDY=$((BLEDY + 1))
+    return 1
+  fi
+  wynik "SSH w firewallu" root ok "sshd włączony: ufw limit ${porty% } comment omarchy-sshd"
+  echo "  ok           SSH w firewallu (sshd włączony: ufw limit ${porty% })"
+}
+
+# Upstreamowy krok firewalla raz na maszynę, z regułą SSH przed nim (znacznik $STATE/firewall), przy
+# instalacji i przy aktualizacji tak samo. ufw włączony przez kogoś innego (usługa i ENABLED=yes, bez
+# znacznika) zostaje taki, jaki jest — także przy ponownej instalacji. Bez reguły SSH krok nie idzie:
+# włączony firewall odciąłby po restarcie sshd. Firewall, który zostaje wyłączony, trafia do
+# podsumowania jako UWAGA BEZPIECZEŃSTWO. FIREWALL_TERAZ=1 — krok poszedł w tym przebiegu.
+FIREWALL_TERAZ=0
+krok_firewall() { # krok_firewall <plik kroku> [dopisek do „ok”]
+  if [[ -e $STATE/firewall ]]; then
+    wynik config/firewall.sh root pominięty "już wykonany (znacznik $STATE/firewall)"
+    echo "  pominięty    config/firewall.sh (już wykonany — znacznik)"
+    return 0
+  fi
+  if systemctl -q is-enabled ufw.service && grep -qiE '^ENABLED=yes' /etc/ufw/ufw.conf; then
+    wynik config/firewall.sh root uwaga "ufw był już włączony — port zostawia jego konfigurację (reguły Omarchy: sudo bash $1)"
+    echo "  UWAGA        ufw był już włączony — konfiguracja bez zmian"
+    touch "$STATE/firewall"
+    return 0
+  fi
+  if ! ssh_w_firewallu; then
+    wynik firewall root wyłączony "BEZPIECZEŃSTWO: firewall nie włączony — bez reguły SSH odciąłby sshd; krok pójdzie w następnym przebiegu"
+    return 0
+  fi
+  if ! uruchom_krok config/firewall.sh "$1" "${2:-}"; then
+    wynik firewall root wyłączony "BEZPIECZEŃSTWO: config/firewall.sh padł — firewall może być wyłączony; krok pójdzie w następnym przebiegu"
+    return 0
+  fi
+  touch "$STATE/firewall"
+  FIREWALL_TERAZ=1
+}
+
+# Instalacja sprzed omarchy-port#8 ma krok config/firewall.sh pominięty (firewall wyłączony), a kroki
+# install/ idą tylko przy instalacji — aktualizacja puszcza go ten jeden raz, z pominięciem albo
+# podmianą z kroki.tsv jak w etapie 7. ufw rusza dopiero przy starcie systemu, więc konta portu dostają
+# reboot-required (jak po migracjach Omarchy) — omarchy-update-restart zapyta o restart.
+firewall_przy_aktualizacji() {
+  local krok=config/firewall.sh plik akcja='' powod='' zn u
+  etap "firewall (omarchy-port#8, jednorazowo)"
+  # shim systemctl jak w etapie 7: ufw włączony bez startu, firewall ruszy przy następnym starcie systemu
+  export OMARCHY_PATH=/usr/share/omarchy OMARCHY_PORT_INSTALL=1
+  plik=$OMARCHY_PATH/install/$krok
+  IFS=$'\t' read -r _ akcja powod < <(awk -F'\t' -v k="$krok" '$1 == k' "$VOID/kroki.tsv") || true
+  case $akcja in
+    pomiń)
+      wynik "$krok" root pominięty "$powod"
+      echo "  pominięty    $krok"
+      return 0 ;;
+    podmień) plik=$VOID/kroki/$krok ;;
+  esac
+  krok_firewall "$plik" "${akcja:+ (podmieniony)}"
+  if ((FIREWALL_TERAZ)); then
+    for zn in "$STATE"/dom-*; do
+      [[ -e $zn ]] || continue
+      u=${zn##*/dom-}
+      su - "$u" -c 'omarchy-state set reboot-required' </dev/null ||
+        echo "  UWAGA        reboot-required dla $u nie ustawiony — firewall ruszy po restarcie systemu"
+    done
+    echo "  firewall ruszy po restarcie systemu — omarchy-update zapyta o restart"
+  fi
+  if [[ -s $STATE/start-at-boot ]]; then
+    echo "  wstaną przy następnym starcie: $(tr '\n' ' ' <"$STATE/start-at-boot")"
+  fi
+}
 
 # Etapy 6–9 tylko przy instalacji: przy aktualizacji zmiany w systemie i domu użytkownika niosą
 # migracje Omarchy (omarchy-migrate jako użytkownik, po tym skrypcie), jak na Archu.
@@ -467,16 +637,10 @@ for grp in config hardware login post-install; do
       echo "  pominięty    $s"
       continue
     fi
-    log="$LOGDIR/kroki/${s//\//_}.log"
-    rc=0
-    timeout 1200 bash -eE -c 'source "$1"' bash "$OV/$s" </dev/null >"$log" 2>&1 || rc=$?
-    if (( rc == 0 )); then
-      wynik "$s" root "ok${AKCJA[$s]:+ (podmieniony)}"
-      echo "  ok           $s"
+    if [[ $s == config/firewall.sh ]]; then
+      krok_firewall "$OV/$s" "${AKCJA[$s]:+ (podmieniony)}"
     else
-      wynik "$s" root "BŁĄD rc=$rc" "$log"
-      echo "  BŁĄD rc=$rc   $s — $log"
-      BLEDY=$((BLEDY + 1))
+      uruchom_krok "$s" "$OV/$s" "${AKCJA[$s]:+ (podmieniony)}" || true
     fi
   done
 done
@@ -552,6 +716,7 @@ fi
 }
 if ((AKTUALIZACJA)); then
   etap "6–9/9 pominięte przy aktualizacji (dom, kroki install/, provision-user, usługi)"
+  if [[ ! -e $STATE/firewall ]]; then firewall_przy_aktualizacji; fi
 else
   etapy_instalacji
 fi

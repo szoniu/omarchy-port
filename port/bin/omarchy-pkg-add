@@ -9,6 +9,14 @@ for pkg in "$@"; do
   port_pkg_installed "$name" || names+=("$name")
 done
 
+# pakiet portu (stan „port” w mapie) instaluje orkiestrator z omarchy-pkgs, nie xbps
+for name in "${names[@]}"; do
+  if [[ $name == port:* ]]; then
+    echo -e "\033[31mError: Package '${name#port:}' is installed by omarchy-port (port/install.sh), not xbps — run omarchy-update\033[0m" >&2
+    exit 1
+  fi
+done
+
 if (( ${#names[@]} )); then
   if (( EUID == 0 )); then
     xbps-install -Sy "${names[@]}" || exit 1

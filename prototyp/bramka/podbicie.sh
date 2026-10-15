@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # Bramka podbicia wersji Omarchy: co przejrzeć, zanim zmieni się pin w port/share/upstream.env.
-#   prototyp/bramka/podbicie.sh <nowy commit|tag Omarchy> [<stary commit>]
-# Stary commit domyślnie z upstream.env, źródło z OMARCHY_URL (klon w ~/.cache/omarchy-port-bramka).
+#   [NOWY_PKGS=<commit omarchy-pkgs>] prototyp/bramka/podbicie.sh <nowy commit|tag Omarchy> [<stary commit>]
+# Stary commit domyślnie z upstream.env, źródło z OMARCHY_URL (klon w ~/.cache/omarchy-port-bramka);
+# omarchy-pkgs: stary OMARCHY_PKGS_COMMIT, nowy z NOWY_PKGS (domyślnie gałąź domyślna, origin/HEAD).
 # Wypisuje (TSV na stdout, podsumowanie na stderr):
 #   migracja  <plik>  <A|D|M + zależności>  <stan w migracje.tsv>    — migracje dodane/usunięte/zmienione
 #   krok      <krok>  <A|D|M + zależności>  <stan w kroki.tsv>       — kroki install/ dodane/usunięte/zmienione
 #   nakładka  <plik>  <D|M + skala zmiany>                           — upstream zmienił skrypt, który port
 #                                                                       zastępuje własnym (port/bin): przejrzeć
 #   pakiet    <nazwa> <+|->                 <stan w mapie Voida>     — zmiany install/omarchy-base.packages
+#   pakiet-portu <nazwa> <bez zmian|zmieniony …>                    — PKGBUILD-y omarchy-pkgs pakietów w stanie
+#                                                                       „port” (install.sh buduje je sam)
 #   łatka     <plik>  <pasuje|już w wydaniu|nie pasuje>            — share/latki i share/void/latki (branding)
 #   branding  <założenie> <ok|nie spełnione>                       — pliki i kolory Omarchy, na których stoi
 #                                                                       share/void/branding.sh
@@ -54,7 +57,7 @@ stan_listy() { # stan_listy <plik tsv> <nazwa>
   awk -F'\t' -v n="$2" '$1 == n { print $2; f = 1 } END { if (!f) print "—" }' "$1"
 }
 
-n_mig=0 n_mig_flag=0 n_mig_lista=0 n_krok=0 n_nakl=0 n_pak=0 n_latka_zle=0 n_brand=0
+n_mig=0 n_mig_flag=0 n_mig_lista=0 n_krok=0 n_nakl=0 n_pak=0 n_pport=0 n_latka_zle=0 n_brand=0
 
 while IFS=$'\t' read -r st plik; do
   m=${plik#migrations/}
@@ -100,6 +103,28 @@ while IFS= read -r linia; do
   n_pak=$((n_pak + 1))
 done < <(diff <(pakiety "$STARY") <(pakiety "$NOWY_SHA") | sed -n 's/^< /-/p; s/^> /+/p')
 
+# Pakiety w stanie „port” (dane/mapa-pakietow-void.tsv, np. ufw-docker) port buduje sam z PKGBUILD-ów
+# omarchy-pkgs (install.sh, etap 3: source= + b2sums=, package()). Zmiana przy podbiciu OMARCHY_PKGS_COMMIT
+# (źródło git+, nowa zależność, post_install) wyszłaby dopiero przy instalacji.
+PKGS=${XDG_CACHE_HOME:-$HOME/.cache}/omarchy-port-bramka/omarchy-pkgs
+[[ -d $PKGS/.git ]] || git clone -q "$OMARCHY_PKGS_URL" "$PKGS"
+git -C "$PKGS" fetch -q "$OMARCHY_PKGS_URL" '+refs/heads/*:refs/remotes/origin/*'
+git -C "$PKGS" rev-parse -q --verify "$OMARCHY_PKGS_COMMIT^{commit}" >/dev/null || git -C "$PKGS" fetch -q "$OMARCHY_PKGS_URL" "$OMARCHY_PKGS_COMMIT"
+NOWY_PKGS_SHA=$(git -C "$PKGS" rev-parse "${NOWY_PKGS:-origin/HEAD}^{commit}")
+wersja_pkg() { git -C "$PKGS" show "$1:pkgbuilds/$2/PKGBUILD" 2>/dev/null | sed -n 's/^pkgver=//p; s/^pkgrel=//p' | paste -sd- -; }
+while IFS=$'\t' read -r p stan _; do
+  [[ $stan == port ]] || continue
+  if ! git -C "$PKGS" cat-file -e "$NOWY_PKGS_SHA:pkgbuilds/$p/PKGBUILD" 2>/dev/null; then
+    w="brak PKGBUILD-a — przejrzeć PAKIETY_UPSTREAM w install.sh"; n_pport=$((n_pport + 1))
+  elif git -C "$PKGS" diff --quiet "$OMARCHY_PKGS_COMMIT" "$NOWY_PKGS_SHA" -- "pkgbuilds/$p"; then
+    w="bez zmian"
+  else
+    w="zmieniony $(wersja_pkg "$OMARCHY_PKGS_COMMIT" "$p") → $(wersja_pkg "$NOWY_PKGS_SHA" "$p") — przejrzeć source=/b2sums=/depends/package()"
+    n_pport=$((n_pport + 1))
+  fi
+  printf 'pakiet-portu\t%s\t%s\n' "$p" "$w"
+done < <(tail -n +2 "$PORT/dane/mapa-pakietow-void.tsv")
+
 d=$(mktemp -d)
 trap 'rm -rf "$d"' EXIT
 git -C "$SRC" archive "$NOWY_SHA" | tar -x -C "$d"   # całe drzewo — łatka może dotyczyć dowolnej ścieżki
@@ -132,6 +157,7 @@ zalozenie "omarchy-transcode-ascii --mode block" grep -qF 'mode != "block"' "$d/
   echo "  nakładki portu do przeniesienia zmian upstreamu: $n_nakl"
   echo "  kroki install/ zmienione: $n_krok — kroki z kroki.tsv: podmiany przejrzeć ze zmianą upstreamu"
   echo "  zmiany listy pakietów: $n_pak — brak w mapie Voida = dopisać do dane/mapa-pakietow-void.tsv"
+  echo "  pakiety portu z omarchy-pkgs zmienione ($OMARCHY_PKGS_COMMIT → $NOWY_PKGS_SHA): $n_pport"
   echo "  łatki do przejrzenia: $n_latka_zle"
   echo "  założenia brandingu Voida niespełnione: $n_brand"
   echo "Dalej: migracje.tsv / kroki.tsv / mapa, upstream.env, test w VM (orkiestrator --update + omarchy-update)."

@@ -3,7 +3,6 @@
 # podmień → share/void/kroki/<krok>; pomiń → krok zastąpiony zaślepką, która tylko wypisuje powód
 # (zaślepka jest potrzebna, bo omarchy-provision-user woła kroki user/ sam, z tego samego drzewa).
 config/snapper.sh	pomiń	snapper i limine-snapper-sync — Omarchy zakłada btrfs ze snapshotami i limine, port na Voidzie nie
-config/firewall.sh	pomiń	omarchy-port#8 BEZPIECZEŃSTWO: krok pada na braku ufw-docker przed włączeniem ufw — FIREWALL WYŁĄCZONY
 hardware/pacman.sh	pomiń	repo pacmana dla Maców z T2 (/etc/pacman.conf) — nie dotyczy Voida
 post-install/pacman.sh	pomiń	pacman.conf i mirrorlist Archa; cups-files.conf z UID-ami Archa (User/Group 209)
 user/mise.sh	podmień	mise z repo Voida nie zna upgrade.auto_prune — ustawienie pomijane, reszta kroku bez zmian
