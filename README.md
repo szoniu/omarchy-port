@@ -6,12 +6,26 @@ Status: **prototyp** (Void działa w VM — wyniki w [`wyniki/`](wyniki/)). Port
 
 Kontekst i decyzje: epik [szoniu/dotfiles#169](https://git.szoniu.pl/szoniu/dotfiles/issues/169). Instalatory, które będą wołać port: [szoniu/void](https://github.com/szoniu/void), [szoniu/gentoo](https://github.com/szoniu/gentoo).
 
-## Jak to działa (stan prototypu)
+## Instalacja (Void)
+
+Jako root, na działającym Voidzie (glibc, x86_64) z siecią i istniejącym użytkownikiem — taki stan zostawia instalator [szoniu/void](https://github.com/szoniu/void):
+
+```sh
+xbps-install -Sy git
+git clone https://github.com/szoniu/omarchy-port
+omarchy-port/port/install.sh --user NAZWA --name "Imię Nazwisko" --email adres@example.com
+```
+
+`git` nie wchodzi w `base-system` Voida, a instalator szoniu/void stawia go tylko przy części opcji. `--name` i `--email` trafiają do gita i XCompose; bez `--name` port bierze imię z pola GECOS konta. Usługi włączane w trakcie instalacji startują dopiero po restarcie, jak w systemd.
+
+Orkiestrator jest idempotentny, a logi zapisuje w `/var/log/omarchy-port/`. Kod 1 znaczy, że któryś krok padł: reszta jest doinstalowana, a lista błędów jest w podsumowaniu. Kroki `install/` Omarchy, które na Voidzie są pomijane albo podmieniane, opisuje [`port/share/void/kroki.tsv`](port/share/void/kroki.tsv).
+
+## Jak to działa
 
 1. **Pakiety:** lista Omarchy (`install/omarchy-base.packages`) zmapowana na nazwy Voida → [`dane/mapa-pakietow-void.tsv`](dane/mapa-pakietow-void.tsv). Ma trzy stany: jest / zamiennik / brak.
-2. **Pliki Omarchy:** upstreamowe funkcje `package()` z PKGBUILD-ów `omarchy` i `omarchy-settings` ([omacom/omarchy-pkgs](https://github.com/omacom/omarchy-pkgs)) wywołane bez makepkg. Wynik trafia do `/usr/share/omarchy`, `/usr/bin/omarchy-*`, `/etc/skel` i `/etc`. Nie ma ręcznej mapy plików.
+2. **Pliki Omarchy:** przy commicie przypiętym w [`port/share/upstream.env`](port/share/upstream.env) — upstreamowe funkcje `package()` z PKGBUILD-ów `omarchy` i `omarchy-settings` ([omacom/omarchy-pkgs](https://github.com/omacom/omarchy-pkgs)) wywołane bez makepkg. Wynik trafia do `/usr/share/omarchy`, `/usr/bin/omarchy-*`, `/etc/skel` i `/etc`. Nie ma ręcznej mapy plików.
 3. **`post_install` wybiórczo:** NIE nadpisujemy `os-release` (`ID_LIKE=arch` zmyliłby narzędzia rozpoznające dystrybucję) ani `nsswitch.conf`.
-4. **Kroki `install/` Omarchy pojedynczo:** te zależne od pacmana, systemd czy limine pomijamy albo podmieniamy.
+4. **Kroki `install/` Omarchy pojedynczo:** te zależne od pacmana, systemd czy limine pomijamy albo podmieniamy (lista jako dane: `port/share/void/kroki.tsv`). Część użytkownika robi upstreamowe `omarchy-provision-user` na tym samym drzewie kroków.
 5. **Sesja bez uwsm:** `dbus-run-session` → PipeWire → `start-hyprland`; SDDM z motywem Omarchy.
 6. **Warstwa zgodności** (`port/`, instalacja: `port/install-layer.sh`):
    - shimy w `/usr/local/bin` — powstają **tylko tam, gdzie oryginału nie ma**, więc na Gentoo z systemd nie zakłada się żaden;
@@ -24,10 +38,10 @@ Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2
 
 | Katalog | Zawartość |
 |---|---|
-| `port/` | **warstwa zgodności** (Void/runit): shimy `systemctl`, `systemd-run`, `systemd-inhibit`, `timedatectl`, `uwsm`, `uwsm-app`, `systemd-cat`, `xdg-terminal-exec` (tylko gdy oryginału brak); nakładki `omarchy-pkg-*` (xbps); nadzorca unitów użytkownika `omarchy-port-units`; sesja; `install-layer.sh` |
+| `port/` | **orkiestrator** `install.sh` i **warstwa zgodności** (Void/runit): shimy `systemctl`, `systemd-run`, `systemd-inhibit`, `timedatectl`, `uwsm`, `uwsm-app`, `systemd-cat`, `xdg-terminal-exec` (tylko gdy oryginału brak); nakładki `omarchy-pkg-*` (xbps); nadzorca unitów użytkownika `omarchy-port-units`; sesja; `install-layer.sh` |
 | `prototyp/vm/` | VM testowa: QEMU z Fedory w kontenerze podmana (virgl), VNC, QMP (klawisze, mysz), zrzuty przez VNC |
-| `prototyp/void/` | baza Voida w VM, rundy portu (package(), kroki `install/`, shimy, sesja) |
-| `prototyp/test/` | zrzut skrótów z plików Lua Omarchy, test skrótów w żywej sesji, test PAM |
+| `prototyp/void/` | baza Voida w VM (`install-base.sh`) — odpowiednik instalatora szoniu/void do testów |
+| `prototyp/test/` | zrzut skrótów z plików Lua Omarchy, test skrótów i menu w żywej sesji, test PAM, odcisk stanu systemu (`stan-systemu.sh`) |
 | `dane/` | mapa pakietów, lista do instalacji |
 | `wyniki/` | wyniki rund prototypu |
 
@@ -56,7 +70,9 @@ Instalacja od zera:
 2. kernel i initrd z ISO → `$VM_DIR/iso-boot/`;
 3. `vm.sh live`;
 4. `install-base.sh` przez SSH, z `PASS_HASH`;
-5. kolejne rundy z `prototyp/void/`.
+5. `git archive HEAD port dane` do VM i `port/install.sh --user szoniu`.
+
+Osobny dysk obok istniejącej VM: `VM_DISK=fresh.qcow2 VM_VARS=OVMF_VARS.fresh.fd prototyp/vm/vm.sh live|disk`.
 
 ## Upstream i licencje
 

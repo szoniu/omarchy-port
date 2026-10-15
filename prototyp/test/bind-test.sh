@@ -10,8 +10,10 @@ case $OUT in /tmp/?*) ;; *) echo "BIND_TEST_OUT musi być pod /tmp (jest: $OUT)"
 rm -rf "$OUT"; mkdir -p "$OUT"
 # env z dziecka sesji (Quickshell): sam Hyprland nie ma WAYLAND_DISPLAY ani HYPRLAND_INSTANCE_SIGNATURE
 hpid=$(pgrep -u "$(id -u)" -x quickshell | head -1)
+[ -n "$hpid" ] || { echo "BRAK SESJI (quickshell) — test wymaga żywej sesji" >&2; exit 2; }
 while IFS= read -r -d '' kv; do export "${kv?}"; done < "/proc/$hpid/environ"
-export PATH="/usr/local/bin:$PATH"
+# PATH zostaje TAKI JAK W SESJI (Omarchy stawia /usr/share/omarchy/bin przed /usr/local/bin) — dopisanie
+# /usr/local/bin na początek ukryło w rundzie 3, że w sesji omarchy-pkg-* trafiały w wersje z pacmanem
 
 SKIP='Close all windows|Lock system|^$|laptop display|Screenrecording|^Agent$|Eject media'
 clients() { hyprctl clients -j | jq -r '.[].address' | sort; }

@@ -17,7 +17,7 @@ NetworkManager-wait-online	-	runit nie ma celu network-online — nie ma na co c
 systemd-networkd-wait-online	-	j.w.
 systemd-networkd	-	sieć robi NetworkManager
 systemd-resolved	-	resolv.conf zarządza NetworkManager
-systemd-timesyncd	-	NTP: osobna decyzja portu (chrony/openntpd)
+systemd-timesyncd	chronyd	NTP: chrony — ten sam demon, który dotwiz stawia na Voidzie (dwa demony NTP walczą o zegar)
 systemd-oomd	-	brak odpowiednika
 linux-modules-cleanup	-	Arch: sprzątanie modułów starego kernela po aktualizacji
 snapper-timeline	-	snapper poza zakresem (Omarchy: btrfs + limine)

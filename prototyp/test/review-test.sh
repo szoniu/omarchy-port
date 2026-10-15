@@ -1,10 +1,12 @@
 #!/bin/bash
 # Testy poprawek z review PR #1 — uruchamiać W VM jako użytkownik sesji (w VM sudo bez hasła).
 # Każdy blok = jedno ustalenie review; FAIL = regresja.
-export XDG_RUNTIME_DIR=/run/user/1000 PATH=/usr/local/bin:$PATH
+export XDG_RUNTIME_DIR=/run/user/1000
 qpid=$(pgrep -u 1000 -x quickshell | head -1)
-[ -n "$qpid" ] && while IFS= read -r -d '' kv; do export "${kv?}"; done < /proc/$qpid/environ
-export PATH=/usr/local/bin:$PATH
+# bez żywej sesji test szedłby środowiskiem SSH — to nie ten kanał, więc stop zamiast cichego pominięcia
+[ -n "$qpid" ] || { echo "BRAK SESJI (quickshell użytkownika 1000) — test wymaga żywej sesji" >&2; exit 2; }
+while IFS= read -r -d '' kv; do export "${kv?}"; done < /proc/$qpid/environ
+# PATH z sesji bez zmian (zob. bind-test.sh) — test ma iść tym samym kanałem co menu i skróty
 ok() { printf '  %-4s %s\n' "$1" "$2"; }
 t() { if eval "$2"; then ok OK "$1"; else ok FAIL "$1"; fi; }
 mkdir -p ~/.config/systemd/user

@@ -1,0 +1,99 @@
+about	About	exec	omarchy-launch-about
+system.screensaver	Screensaver	exec	omarchy-launch-screensaver force
+learn.keybindings	Keybindings	exec	omarchy-menu-keybindings
+learn.omarchy	Omarchy	exec	omarchy-launch-webapp 'https://omarchy.org/manual/'
+learn.hyprland	Hyprland	exec	omarchy-launch-webapp 'https://wiki.hypr.land/'
+learn.arch	Arch	exec	omarchy-launch-webapp 'https://wiki.archlinux.org/title/Main_page'
+learn.neovim	Neovim	exec	omarchy-launch-webapp 'https://www.lazyvim.org/keymaps'
+learn.bash	Bash	exec	omarchy-launch-webapp 'https://devhints.io/bash'
+learn.tmux-keybindings	Tmux	exec	omarchy-menu-tmux-keybindings
+learn.herdr-keybindings	Herdr	exec	omarchy-menu-herdr-keybindings
+learn.community	Community	exec	omarchy-launch-discord-community
+trigger.emoji	Emoji	exec	omarchy-menu-emoji
+trigger.capture.screenshot	Screenshot	exec	omarchy-capture-screenshot
+trigger.capture.screenrecord.stop	Stop Screenrecording	exec	omarchy-capture-screenrecording --stop-recording
+trigger.capture.text	Text	exec	omarchy-capture-text
+trigger.capture.qr	QR Code	exec	omarchy-capture-qr
+trigger.capture.color	Color	exec	pkill hyprpicker || hyprpicker -a
+trigger.capture.screenrecord.no-audio	With no audio	exec	omarchy-capture-screenrecording
+trigger.capture.screenrecord.desktop-audio	With desktop audio	exec	omarchy-capture-screenrecording --with-desktop-audio
+trigger.capture.screenrecord.microphone	With desktop + microphone audio	exec	omarchy-capture-screenrecording --with-desktop-audio --with-microphone-audio
+trigger.capture.screenrecord.webcam	With desktop + microphone audio + webcam	exec	omarchy-capture-screenrecording-with-webcam
+trigger.transcode	Transcode	exec	omarchy-transcode
+trigger.hardware.laptop-display	Laptop Display	exec	omarchy-hyprland-monitor-internal toggle
+trigger.hardware.mirror-display	Mirror Display	exec	omarchy-hyprland-monitor-internal-mirror toggle
+trigger.hardware.touchpad-haptics.low	low	exec	dell-xps-touchpad-haptics set low
+trigger.hardware.touchpad-haptics.mid	mid	exec	dell-xps-touchpad-haptics set mid
+trigger.hardware.touchpad-haptics.high	high	exec	dell-xps-touchpad-haptics set high
+trigger.reminder.set	Set one	exec	omarchy-reminder -i
+trigger.reminder.show	Show all	exec	omarchy-reminder show
+trigger.reminder.clear	Clear all	exec	omarchy-reminder clear
+trigger.share.clipboard	Clipboard	exec	omarchy-menu-share clipboard
+trigger.share.file	File	exec	omarchy-menu-share file
+trigger.share.folder	Folder	exec	omarchy-menu-share folder
+trigger.share.receive	Receive	exec	uwsm-app -- localsend
+trigger.toggle.battery-percentage	Battery Percentage	exec	omarchy-shell omarchy.power togglePercentage
+trigger.toggle.workspace-layout	Workspace Layout	exec	omarchy-hyprland-workspace-layout-toggle
+trigger.toggle.window-gaps	Window Gaps	exec	omarchy-hyprland-window-gaps-toggle
+trigger.toggle.one-window-ratio	1-Window Ratio	exec	omarchy-hyprland-window-single-square-aspect-toggle
+trigger.tests.network-speedtest	Network Speed Test	exec	omarchy-shell shell summon omarchy.speedtest
+trigger.tests.disk-speedtest	Disk Speed Test	exec	omarchy-shell shell summon omarchy.disk-speedtest
+style.bar.transparency	Transparency	exec	omarchy-bar transparent toggle
+style.hyprland	Hyprland	exec	omarchy-launch-config-editor "$HOME/.config/hypr/looknfeel.lua"
+style.bar.position.top	Top	exec	omarchy-bar position top
+style.bar.position.bottom	Bottom	exec	omarchy-bar position bottom
+style.bar.position.left	Left	exec	omarchy-bar position left
+style.bar.position.right	Right	exec	omarchy-bar position right
+style.about.text	Edit Text	exec	omarchy-branding-about text
+style.about.image	Set From Image	exec	omarchy-branding-about image
+style.screensaver.text	Edit Text	exec	omarchy-branding-screensaver text
+style.screensaver.image	Set From Image	exec	omarchy-branding-screensaver image
+setup.monitors	Monitors	exec	omarchy-launch-config-editor "$HOME/.config/hypr/monitors.lua"
+setup.keybindings	Keybindings	exec	omarchy-launch-config-editor "$HOME/.config/hypr/bindings.lua"
+setup.input	Input	exec	omarchy-launch-config-editor "$HOME/.config/hypr/input.lua"
+setup.network.dns.dhcp	DHCP	exec	omarchy-dns DHCP
+setup.network.dns.cloudflare	Cloudflare	exec	omarchy-dns Cloudflare
+setup.network.dns.google	Google	exec	omarchy-dns Google
+setup.network.dns.custom	Custom	exec	omarchy-launch-floating-terminal-with-presentation 'omarchy-dns Custom'
+setup.network.qr	QR Code	exec	omarchy-shell shell summon omarchy.wifiqr
+setup.default.agent.claude	Claude	exec	omarchy-default-agent claude
+setup.default.agent.codex	Codex	exec	omarchy-default-agent codex
+setup.default.agent.copilot	Copilot	exec	omarchy-default-agent copilot
+setup.default.agent.crush	Crush	exec	omarchy-default-agent crush
+setup.default.agent.cursor-agent	Cursor CLI	exec	omarchy-default-agent cursor-agent
+setup.default.agent.gemini	Gemini	exec	omarchy-default-agent gemini
+setup.default.agent.grok	Grok	exec	omarchy-default-agent grok
+setup.default.agent.hermes	Hermes	exec	omarchy-default-agent hermes
+setup.default.agent.muse	Muse Code	exec	omarchy-default-agent muse
+setup.default.agent.omp	omp	exec	omarchy-default-agent omp
+setup.default.agent.openclaw	OpenClaw	exec	omarchy-default-agent openclaw
+setup.default.agent.opencode	OpenCode	exec	omarchy-default-agent opencode
+setup.default.agent.pi	Pi	exec	omarchy-default-agent pi
+setup.default.browser.chromium	Chromium	exec	omarchy-default-browser chromium
+setup.default.browser.chrome	Chrome	exec	omarchy-default-browser chrome
+setup.default.browser.brave	Brave	exec	omarchy-default-browser brave
+setup.default.browser.brave-origin	Brave Origin	exec	omarchy-default-browser brave-origin
+setup.default.browser.edge	Edge	exec	omarchy-default-browser edge
+setup.default.browser.firefox	Firefox	exec	omarchy-default-browser firefox
+setup.default.browser.zen	Zen	exec	omarchy-default-browser zen
+setup.default.terminal.alacritty	Alacritty	exec	omarchy-default-terminal alacritty
+setup.default.terminal.foot	Foot	exec	omarchy-default-terminal foot
+setup.default.terminal.ghostty	Ghostty	exec	omarchy-default-terminal ghostty
+setup.default.terminal.kitty	Kitty	exec	omarchy-default-terminal kitty
+setup.default.editor.neovim	Neovim	exec	omarchy-default-editor nvim
+setup.default.editor.vscode	VSCode	exec	omarchy-default-editor code
+setup.default.editor.cursor	Cursor	exec	omarchy-default-editor cursor
+setup.default.editor.zed	Zed	exec	omarchy-default-editor zed
+setup.default.editor.sublime	Sublime Text	exec	omarchy-default-editor sublime_text
+setup.default.editor.helix	Helix	exec	omarchy-default-editor helix
+setup.default.editor.vim	Vim	exec	omarchy-default-editor vim
+setup.default.editor.emacs	Emacs	exec	omarchy-default-editor emacs
+setup.plugin.enable	Enable Plugin	exec	omarchy-menu-plugin enable
+setup.plugin.disable	Disable Plugin	exec	omarchy-menu-plugin disable
+setup.plugin.add	Add Plugin	exec	omarchy-launch-floating-terminal-with-presentation 'omarchy-plugin-add'
+setup.plugin.clone	Clone Plugin	exec	omarchy-menu-plugin clone
+setup.security.sshd	SSHD	exec	omarchy-launch-floating-terminal-with-presentation omarchy-setup-security-sshd
+setup.config.hyprland	Hyprland	exec	omarchy-launch-config-editor "$HOME/.config/hypr/hyprland.lua"
+setup.direct-boot	Direct Boot	exec	omarchy-launch-floating-terminal-with-presentation omarchy-setup-direct-boot
+update.timezone	Timezone	exec	omarchy-menu-timezone
+update.password.drive	Drive Encryption	exec	omarchy-launch-floating-terminal-with-presentation omarchy-drive-password

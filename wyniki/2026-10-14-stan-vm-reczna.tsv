@@ -1,0 +1,326 @@
+core-services	00-pseudofs.sh	d939cc3ef737fc1e
+core-services	01-static-devnodes.sh	88c44fa8b8bbbaf3
+core-services	02-kmods.sh	3163ba76946b42f3
+core-services	02-udev.sh	b0d40d4960b7d66c
+core-services	03-console-setup.sh	2b4e021c72afc36b
+core-services	03-filesystems.sh	9ed0c1253a4f5352
+core-services	04-swap.sh	393eff4cf739cac7
+core-services	05-misc.sh	5393dd1d52fda0fc
+core-services	08-sysctl.sh	c6011310fca5a650
+core-services	10-runit-control.sh	133ea916127aef9f
+core-services	90-omarchy-port-tmpfiles.sh	3f84102edcf72885
+core-services	97-dmesg.sh	0810ec2cf8aa345a
+core-services	98-sbin-merge.sh	e50124e197f18477
+core-services	99-cleanup.sh	a47f5b2145983385
+home	aplikacje ~/.local/share/applications	16
+home	pliki ~/.config	540
+home-config	BraveSoftware	
+home-config	alacritty	
+home-config	autostart	
+home-config	btop	
+home-config	chromium	
+home-config	chromium-flags.conf	
+home-config	dconf	
+home-config	fcitx	
+home-config	fcitx5	
+home-config	foot	
+home-config	ghostty	
+home-config	git	
+home-config	google-chrome	
+home-config	google-chrome-beta	
+home-config	google-chrome-unstable	
+home-config	gtk-3.0	
+home-config	herdr	
+home-config	hypr	
+home-config	hyprland-preview-share-picker	
+home-config	ibus	
+home-config	imv	
+home-config	kitty	
+home-config	lazygit	
+home-config	microsoft-edge	
+home-config	microsoft-edge-dev	
+home-config	mimeapps.list	
+home-config	mise	
+home-config	nautilus	
+home-config	obsidian	
+home-config	omarchy	
+home-config	omarchy-port	
+home-config	opencode	
+home-config	pulse	
+home-config	starship.toml	
+home-config	systemd	
+home-config	tmux	
+home-config	user-dirs.dirs	
+home-config	wireplumber	
+home-config	xdg-terminals.list	
+home-config	xournalpp	
+klucz-xbps	3d:b9:c0:50:41:a7:68:4c:2e:2c:a9:a2:5a:04:b7:3f.plist	
+klucz-xbps	60:ae:0c:d6:f0:95:17:80:bc:93:46:7a:89:af:a3:2d.plist	
+klucz-xbps	87:5b:3a:ce:d7:92:67:ef:db:76:1b:19:14:41:c0:79.plist	
+libexec-port	session	2282b70d222a6184
+mimeapps	przeglądarka	chromium.desktop
+mise	config	682b3f8b8cb181cd
+mise-narzędzie	claude	
+mise-narzędzie	codex	
+mise-narzędzie	copilot	
+mise-narzędzie	crush	
+mise-narzędzie	github-can1357-oh-my-pi	
+mise-narzędzie	http-muse	
+mise-narzędzie	node	
+mise-narzędzie	npm-xai-official-grok	
+mise-narzędzie	pi	
+mise-narzędzie	pipx-hermes-agent	
+mise-narzędzie	uv	
+omarchy	pliki /etc/skel	173
+omarchy	pliki /usr/share/omarchy	870
+omarchy	polecenia /usr/bin/omarchy-*	443
+omarchy	wersja	4.0.0.alpha
+omarchy-bin	omarchy-pkg-add	-> /usr/bin/omarchy-pkg-add
+omarchy-bin	omarchy-pkg-aur-accessible	-> /usr/bin/omarchy-pkg-aur-accessible
+omarchy-bin	omarchy-pkg-aur-add	-> /usr/bin/omarchy-pkg-aur-add
+omarchy-bin	omarchy-pkg-aur-install	-> /usr/bin/omarchy-pkg-aur-install
+omarchy-bin	omarchy-pkg-drop	-> /usr/bin/omarchy-pkg-drop
+omarchy-bin	omarchy-pkg-install	-> /usr/bin/omarchy-pkg-install
+omarchy-bin	omarchy-pkg-missing	-> /usr/bin/omarchy-pkg-missing
+omarchy-bin	omarchy-pkg-present	-> /usr/bin/omarchy-pkg-present
+omarchy-bin	omarchy-pkg-remove	-> /usr/bin/omarchy-pkg-remove
+pakiet-ręczny	ImageMagick	
+pakiet-ręczny	NetworkManager	
+pakiet-ręczny	alsa-utils	
+pakiet-ręczny	avahi	
+pakiet-ręczny	base-system	
+pakiet-ręczny	bash-completion	
+pakiet-ręczny	bat	
+pakiet-ręczny	bluez	
+pakiet-ręczny	bolt	
+pakiet-ręczny	brightnessctl	
+pakiet-ręczny	btop	
+pakiet-ręczny	chromium	
+pakiet-ręczny	clang	
+pakiet-ręczny	cups	
+pakiet-ręczny	cups-filters	
+pakiet-ręczny	cups-pk-helper	
+pakiet-ręczny	curl	
+pakiet-ręczny	dbus	
+pakiet-ręczny	ddcutil	
+pakiet-ręczny	dhcpcd	
+pakiet-ręczny	docker	
+pakiet-ręczny	docker-buildx	
+pakiet-ręczny	docker-compose	
+pakiet-ręczny	dua-cli	
+pakiet-ręczny	elogind	
+pakiet-ręczny	evince	
+pakiet-ręczny	exfatprogs	
+pakiet-ręczny	eza	
+pakiet-ręczny	fakeroot	
+pakiet-ręczny	fastfetch	
+pakiet-ręczny	fcitx5	
+pakiet-ręczny	fcitx5-gtk	
+pakiet-ręczny	fcitx5-qt	
+pakiet-ręczny	fd	
+pakiet-ręczny	ffmpegthumbnailer	
+pakiet-ręczny	firefox	
+pakiet-ręczny	font-awesome6	
+pakiet-ręczny	fontconfig	
+pakiet-ręczny	foot	
+pakiet-ręczny	fzf	
+pakiet-ręczny	git	
+pakiet-ręczny	gnome-disk-utility	
+pakiet-ręczny	gnome-keyring	
+pakiet-ręczny	gnome-themes-extra	
+pakiet-ręczny	gpu-screen-recorder	
+pakiet-ręczny	grim	
+pakiet-ręczny	grub-x86_64-efi	
+pakiet-ręczny	gtk4-layer-shell	
+pakiet-ręczny	gum	
+pakiet-ręczny	gvfs-mtp	
+pakiet-ręczny	gvfs-smb	
+pakiet-ręczny	hyprland	
+pakiet-ręczny	hyprland-guiutils	
+pakiet-ręczny	hyprpicker	
+pakiet-ręczny	hyprsunset	
+pakiet-ręczny	imv	
+pakiet-ręczny	inetutils	
+pakiet-ręczny	inotify-tools	
+pakiet-ręczny	inxi	
+pakiet-ręczny	jq	
+pakiet-ręczny	kdenlive	
+pakiet-ręczny	lazydocker	
+pakiet-ręczny	lazygit	
+pakiet-ręczny	libatomic	
+pakiet-ręczny	libmariadbclient	
+pakiet-ręczny	libreoffice	
+pakiet-ręczny	libsecret	
+pakiet-ręczny	libspa-bluetooth	
+pakiet-ręczny	libvips	
+pakiet-ręczny	libxkbcommon-tools	
+pakiet-ręczny	libyaml	
+pakiet-ręczny	llvm	
+pakiet-ręczny	lua51	
+pakiet-ręczny	luarocks	
+pakiet-ręczny	man-db	
+pakiet-ręczny	mesa-dri	
+pakiet-ręczny	mise	
+pakiet-ręczny	mpv	
+pakiet-ręczny	mpv-mpris	
+pakiet-ręczny	nautilus	
+pakiet-ręczny	nautilus-python	
+pakiet-ręczny	neovim	
+pakiet-ręczny	nerd-fonts-ttf	
+pakiet-ręczny	noto-fonts-cjk	
+pakiet-ręczny	noto-fonts-emoji	
+pakiet-ręczny	noto-fonts-ttf	
+pakiet-ręczny	nss-mdns	
+pakiet-ręczny	obs	
+pakiet-ręczny	openssh	
+pakiet-ręczny	pamixer	
+pakiet-ręczny	pipewire	
+pakiet-ręczny	plocate	
+pakiet-ręczny	plymouth	
+pakiet-ręczny	polkit	
+pakiet-ręczny	postgresql-libs	
+pakiet-ręczny	power-profiles-daemon	
+pakiet-ręczny	python3-gobject	
+pakiet-ręczny	python3-poetry-core	
+pakiet-ręczny	qemu-user-static	
+pakiet-ręczny	qrencode	
+pakiet-ręczny	qt6-declarative	
+pakiet-ręczny	qt6-imageformats	
+pakiet-ręczny	qt6-multimedia	
+pakiet-ręczny	qt6-svg	
+pakiet-ręczny	qt6-wayland	
+pakiet-ręczny	quickshell	
+pakiet-ręczny	ripgrep	
+pakiet-ręczny	ruby	
+pakiet-ręczny	sddm	
+pakiet-ręczny	slurp	
+pakiet-ręczny	socat	
+pakiet-ręczny	starship	
+pakiet-ręczny	sudo	
+pakiet-ręczny	sushi	
+pakiet-ręczny	system-config-printer	
+pakiet-ręczny	tesseract	
+pakiet-ręczny	tesseract-ocr-eng	
+pakiet-ręczny	tldr	
+pakiet-ręczny	tmux	
+pakiet-ręczny	tree-sitter-cli	
+pakiet-ręczny	tzupdate	
+pakiet-ręczny	udiskie	
+pakiet-ręczny	ufw	
+pakiet-ręczny	unzip	
+pakiet-ręczny	usage	
+pakiet-ręczny	void-repo-nonfree	
+pakiet-ręczny	wget	
+pakiet-ręczny	whois	
+pakiet-ręczny	wireless-regdb	
+pakiet-ręczny	wireplumber	
+pakiet-ręczny	wl-clipboard	
+pakiet-ręczny	wtype	
+pakiet-ręczny	xdg-desktop-portal	
+pakiet-ręczny	xdg-desktop-portal-gtk	
+pakiet-ręczny	xdg-desktop-portal-hyprland	
+pakiet-ręczny	xdg-user-dirs	
+pakiet-ręczny	xdg-utils	
+pakiet-ręczny	xournalpp	
+pakiet-ręczny	yaru	
+pakiet-ręczny	yt-dlp	
+pakiet-ręczny	zbar	
+pakiet-ręczny	zoxide	
+pam.d	chage	18ff9a4832837665
+pam.d	chfn	fc6807842f92e9d3
+pam.d	chgpasswd	18ff9a4832837665
+pam.d	chpasswd	18ff9a4832837665
+pam.d	chsh	fc6807842f92e9d3
+pam.d	cups	57dfd072fd7ef001
+pam.d	groupadd	18ff9a4832837665
+pam.d	groupdel	18ff9a4832837665
+pam.d	groupmems	18ff9a4832837665
+pam.d	groupmod	18ff9a4832837665
+pam.d	login	752b734994c5c1b8
+pam.d	newusers	18ff9a4832837665
+pam.d	omarchy-lock-password	1740b095412602a0
+pam.d	other	de66118684a2ecec
+pam.d	passwd	46314779e7992d93
+pam.d	sddm	b9539d9c6e944959
+pam.d	sddm-autologin	53a935ef3d4dcc10
+pam.d	sddm-greeter	e4b77f535177ac55
+pam.d	sshd	64576021515c0a98
+pam.d	su	2205c6a07081dfac
+pam.d	su-l	2205c6a07081dfac
+pam.d	sudo	67867926062363a7
+pam.d	system-auth	c22c0c7ccf649155
+pam.d	system-local-login	005736b9bd650ff5
+pam.d	system-login	df5e75734943d2bd
+pam.d	system-remote-login	005736b9bd650ff5
+pam.d	system-services	6eb1acdd3fa9f71a
+pam.d	useradd	18ff9a4832837665
+pam.d	userdel	18ff9a4832837665
+pam.d	usermod	18ff9a4832837665
+pam.d	vlock	449ffa35ba690931
+pipewire.conf.d	10-wireplumber.conf	-> /usr/share/examples/wireplumber/10-wireplumber.conf
+pipewire.conf.d	20-pipewire-pulse.conf	-> /usr/share/examples/pipewire/20-pipewire-pulse.conf
+plik-etc	/etc/nsswitch.conf	1d5baea85deb6d75
+plik-etc	/etc/os-release	380b4bbafac09728
+plik-etc	/etc/rc.conf	642dbc3197ba9584
+plik-etc	/etc/security/faillock.conf	159e24224a7afbb1
+plik-etc	/etc/skel/.bashrc	d78bd5405919c9c0
+plik-etc	/etc/ufw/ufw.conf	1c75b26d27f47cb5
+repo	https://mirror.black-hole.dev/x86_64	
+repo	https://repo-default.voidlinux.org/current	
+repo	https://repo-default.voidlinux.org/current/nonfree	
+sddm.conf.d	10-theme.conf	61ae32f59f5ae343
+sddm.conf.d	10-wayland.conf	711c05e5cfa836ff
+sddm.conf.d	20-omarchy-port-autologin.conf	18a9cc904e3496dd
+share-port	mapa-pakietow-void.tsv	b46809c4f951098f
+share-port	pkg-map.sh	61d79935fe6b07eb
+share-port	runit-services.tsv	d3595586817bcac1
+share-port	user-units-skip.tsv	09496970db8b0cc9
+sudoers.d	omarchy-dns	682b4fa259e09966
+sudoers.d	omarchy-passwd-tries	fb2225f7f666aa73
+sudoers.d	omarchy-theme-browser	b2981edf2d796740
+sudoers.d	omarchy-tzupdate	1165973dd9281750
+sudoers.d	wheel	c3dc417dcd08ffb4
+usr-local-bin	omarchy-pkg-add	05782324dba99fb2
+usr-local-bin	omarchy-pkg-aur-accessible	38fbf4f060db80be
+usr-local-bin	omarchy-pkg-aur-add	0dc6b3914eaac511
+usr-local-bin	omarchy-pkg-aur-install	4d5bd67d3532844c
+usr-local-bin	omarchy-pkg-drop	44ddca0e43636719
+usr-local-bin	omarchy-pkg-install	6e628e49e9c45b17
+usr-local-bin	omarchy-pkg-missing	6c9bcadb657cd1cb
+usr-local-bin	omarchy-pkg-present	caec5fbdcbb41c9d
+usr-local-bin	omarchy-pkg-remove	ec59f43d9e22a15e
+usr-local-bin	omarchy-port-units	61aac4e0bbbf0752
+usr-local-bin	systemctl	42c0a5ed821b437b
+usr-local-bin	systemd-cat	67cdff4fe7366c9b
+usr-local-bin	systemd-inhibit	99f8d42ad59c975d
+usr-local-bin	systemd-run	3c61df5acab3e634
+usr-local-bin	timedatectl	6b8acc735a94d02f
+usr-local-bin	uwsm	14948c029f48976d
+usr-local-bin	uwsm-app	9c545514f8f88f06
+usr-local-bin	xdg-terminal-exec	3b49dcbe523ecaf2
+usługa	NetworkManager	
+usługa	agetty-tty1	
+usługa	agetty-tty2	
+usługa	agetty-tty3	
+usługa	agetty-tty4	
+usługa	agetty-tty5	
+usługa	agetty-tty6	
+usługa	avahi-daemon	
+usługa	bluetoothd	
+usługa	cupsd	
+usługa	dbus	
+usługa	docker	
+usługa	polkitd	
+usługa	power-profiles-daemon	
+usługa	sddm	
+usługa	sshd	
+usługa	udevd	
+usługa	uuidd	
+użytkownik	grupy	audio input szoniu users video wheel 
+użytkownik	powłoka	/bin/bash
+wayland-sessions	Yaru.desktop	c241990d087ab463
+wayland-sessions	hyprland.desktop	a9ba6904364ef65c
+wayland-sessions	omarchy-void.desktop	da65f2c2edba50bd
+xbps.d	20-blackhole.conf	e8cbe664e5f5d5dd
+znacznik-done	first-run-user	
+znaczniki-migracji	liczba	106
