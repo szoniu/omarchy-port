@@ -332,6 +332,7 @@ while IFS= read -r f; do
     continue
   fi
   rm -f "$f"
+  echo "  usunięty    $f"
   usuniete=$((usuniete + 1))
   d=${f%/*}
   while [[ $d == /usr/share/omarchy/* ]] && ! grep -qxF "$d" "$CACHE/katalogi-nowe.txt" && rmdir "$d" 2>/dev/null; do
