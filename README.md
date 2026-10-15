@@ -18,7 +18,7 @@ git clone https://github.com/szoniu/omarchy-port /opt/omarchy-port
 
 `/opt/omarchy-port` to stałe miejsce klonu — z niego biorą się aktualizacje. Port zainstalowany z innego miejsca dostaje ten klon z GitHuba (gałąź `main`) na końcu instalacji.
 
-`git` nie wchodzi w `base-system` Voida, a instalator szoniu/void stawia go tylko przy części opcji. `--name` i `--email` trafiają do gita i XCompose; bez `--name` port bierze imię z pola GECOS konta. Usługi włączane w trakcie instalacji startują dopiero po restarcie, jak w systemd. Dotyczy to też firewalla: ufw z regułami Omarchy (ruch przychodzący zamknięty poza LocalSend, porty kontenerów Dockera chronione przez `ufw-docker`). Gdy sshd jest włączony, port dodaje przed tym krokiem `ufw limit 22/tcp`, czyli regułę z Setup > Security > SSH, żeby instalacja przez SSH nie odcięła dostępu po restarcie.
+`git` nie wchodzi w `base-system` Voida, a instalator szoniu/void stawia go tylko przy części opcji. `--name` i `--email` trafiają do gita i XCompose; bez `--name` port bierze imię z pola GECOS konta. Usługi włączane w trakcie instalacji startują dopiero po restarcie, jak w systemd. Dotyczy to też firewalla: ufw z regułami Omarchy (ruch przychodzący zamknięty poza LocalSend, porty kontenerów Dockera chronione przez `ufw-docker`). Gdy sshd jest włączony, port dodaje przed tym krokiem `ufw limit <port>/tcp` (regułę z Setup > Security > SSH) na każdym porcie, na którym sshd słucha, zwykle 22, żeby instalacja przez SSH nie odcięła dostępu po restarcie. Krok idzie raz na maszynę. Ufw włączonego przez kogoś innego port nie rusza, także przy ponownej instalacji.
 
 Orkiestrator jest idempotentny, a logi zapisuje w `/var/log/omarchy-port/`. Kod 1 znaczy, że któryś krok padł: reszta jest doinstalowana, a lista błędów jest w podsumowaniu. Kroki `install/` Omarchy, które na Voidzie są pomijane albo podmieniane, opisuje [`port/share/void/kroki.tsv`](port/share/void/kroki.tsv).
 
@@ -31,7 +31,7 @@ Tak jak w Omarchy: menu **Update → Void**, ikona aktualizacji na pasku albo `o
    - pakiety Voida (`xbps-install -Su` i lista);
    - pliki Omarchy przy nowym pinie, z usunięciem plików poprzedniej wersji (zmienione przez admina → `.omarchy-save`);
    - warstwa i łatki;
-   - instalacja sprzed [#8](https://git.szoniu.pl/szoniu/omarchy-port/issues/8) raz dostaje firewall (krok `config/firewall.sh` z regułą SSH; ufw włączony wcześniej przez kogoś innego zostaje bez zmian), a ufw rusza po restarcie;
+   - instalacja sprzed [#8](https://git.szoniu.pl/szoniu/omarchy-port/issues/8) raz dostaje firewall (krok `config/firewall.sh` z regułą SSH; ufw włączony wcześniej przez kogoś innego zostaje bez zmian). Ufw rusza po restarcie, o który omarchy-update zapyta na końcu (`reboot-required`);
 3. dalej jak upstream:
    - migracje (`omarchy-migrate`; pominięte i podmienione na Voidzie: [`port/share/void/migracje.tsv`](port/share/void/migracje.tsv));
    - hook `post-update`;

@@ -242,6 +242,10 @@ lista_pasuje() { # lista_pasuje <plik .tsv> <katalog w źródle Omarchy> <katalo
 }
 lista_pasuje "$VOID/kroki.tsv" install "$VOID/kroki"
 lista_pasuje "$VOID/migracje.tsv" migrations "$VOID/migracje"
+# Krok firewalla port obsługuje po nazwie (krok_firewall: reguła SSH przed nim, raz przy aktualizacji) —
+# po zmianie nazwy albo wypadnięciu z config/all.sh szedłby jako zwykły krok bez reguły SSH albo wcale.
+grep -qxF 'run_logged "$OMARCHY_INSTALL/config/firewall.sh"' "$CACHE/src/omarchy/install/config/all.sh" ||
+  die "install/config/all.sh w Omarchy $OMARCHY_TAG nie woła już config/firewall.sh — przejrzyj krok_firewall (omarchy-port#8)"
 
 # Pakiety z omarchy-pkgs instalowane przez package(): omarchy i omarchy-settings ze źródeł Omarchy przy
 # przypiętym commicie ($CACHE/src), reszta — bez odpowiednika w repo Voida (stan „port” w
@@ -251,12 +255,17 @@ PAKIETY_UPSTREAM=(omarchy-settings omarchy ufw-docker)
 declare -A ZRODLA=([omarchy-settings]="$CACHE/src" [omarchy]="$CACHE/src")
 zrodla() { # zrodla <pakiet> — source= i b2sums= z PKGBUILD-a, jak makepkg; wynik w ZRODLA[<pakiet>]
   local p=$1 pb="$CACHE/omarchy-pkgs/pkgbuilds/$1" dl="$CACHE/pobrane/$1" sd="$CACHE/zrodla/$1"
-  local i s nazwa url plik
-  local -a src sumy
-  mapfile -t src < <(bash -c 'CARCH=x86_64; cd "$1"; source ./PKGBUILD >/dev/null 2>&1; printf "%s\n" "${source[@]}"' bash "$pb")
-  mapfile -t sumy < <(bash -c 'CARCH=x86_64; cd "$1"; source ./PKGBUILD >/dev/null 2>&1; printf "%s\n" "${b2sums[@]}"' bash "$pb")
+  local i s nazwa url plik typ wartosc
+  local -a src=() sumy=()
+  [[ -f $pb/PKGBUILD ]] || die "brak PKGBUILD-a $p w omarchy-pkgs ($OMARCHY_PKGS_COMMIT) — zmiana nazwy? popraw PAKIETY_UPSTREAM"
+  # jedno wczytanie PKGBUILD-a: S<tab>źródło, B<tab>suma (pusta tablica nie daje pustego elementu)
+  while IFS=$'\t' read -r typ wartosc; do
+    case $typ in S) src+=("$wartosc") ;; B) sumy+=("$wartosc") ;; esac
+  done < <(bash -c 'CARCH=x86_64; cd "$1" && source ./PKGBUILD >/dev/null 2>&1 || exit
+    for s in "${source[@]}"; do printf "S\t%s\n" "$s"; done
+    for s in "${b2sums[@]}"; do printf "B\t%s\n" "$s"; done' bash "$pb")
   (( ${#src[@]} > 0 && ${#src[@]} == ${#sumy[@]} )) ||
-    die "PKGBUILD $p: source= (${#src[@]}) i b2sums= (${#sumy[@]}) nie do pary — port instaluje tylko źródła z sumą"
+    die "PKGBUILD $p: source= (${#src[@]}) i b2sums= (${#sumy[@]}) nie do pary — port instaluje tylko źródła z sumą b2sum"
   rm -rf "$sd"
   mkdir -p "$sd" "$dl"
   for i in "${!src[@]}"; do
@@ -267,7 +276,8 @@ zrodla() { # zrodla <pakiet> — source= i b2sums= z PKGBUILD-a, jak makepkg; wy
       https://*)
         plik="$dl/$nazwa"
         if [[ ! -f $plik || $(b2sum <"$plik" | cut -d' ' -f1) != "${sumy[i]}" ]]; then
-          curl -fsSL --retry 3 -o "$plik.part" "$url" || die "PKGBUILD $p: pobranie $url nie powiodło się"
+          curl -fsSL --retry 3 --connect-timeout 20 --max-time 300 -o "$plik.part" "$url" ||
+            die "PKGBUILD $p: pobranie $url nie powiodło się"
           mv -f "$plik.part" "$plik"
         fi ;;
       *://*) die "PKGBUILD $p: źródło $url — port obsługuje tylko https:// i pliki z omarchy-pkgs" ;;
@@ -467,57 +477,96 @@ uruchom_krok() { # uruchom_krok <krok> <plik> [dopisek do „ok”] — krok ins
 # SSH a firewall (omarchy-port#8). Omarchy z ISO nie włącza sshd, więc „deny incoming” z config/firewall.sh
 # niczego tam nie odcina. Na Voidzie sshd zwykle działa (włącza go instalator), a maszyna instalowana
 # zdalnie po restarcie straciłaby dostęp — włączony sshd dostaje regułę z Setup > Security > SSH
-# (omarchy-setup-security-sshd; omarchy-remove-security-sshd usuwa ją tak samo jak na Archu).
+# (omarchy-setup-security-sshd: `ufw limit 22/tcp comment omarchy-sshd`), na każdym porcie, na którym
+# słucha (`sshd -T`: ListenAddress, inaczej Port — OpenSSH ≥ 10.5 pisze je wielką literą; brak = 22).
+# omarchy-remove-security-sshd usuwa tylko regułę dla 22.
 # Reguła idzie PRZED krokiem, póki ufw.conf ma ENABLED=no. Nowa reguła `limit` przy ENABLED=yes
 # i niezaładowanym jeszcze firewallu (ruszy dopiero po restarcie) każe ufw przeładować łańcuchy, których
 # nie ma: „ERROR: problem running” i kod 1, choć plik reguł jest już zapisany (sprawdzone w VM). Dlatego
 # o wyniku decyduje obecność reguły w `ufw show added`, nie kod wyjścia.
-ssh_w_firewallu() { # rc 1 = sshd włączony, a reguły nie ma
-  local porty dodane
+ssh_w_firewallu() { # rc 1 = sshd włączony, a którejś reguły nie ma
+  local porty port wyjscie dodane
+  local -a brak=()
   systemctl -q is-enabled sshd.service || return 0
-  ufw limit 22/tcp comment omarchy-sshd >/dev/null 2>&1 || true
-  dodane=$(ufw show added 2>&1) || true
-  if ! grep -qxF "ufw limit 22/tcp comment 'omarchy-sshd'" <<<"$dodane"; then
-    wynik "SSH w firewallu" root BŁĄD "brak reguły ufw limit 22/tcp po jej dodaniu — firewall nie włączony, żeby nie odciąć sshd"
-    echo "  BŁĄD         SSH w firewallu (ufw limit 22/tcp)"
+  porty=$(sshd -T 2>/dev/null | awk 'tolower($1) == "listenaddress" { n = split($2, a, ":"); print a[n] }' | sort -un) || porty=
+  [[ -n $porty ]] || porty=$(sshd -T 2>/dev/null | awk 'tolower($1) == "port" { print $2 }' | sort -un) || porty=
+  [[ -n $porty ]] || porty=22
+  for port in $porty; do
+    wyjscie=$(ufw limit "$port/tcp" comment omarchy-sshd 2>&1) || true
+    dodane=$(ufw show added 2>&1) || true
+    if ! grep -qxF "ufw limit $port/tcp comment 'omarchy-sshd'" <<<"$dodane"; then
+      brak+=("$port/tcp (ufw: ${wyjscie//$'\n'/ })")
+    fi
+  done
+  porty=$(printf '%s/tcp ' $porty)
+  if (( ${#brak[@]} )); then
+    wynik "SSH w firewallu" root BŁĄD "sshd na ${porty% } — brak reguły ufw limit dla ${brak[*]}"
+    echo "  BŁĄD         SSH w firewallu — brak reguły dla ${brak[*]}"
     BLEDY=$((BLEDY + 1))
     return 1
   fi
-  wynik "SSH w firewallu" root ok "sshd włączony: ufw limit 22/tcp comment omarchy-sshd"
-  echo "  ok           SSH w firewallu (sshd włączony: ufw limit 22/tcp)"
-  porty=$(sshd -T 2>/dev/null | awk '$1 == "port" && $2 != 22 { printf "%s ", $2 }') || porty=
-  if [[ -n $porty ]]; then
-    wynik "SSH w firewallu" root uwaga "sshd słucha też na: ${porty% } — firewall otwiera tylko 22 (sudo ufw limit <port>/tcp)"
-  fi
+  wynik "SSH w firewallu" root ok "sshd włączony: ufw limit ${porty% } comment omarchy-sshd"
+  echo "  ok           SSH w firewallu (sshd włączony: ufw limit ${porty% })"
 }
 
-# Upstreamowy config/firewall.sh z regułą SSH przed nim. Bez reguły krok nie idzie (firewall wyłączony,
-# jak przed #8, i BŁĄD w podsumowaniu) — włączony firewall odciąłby po restarcie sshd. Znacznik
-# $STATE/firewall: aktualizacja nie puszcza już kroku sama (firewall_przy_aktualizacji).
+# Upstreamowy krok firewalla raz na maszynę, z regułą SSH przed nim (znacznik $STATE/firewall), przy
+# instalacji i przy aktualizacji tak samo. ufw włączony przez kogoś innego (usługa i ENABLED=yes, bez
+# znacznika) zostaje taki, jaki jest — także przy ponownej instalacji. Bez reguły SSH krok nie idzie:
+# włączony firewall odciąłby po restarcie sshd. Firewall, który zostaje wyłączony, trafia do
+# podsumowania jako UWAGA BEZPIECZEŃSTWO. FIREWALL_TERAZ=1 — krok poszedł w tym przebiegu.
+FIREWALL_TERAZ=0
 krok_firewall() { # krok_firewall <plik kroku> [dopisek do „ok”]
-  if ! ssh_w_firewallu; then
-    wynik config/firewall.sh root pominięty "bez reguły SSH — krok pójdzie w następnym przebiegu"
+  if [[ -e $STATE/firewall ]]; then
+    wynik config/firewall.sh root pominięty "już wykonany (znacznik $STATE/firewall)"
+    echo "  pominięty    config/firewall.sh (już wykonany — znacznik)"
     return 0
   fi
-  if uruchom_krok config/firewall.sh "$1" "${2:-}"; then
-    touch "$STATE/firewall"
-  fi
-}
-
-# Instalacja sprzed omarchy-port#8 ma krok config/firewall.sh pominięty (firewall wyłączony), a kroki
-# install/ idą tylko przy instalacji — aktualizacja puszcza go ten jeden raz, wprost z plików Omarchy
-# z etapu 3. ufw włączony przez kogoś innego (usługa i ENABLED=yes) zostaje taki, jaki jest.
-firewall_przy_aktualizacji() {
-  etap "firewall (omarchy-port#8, jednorazowo)"
-  # shim systemctl jak w etapie 7: ufw włączony bez startu, firewall ruszy przy następnym starcie systemu
-  export OMARCHY_PATH=/usr/share/omarchy OMARCHY_PORT_INSTALL=1
   if systemctl -q is-enabled ufw.service && grep -qiE '^ENABLED=yes' /etc/ufw/ufw.conf; then
-    wynik config/firewall.sh root uwaga "ufw był już włączony — port zostawia jego konfigurację (reguły Omarchy: sudo bash $OMARCHY_PATH/install/config/firewall.sh)"
+    wynik config/firewall.sh root uwaga "ufw był już włączony — port zostawia jego konfigurację (reguły Omarchy: sudo bash $1)"
     echo "  UWAGA        ufw był już włączony — konfiguracja bez zmian"
     touch "$STATE/firewall"
     return 0
   fi
-  krok_firewall "$OMARCHY_PATH/install/config/firewall.sh"
+  if ! ssh_w_firewallu; then
+    wynik firewall root wyłączony "BEZPIECZEŃSTWO: firewall nie włączony — bez reguły SSH odciąłby sshd; krok pójdzie w następnym przebiegu"
+    return 0
+  fi
+  if ! uruchom_krok config/firewall.sh "$1" "${2:-}"; then
+    wynik firewall root wyłączony "BEZPIECZEŃSTWO: config/firewall.sh padł — firewall może być wyłączony; krok pójdzie w następnym przebiegu"
+    return 0
+  fi
+  touch "$STATE/firewall"
+  FIREWALL_TERAZ=1
+}
+
+# Instalacja sprzed omarchy-port#8 ma krok config/firewall.sh pominięty (firewall wyłączony), a kroki
+# install/ idą tylko przy instalacji — aktualizacja puszcza go ten jeden raz, z pominięciem albo
+# podmianą z kroki.tsv jak w etapie 7. ufw rusza dopiero przy starcie systemu, więc konta portu dostają
+# reboot-required (jak po migracjach Omarchy) — omarchy-update-restart zapyta o restart.
+firewall_przy_aktualizacji() {
+  local krok=config/firewall.sh plik akcja='' powod='' zn u
+  etap "firewall (omarchy-port#8, jednorazowo)"
+  # shim systemctl jak w etapie 7: ufw włączony bez startu, firewall ruszy przy następnym starcie systemu
+  export OMARCHY_PATH=/usr/share/omarchy OMARCHY_PORT_INSTALL=1
+  plik=$OMARCHY_PATH/install/$krok
+  IFS=$'\t' read -r _ akcja powod < <(awk -F'\t' -v k="$krok" '$1 == k' "$VOID/kroki.tsv") || true
+  case $akcja in
+    pomiń)
+      wynik "$krok" root pominięty "$powod"
+      echo "  pominięty    $krok"
+      return 0 ;;
+    podmień) plik=$VOID/kroki/$krok ;;
+  esac
+  krok_firewall "$plik" "${akcja:+ (podmieniony)}"
+  if ((FIREWALL_TERAZ)); then
+    for zn in "$STATE"/dom-*; do
+      [[ -e $zn ]] || continue
+      u=${zn##*/dom-}
+      su - "$u" -c 'omarchy-state set reboot-required' </dev/null ||
+        echo "  UWAGA        reboot-required dla $u nie ustawiony — firewall ruszy po restarcie systemu"
+    done
+    echo "  firewall ruszy po restarcie systemu — omarchy-update zapyta o restart"
+  fi
   if [[ -s $STATE/start-at-boot ]]; then
     echo "  wstaną przy następnym starcie: $(tr '\n' ' ' <"$STATE/start-at-boot")"
   fi

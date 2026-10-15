@@ -31,19 +31,30 @@ for r in 'ufw allow 53317/udp' 'ufw allow 53317/tcp' \
          "ufw allow from 192.168.0.0/16 to 172.17.0.1 port 53 proto udp comment 'allow-docker-dns'"; do
   sprawdz "reguła: $r" jest "$(grep -qxF "$r" <<<"$reguly" && echo jest || echo brak)"
 done
+# porty sshd jak w install.sh (ssh_w_firewallu): ListenAddress z `sshd -T`, inaczej Port, domyślnie 22
 ssh_ocz=brak
 systemctl -q is-enabled sshd.service && ssh_ocz=jest
-sprawdz "reguła: ufw limit 22/tcp comment 'omarchy-sshd' (gdy sshd włączony)" "$ssh_ocz" \
-  "$(grep -qxF "ufw limit 22/tcp comment 'omarchy-sshd'" <<<"$reguly" && echo jest || echo brak)"
+sshd_t=$(sshd -T 2>/dev/null) || sshd_t=
+porty_ssh=$(awk 'tolower($1) == "listenaddress" { n = split($2, a, ":"); print a[n] }' <<<"$sshd_t" | sort -un)
+[[ -n $porty_ssh ]] || porty_ssh=$(awk 'tolower($1) == "port" { print $2 }' <<<"$sshd_t" | sort -un)
+[[ -n $porty_ssh ]] || porty_ssh=22
+for port in $porty_ssh; do
+  sprawdz "reguła: ufw limit $port/tcp comment 'omarchy-sshd' (gdy sshd włączony)" "$ssh_ocz" \
+    "$(grep -qxF "ufw limit $port/tcp comment 'omarchy-sshd'" <<<"$reguly" && echo jest || echo brak)"
+done
+# wyjście do zmiennej, nie `polecenie | grep -q`: pod pipefail grep -q kończący wcześnie daje piszącemu
+# SIGPIPE (141), czyli fałszywe „nie” przy poprawnej konfiguracji
+werbose=$(ufw status verbose)
 sprawdz "domyślnie: deny (incoming), allow (outgoing)" tak \
-  "$(ufw status verbose | grep -qF 'Default: deny (incoming), allow (outgoing)' && echo tak || echo nie)"
+  "$(grep -qF 'Default: deny (incoming), allow (outgoing)' <<<"$werbose" && echo tak || echo nie)"
 sprawdz "ufw-docker w /usr/bin (pakiet portu)" tak "$([[ -x /usr/bin/ufw-docker ]] && echo tak || echo nie)"
 sprawdz "blok ufw-docker w after.rules" 1 "$(grep -c '^# BEGIN UFW AND DOCKER' /etc/ufw/after.rules || true)"
 sprawdz "blok ufw-docker w after6.rules" 1 "$(grep -c '^# BEGIN UFW AND DOCKER' /etc/ufw/after6.rules || true)"
 # Kolejność startu ufw i dockera w runit jest dowolna — łańcuch DOCKER-USER ma mieć reguły ufw-docker
 # niezależnie od tego, kto wstał pierwszy.
+docker_user=$(iptables -S DOCKER-USER 2>/dev/null) || docker_user=
 sprawdz "DOCKER-USER → ufw-user-forward" tak \
-  "$(iptables -S DOCKER-USER 2>/dev/null | grep -qxF -- '-A DOCKER-USER -j ufw-user-forward' && echo tak || echo nie)"
+  "$(grep -qxF -- '-A DOCKER-USER -j ufw-user-forward' <<<"$docker_user" && echo tak || echo nie)"
 
 # --- prawdziwe pakiety ----------------------------------------------------------------------------
 NS_PUB=fwtest-pub NS_LAN=fwtest-lan PORT_ZAMK=9999 PORT_DOCK=18080
@@ -87,11 +98,13 @@ polacz() { # polacz <netns> <adres> <port> → otwarte | odrzucone | zablokowane
 sprawdz "internet → port $PORT_ZAMK (słuchacz, poza regułami)" zablokowane "$(polacz "$NS_PUB" 203.0.113.1 $PORT_ZAMK)"
 sprawdz "LAN → port $PORT_ZAMK (słuchacz, poza regułami)" zablokowane "$(polacz "$NS_LAN" 192.168.77.1 $PORT_ZAMK)"
 ls_ocz=odrzucone   # LocalSend: reguła jest, aplikacja zwykle nie słucha (RST = firewall przepuścił)
-ss -Hltn "sport = :53317" | grep -q . && ls_ocz=otwarte
+[[ -n $(ss -Hltn "sport = :53317") ]] && ls_ocz=otwarte
 sprawdz "internet → 53317/tcp (LocalSend)" "$ls_ocz" "$(polacz "$NS_PUB" 203.0.113.1 53317)"
 ssh_pol=zablokowane
 [[ $ssh_ocz == jest ]] && ssh_pol=otwarte
-sprawdz "internet → 22/tcp (SSH)" "$ssh_pol" "$(polacz "$NS_PUB" 203.0.113.1 22)"
+for port in $porty_ssh; do
+  sprawdz "internet → $port/tcp (SSH)" "$ssh_pol" "$(polacz "$NS_PUB" 203.0.113.1 "$port")"
+done
 if ((DOCKER)); then
   # ufw-docker: kontener opublikowany przez -p jest osiągalny z sieci prywatnych, z publicznych nie
   # (chyba że `ufw route allow`) — bez niego Docker omija ufw i port jest otwarty dla wszystkich

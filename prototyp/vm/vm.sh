@@ -31,7 +31,7 @@ podman image exists "$IMG" || podman build -t "$IMG" -f "$SCRIPT_DIR/Containerfi
 [ -f id_vm ] || ssh-keygen -q -t ed25519 -N "" -C vm-omarchy-port -f id_vm
 # ControlMaster: firewall portu (omarchy-port#8) ma na SSH `ufw limit 22/tcp` — 6 nowych połączeń
 # w 30 s z jednego adresu to blokada, a ze slirp wszystkie przychodzą z 10.0.2.2. Jedno połączenie na
-# użytkownika, testy idą w nim. Starszy ssh_config (bez tych trzech linii) trzeba uzupełnić ręcznie.
+# użytkownika, testy idą w nim. Starszy ssh_config (sprzed #8) dostaje te trzy linie dopisane.
 [ -f ssh_config ] || cat >ssh_config <<SSHCFG
 Host vm
   HostName 127.0.0.1
@@ -47,6 +47,10 @@ Host vm
   ControlPath $VM_DIR/cm-%C
   ControlPersist 10m
 SSHCFG
+if ! grep -qi '^[[:space:]]*ControlMaster' ssh_config; then
+  printf '  ControlMaster auto\n  ControlPath %s/cm-%%C\n  ControlPersist 10m\n' "$VM_DIR" >>ssh_config
+  echo "ssh_config: dopisany ControlMaster (firewall ma limit na SSH)"
+fi
 
 [ -f "$VM_DISK" ] || podman run --rm -v "$PWD":/vm:z "$IMG" qemu-img create -f qcow2 "/vm/$VM_DISK" 60G
 [ -f "$VM_VARS" ] || podman run --rm -v "$PWD":/vm:z "$IMG" cp /usr/share/edk2/ovmf/OVMF_VARS.fd "/vm/$VM_VARS"
