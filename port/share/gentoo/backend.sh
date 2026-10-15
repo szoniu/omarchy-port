@@ -35,7 +35,26 @@ dyst_repozytoria() {
     install -m 644 "$DYST/portage/$d/omarchy-port" "/etc/portage/$d/omarchy-port"
     echo "/etc/portage/$d/omarchy-port"
   done
-  emaint sync --auto </dev/null
+  synchronizuj
+}
+
+# rsync.gentoo.org losuje mirror przy każdym połączeniu, a zepsuty mirror (w VM 15.10.2026: plik
+# lastreplicate spoza Manifestu → „Manifest verification failed”) wywraca całe `emaint sync`, choć
+# overlaye przeszły. Do trzech prób; potem, jeśli drzewa nie są puste, dalej na stanie z poprzedniej
+# synchronizacji — z UWAGĄ w podsumowaniu, bo pakiety mogą być nieaktualne.
+synchronizuj() {
+  local proba r sciezka
+  for proba in 1 2 3; do
+    emaint sync --auto </dev/null && return 0
+    echo "synchronizacja repozytoriów: próba $proba nie przeszła"
+  done
+  for r in gentoo guru hyproverlay; do
+    sciezka=$(portageq get_repo_path / "$r" 2>/dev/null) || sciezka=
+    [[ -n $sciezka && -n $(ls -A "$sciezka" 2>/dev/null) ]] ||
+      die "synchronizacja nie przeszła 3 razy, a repozytorium $r jest puste — nie ma z czego instalować"
+  done
+  wynik "synchronizacja repozytoriów" root uwaga "emaint sync nie przeszedł 3 razy — pakiety z drzewa poprzedniej synchronizacji"
+  echo "  UWAGA        emaint sync nie przeszedł 3 razy — instalacja na drzewie z poprzedniej synchronizacji"
 }
 
 dyst_pakiety() { # dyst_pakiety <atom…> — pełna aktualizacja systemu, potem lista Omarchy (do @world)
