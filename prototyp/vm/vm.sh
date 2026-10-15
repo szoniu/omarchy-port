@@ -70,6 +70,10 @@ if ! grep -qi '^[[:space:]]*ControlMaster' ssh_config; then
   printf '  ControlMaster auto\n  ControlPath %s/cm-%%C\n  ControlPersist 10m\n' "$VM_DIR" >>ssh_config
   echo "ssh_config: dopisany ControlMaster (firewall ma limit na SSH)"
 fi
+if ! grep -qx 'Host vm2' ssh_config; then
+  printf '\nHost vm2\n  HostName 127.0.0.1\n  Port 2230\n  User root\n  IdentityFile %s/id_vm\n  IdentitiesOnly yes\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel ERROR\n  ConnectTimeout 5\n  ControlMaster auto\n  ControlPath %s/cm-%%C\n  ControlPersist 10m\n' "$VM_DIR" "$VM_DIR" >>ssh_config
+  echo "ssh_config: dopisany host vm2 (VM_NR=2)"
+fi
 
 [ -f "$VM_DISK" ] || podman run --rm -v "$PWD":/vm:z "$IMG" qemu-img create -f qcow2 "/vm/$VM_DISK" 60G
 [ -f "$VM_VARS" ] || podman run --rm -v "$PWD":/vm:z "$IMG" cp /usr/share/edk2/ovmf/OVMF_VARS.fd "/vm/$VM_VARS"

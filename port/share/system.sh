@@ -12,8 +12,14 @@ wykryj_system() { # ustawia DYSTR i INIT; rc 1 + powód na stderr, gdy pary nie 
     echo "nieobsługiwana dystrybucja — port zna Voida (xbps) i Gentoo (emerge)" >&2
     return 1
   fi
+  # Chroot najpierw: Handbook Gentoo (i prototyp/gentoo/install-base.sh) podmontowuje /run hosta, więc
+  # /run/systemd/system bywa widoczny także w chroocie. Korzeń procesu 1 inny niż nasz = chroot.
+  if ! [[ /proc/1/root -ef / ]]; then
+    echo "to chroot — port wymaga uruchomionego systemu (usługi, sesja, sshd)" >&2
+    return 1
+  fi
   # /run/systemd/system zakłada tylko działający systemd, /run/openrc działający OpenRC, a /var/service
-  # na Voidzie wskazuje na /run/runit/… — w chroocie żadnego z nich nie ma
+  # na Voidzie wskazuje na /run/runit/…
   if [[ -d /run/systemd/system ]]; then
     INIT=systemd
   elif [[ -d /run/openrc ]]; then

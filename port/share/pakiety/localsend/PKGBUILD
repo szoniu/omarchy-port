@@ -1,7 +1,9 @@
 # omarchy-port: LocalSend z wydania upstreamu (.deb, aplikacja Fluttera) — na Gentoo nie ma go w ::gentoo,
 # GURU ani hyproverlay (omarchy-port#5), a PKGBUILD z omarchy-pkgs buduje go ze źródeł (Flutter + Rust).
 # Wersja jak w omarchy-pkgs; suma = digest pliku z API GitHuba (sprawdzona 15.10.2026). Omarchy woła
-# `localsend --headless send` (omarchy-menu-share), więc /usr/bin/localsend wskazuje na aplikację.
+# `localsend --headless send` (omarchy-menu-share), więc /usr/bin/localsend wskazuje na aplikację, a .desktop
+# i ikona mają nazwy jak w pakiecie z omarchy-pkgs (localsend.desktop, ikona localsend — rozszerzenie
+# Nautilusa szuka tej nazwy); w .deb są localsend_app (Exec=localsend_app, którego nie ma w PATH).
 pkgname=localsend
 pkgver=1.18.2
 pkgrel=1
@@ -16,4 +18,10 @@ package() {
   ar p "$srcdir/LocalSend-${pkgver}-linux-x86-64.deb" data.tar.zst | zstd -dc | tar -x -C "$pkgdir" --no-same-owner
   install -d "$pkgdir/usr/bin"
   ln -s /opt/localsend_app/localsend_app "$pkgdir/usr/bin/localsend"
+  local a="$pkgdir/usr/share/applications" r
+  sed 's/^Exec=localsend_app/Exec=localsend/; s/^Icon=localsend_app/Icon=localsend/' "$a/localsend_app.desktop" >"$a/localsend.desktop"
+  rm "$a/localsend_app.desktop"
+  for r in 128x128 256x256; do
+    mv "$pkgdir/usr/share/icons/hicolor/$r/apps/localsend_app.png" "$pkgdir/usr/share/icons/hicolor/$r/apps/localsend.png"
+  done
 }

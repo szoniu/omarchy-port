@@ -58,19 +58,22 @@ synchronizuj() {
 }
 
 # Po udanym omarchy-provision-user: Omarchy ustawia tam na sztywno chromium.desktop (u nas alias z
-# share/gentoo/applications), a przeglądarką na Gentoo jest Chrome (omarchy-port#5). Jak
-# `omarchy-install-browser chrome` bez instalacji pakietu: katalog polityk Chrome (kolor motywu
-# z omarchy-theme-set-browser) i Chrome jako domyślna przeglądarka konta.
+# share/gentoo/applications), a przeglądarką na Gentoo jest Chrome (omarchy-port#5) — jak
+# `omarchy-install-browser chrome` / Setup > Defaults > Browser. Katalog polityk Chrome zakłada warstwa
+# (share/gentoo/warstwa.sh), zanim krok user/theme.sh zapisze tam kolor motywu. rc ≠ 0 = BŁĄD w
+# podsumowaniu i ponowna próba przy następnym przebiegu (znacznik w install.sh).
 dyst_po_provision() { # dyst_po_provision <użytkownik>
-  bash -c 'source /usr/share/omarchy/install/helpers/browser-policy.sh && browser_policy_setup_dir /etc/opt/chrome/policies/managed' ||
-    echo "UWAGA: katalog polityk Chrome nie powstał — motyw Omarchy nie pokoloruje przeglądarki"
-  su - "$1" -c 'env -u BROWSER xdg-settings set default-web-browser google-chrome.desktop' </dev/null ||
-    echo "UWAGA: domyślna przeglądarka $1 nie przestawiona na Chrome (Setup > Defaults > Browser)"
+  su - "$1" -c 'env -u BROWSER xdg-settings set default-web-browser google-chrome.desktop' </dev/null || {
+    echo "  BŁĄD         domyślna przeglądarka $1 nie przestawiona na Chrome (xdg-settings)"
+    return 1
+  }
+  echo "  ok           domyślna przeglądarka $1: google-chrome.desktop"
 }
 
-dyst_pakiety() { # dyst_pakiety <atom…> — pełna aktualizacja systemu, potem lista Omarchy (do @world)
-  emerge --ask=n --quiet-build --update --deep --newuse --with-bdeps=y @world </dev/null
-  emerge --ask=n --quiet-build --noreplace "$@" </dev/null
+# Pełna aktualizacja systemu i lista Omarchy w jednym grafie zależności (jedno przeliczenie zamiast
+# dwóch); atomy z listy trafiają do @world, zainstalowane tylko się aktualizują.
+dyst_pakiety() { # dyst_pakiety <atom…>
+  emerge --ask=n --quiet-build --update --deep --newuse --with-bdeps=y @world "$@" </dev/null
 }
 
 # Ścieżki należące do pakietów Gentoo — z list plików w /var/db/pkg (CONTENTS: obj <ścieżka> <md5> <czas>,

@@ -309,10 +309,16 @@ fi
 # po wypakowaniu części nie gubi plików do usunięcia przy ponownej próbie.
 POPRZ_MANIFEST="$STATE/manifest-poprzedni.txt"
 POPRZ_SUMY="$STATE/kopie-poprzednie.sums"
+# Z WSZYSTKICH manifestów w $STATE, nie tylko z bieżącej listy: pakiet, który wypadł ze stanu „port”
+# (np. gum dostępny już w repo dystrybucji), ma pliki do usunięcia, a jego manifest — do skasowania.
 if [[ ! -f $POPRZ_MANIFEST ]]; then
-  for p in "${PAKIETY_UPSTREAM[@]}"; do cat "$STATE/manifest-$p.txt" 2>/dev/null || true; done |
-    LC_ALL=C sort -u >"$POPRZ_MANIFEST.tmp"
-  for p in "${PAKIETY_UPSTREAM[@]}"; do cat "$STATE/kopie-$p.sums" 2>/dev/null || true; done >"$POPRZ_SUMY"
+  for m in "$STATE"/manifest-*.txt; do
+    if [[ -f $m && $m != "$POPRZ_MANIFEST" ]]; then cat "$m"; fi
+  done | LC_ALL=C sort -u >"$POPRZ_MANIFEST.tmp"
+  for m in "$STATE"/kopie-*.sums; do
+    if [[ -f $m && $m != "$POPRZ_SUMY" ]]; then cat "$m"; fi
+  done >"$POPRZ_SUMY.tmp"
+  mv "$POPRZ_SUMY.tmp" "$POPRZ_SUMY"
   mv "$POPRZ_MANIFEST.tmp" "$POPRZ_MANIFEST"
 fi
 
@@ -393,6 +399,18 @@ for p in "${PAKIETY_UPSTREAM[@]}"; do
   mv "$CACHE/manifest-$p.new" "$STATE/manifest-$p.txt"
   mv "$CACHE/kopie-$p.new" "$STATE/kopie-$p.sums"
   echo "$p: $(wc -l <"$STATE/manifest-$p.txt") plików"
+done
+# manifesty pakietów spoza bieżącej listy — ich pliki zniknęły wyżej (albo należą już do dystrybucji)
+for m in "$STATE"/manifest-*.txt; do
+  [[ -f $m && $m != "$POPRZ_MANIFEST" ]] || continue
+  p=${m##*/manifest-}
+  p=${p%.txt}
+  na_liscie=0
+  for q in "${PAKIETY_UPSTREAM[@]}"; do [[ $q == "$p" ]] && na_liscie=1; done
+  if (( ! na_liscie )); then
+    rm -f "$m" "$STATE/kopie-$p.sums"
+    echo "$p: wypadł z listy pakietów — manifest usunięty"
+  fi
 done
 rm -f "$POPRZ_MANIFEST" "$POPRZ_SUMY"   # pełny przebieg — następna aktualizacja liczy od tej wersji
 if ((wstrzymane)); then
@@ -476,12 +494,19 @@ uruchom_krok() { # uruchom_krok <krok> <plik> [dopisek do „ok”] — krok ins
 # nie ma: „ERROR: problem running” i kod 1, choć plik reguł jest już zapisany (sprawdzone w VM). Dlatego
 # o wyniku decyduje obecność reguły w `ufw show added`, nie kod wyjścia.
 ssh_w_firewallu() { # rc 1 = sshd włączony, a którejś reguły nie ma
-  local porty port wyjscie dodane
+  local porty port wyjscie dodane gniazdo=0
   local -a brak=()
-  systemctl -q is-enabled sshd.service || return 0
+  # na systemd sshd bywa uruchamiany przez gniazdo (sshd.socket, port w ListenStream, nie w sshd_config)
+  if [[ $INIT == systemd ]] && systemctl -q is-enabled sshd.socket 2>/dev/null; then gniazdo=1; fi
+  systemctl -q is-enabled sshd.service || ((gniazdo)) || return 0
   porty=$(sshd -T 2>/dev/null | awk 'tolower($1) == "listenaddress" { n = split($2, a, ":"); print a[n] }' | sort -un) || porty=
   [[ -n $porty ]] || porty=$(sshd -T 2>/dev/null | awk 'tolower($1) == "port" { print $2 }' | sort -un) || porty=
   [[ -n $porty ]] || porty=22
+  if ((gniazdo)); then
+    # Listen=[::]:22 (Stream) 0.0.0.0:2222 (Stream) — port po ostatnim dwukropku każdego adresu
+    porty=$( { echo "$porty"; systemctl show -p Listen --value sshd.socket 2>/dev/null |
+      grep -oE ':[0-9]+ \(Stream\)' | grep -oE '[0-9]+'; } | sort -un) || true
+  fi
   for port in $porty; do
     wyjscie=$(ufw limit "$port/tcp" comment omarchy-sshd 2>&1) || true
     dodane=$(ufw show added 2>&1) || true
@@ -645,7 +670,9 @@ for s in "${!AKCJA[@]}"; do
   case ${AKCJA[$s]} in pomiń) w=pominięty ;; *) w=podmieniony ;; esac
   wynik "$s" użytkownik "$w" "${POWOD[$s]}"
 done
+provision_ok=0
 if [[ -e $H/.local/state/omarchy/done/finalize-user ]]; then
+  provision_ok=1
   # --first-install wymusza całość od nowa: przestawia przeglądarkę i mailto, nadpisuje ~/.XCompose
   # i oznacza WSZYSTKIE migracje jako wykonane — po podbiciu wersji nowe migracje by przepadły.
   wynik omarchy-provision-user użytkownik pominięty "już wykonane (znacznik finalize-user)"
@@ -664,11 +691,23 @@ else
   if (( rc == 0 )); then
     wynik omarchy-provision-user użytkownik ok
     echo "  ok           omarchy-provision-user"
-    dyst_po_provision "$U"
+    provision_ok=1
   else
     wynik omarchy-provision-user użytkownik "BŁĄD rc=$rc" "$LOGDIR/provision-user.log"
     echo "  BŁĄD rc=$rc   omarchy-provision-user — $LOGDIR/provision-user.log"
     tail -5 "$LOGDIR/provision-user.log" | sed 's/^/    | /'
+    BLEDY=$((BLEDY + 1))
+  fi
+fi
+
+# Dodatki dystrybucji po provision (Gentoo: Chrome jako domyślna przeglądarka) — raz na konto, ze
+# znacznikiem: po udanym przebiegu nie nadpisują późniejszego wyboru użytkownika, a nieudany idzie
+# ponownie przy następnym uruchomieniu orkiestratora (provision ma już wtedy swój znacznik).
+if (( provision_ok )) && [[ ! -e $STATE/po-provision-$U ]]; then
+  if dyst_po_provision "$U"; then
+    touch "$STATE/po-provision-$U"
+  else
+    wynik "po provision ($DYSTR)" użytkownik BŁĄD "share/$DYSTR/backend.sh: dyst_po_provision — szczegóły wyżej w logu"
     BLEDY=$((BLEDY + 1))
   fi
 fi
