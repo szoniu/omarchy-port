@@ -2,11 +2,13 @@
 # omarchy-port: instalacja warstwy zgodności (Void/runit). Jako root, idempotentnie.
 #   shimy (systemctl, systemd-run, systemd-cat, uwsm-app, xdg-terminal-exec) → /usr/local/bin,
 #       TYLKO gdy prawdziwego polecenia nie ma (na Gentoo z systemd żaden nie powstaje);
-#   nakładki (omarchy-pkg-*, omarchy-version*) i nadzorca unitów → /usr/local/bin, zawsze —
+#   nakładki (omarchy-pkg-*, omarchy-version*, omarchy-update*), polecenia portu (omarchy-port-*)
+#       i dyspozytor `omarchy` przez /usr/share/omarchy/bin (SSH, TTY) → /usr/local/bin, zawsze —
 #       /usr/local/bin jest w PATH i w secure_path sudo PRZED /usr/bin z plikami Omarchy,
 #       a linki w /usr/share/omarchy/bin (PATH sesji) są przekierowane na nakładki;
 #   dane → /usr/share/omarchy-port, sesja → /usr/libexec/omarchy-port + wayland-sessions,
 #   greeter SDDM → config portu (upstreamowy + no_update_news) przez /etc/sddm.conf.d,
+#   migracje pominięte/podmienione na Voidzie (share/void/migracje.tsv) → /usr/share/omarchy/migrations,
 #   łatki z upstreamu, których przypięte wydanie nie ma (share/latki) → pliki /usr/share/omarchy.
 set -euo pipefail
 SRC="$(cd "$(dirname "$0")" && pwd)"
@@ -29,9 +31,10 @@ for shim in systemctl systemd-run systemd-cat systemd-inhibit timedatectl uwsm u
   fi
 done
 
-# nakładki na polecenia Omarchy, które pytają pacmana (pakiety, wersja/kanał/data aktualizacji)
-NAKLADKI=("$SRC"/bin/omarchy-pkg-* "$SRC"/bin/omarchy-version*)
-for f in "${NAKLADKI[@]}" "$SRC/bin/omarchy-port-units"; do
+# nakładki na polecenia Omarchy, które pytają pacmana (pakiety, wersja/kanał/data aktualizacji,
+# kroki omarchy-update); omarchy-port-* to polecenia samego portu (bez odpowiednika w Omarchy)
+NAKLADKI=("$SRC"/bin/omarchy-pkg-* "$SRC"/bin/omarchy-version* "$SRC"/bin/omarchy-update*)
+for f in "${NAKLADKI[@]}" "$SRC"/bin/omarchy-port-* "$SRC/bin/omarchy"; do
   install -m 755 "$f" /usr/local/bin/
   echo "nakładka: /usr/local/bin/$(basename "$f")"
 done
@@ -80,6 +83,29 @@ if [[ -f /usr/share/sddm/hyprland.lua ]] && /usr/bin/grep -qxF "$GREETER_UPSTREA
 else
   rm -f /etc/sddm.conf.d/30-omarchy-port-greeter.conf
   echo "UWAGA: Omarchy woła greeter inaczej niż w v4.0.4 (10-wayland.conf) — config greetera portu pominięty, przejrzyj session/sddm-hyprland.lua" >&2
+fi
+
+# Migracje Omarchy, które na Voidzie nie idą w wersji z upstreamu (share/void/migracje.tsv): w drzewie
+# Omarchy zaślepka wypisująca powód albo podmiana portu — upstreamowe omarchy-migrate uruchamia je jak
+# każdą migrację i stawia znacznik. Etap 3 orkiestratora wypakowuje migracje od nowa przy każdym
+# przebiegu, więc lista idzie za każdym razem (orkiestrator sprawdza ją na źródle przed zmianami).
+if [[ -d /usr/share/omarchy/migrations ]]; then
+  while IFS=$'\t' read -r mig akcja powod; do
+    [[ -z $mig || $mig == \#* ]] && continue
+    m=/usr/share/omarchy/migrations/$mig
+    if [[ ! -f $m ]]; then
+      echo "UWAGA: migracje.tsv: $mig nie istnieje w tej wersji Omarchy — przejrzyj listę" >&2
+      continue
+    fi
+    case $akcja in
+      pomiń)
+        printf '# omarchy-port: migracja pominięta na Voidzie (port/share/void/migracje.tsv)\necho %q\n' \
+          "omarchy-port: pominięta — $powod" >"$m" ;;
+      podmień) install -m 644 "$SRC/share/void/migracje/$mig" "$m" ;;
+      *) echo "UWAGA: migracje.tsv: nieznana akcja '$akcja' dla $mig" >&2; continue ;;
+    esac
+    echo "migracja: $mig — $akcja"
+  done <"$SRC/share/void/migracje.tsv"
 fi
 
 # Łatki (ścieżki względem /usr/share/omarchy): poprawki z mastera Omarchy, których przypięte wydanie

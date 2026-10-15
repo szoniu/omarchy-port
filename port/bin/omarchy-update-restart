@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# omarchy:summary=Prompt for required reboot or service restarts after updates
+
+# omarchy-port (Void): nakładka na /usr/bin/omarchy-update-restart — inaczej tylko sprawdzenie jądra
+# (pacman -Qo → xbps-query -o). Upstream pyta, czy pliki działającego jądra wciąż należą do pakietu;
+# na Archu aktualizacja je usuwa. Pakiety jądra Voida (preserve) zostawiają stare pliki na dysku, ale
+# po aktualizacji nie należą już do żadnego pakietu — to samo pytanie daje tę samą odpowiedź.
+# xbps-query -o kończy się kodem 0 także bez trafienia — liczy się wyjście, nie kod.
+
+echo
+
+confirm_reboot() {
+  gum confirm "$1" && { omarchy-system-reboot; exit 0; }
+}
+
+running_kernel=$(uname -r)
+kernel_updated=true
+
+if [[ -n $(xbps-query -o "/usr/lib/modules/$running_kernel/modules.order" 2>/dev/null) ]]; then
+  kernel_updated=false
+fi
+
+if [[ $kernel_updated == "true" ]]; then
+  confirm_reboot "Linux kernel has been updated. Reboot?"
+elif [[ -f $HOME/.local/state/omarchy/reboot-required ]]; then
+  confirm_reboot "Updates require reboot. Ready?"
+fi
+
+running_hyprland=$(readlink /proc/$(pgrep -x Hyprland)/exe 2>/dev/null)
+if [[ $running_hyprland == *"(deleted)"* ]]; then
+  confirm_reboot "Hyprland has been updated. Reboot?"
+fi
+
+for file in "$HOME"/.local/state/omarchy/restart-*-required; do
+  if [[ -f $file ]]; then
+    filename=$(basename "$file")
+    service=$(echo "$filename" | sed 's/restart-\(.*\)-required/\1/')
+    echo "Restarting $service"
+    omarchy-state clear "$filename"
+    omarchy-restart-"$service"
+  fi
+done
+
+# Updates routinely replace the shell's QML, and a stale process can lazy-load
+# new files into old code. A restart failure (locked session, ssh, TTY) only
+# prints its reason: the next update or login gets a fresh shell anyway.
+echo -e "\e[32m\nRestarting shell\e[0m"
+echo "All plugins have been reloaded"
+omarchy-restart-shell || true

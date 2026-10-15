@@ -1,0 +1,7 @@
+# Migracje Omarchy (migrations/), które na Voidzie NIE idą w wersji z upstreamu. Reszta idzie bez zmian.
+# migracja (nazwa pliku)	akcja (pomiń|podmień)	powód
+# podmień → share/void/migracje/<migracja>; pomiń → w /usr/share/omarchy/migrations zaślepka, która
+# tylko wypisuje powód. Upstreamowe omarchy-migrate uruchamia obie jak zwykłe migracje i stawia
+# znacznik. Instalacja oznacza wszystkie istniejące migracje jako wykonane (omarchy-provision-user),
+# więc lista dotyczy tylko migracji dochodzących przy podbiciu wersji — przegląd:
+# prototyp/bramka/podbicie.sh.

@@ -1,0 +1,25 @@
+#!/bin/bash
+# omarchy-port: część root aktualizacji (woła ją omarchy-update). Najpierw nowa wersja portu z klonu
+# /opt/omarchy-port — `git pull --ff-only` na gałęzi, którą klon śledzi (domyślnie main z GitHuba;
+# podbicie wersji Omarchy to commit w porcie po teście w VM) — potem orkiestrator tej NOWEJ wersji
+# w trybie --update: pakiety Voida, pliki Omarchy przy jej pinie, warstwa, łatki.
+set -euo pipefail
+PORT_DIR=/opt/omarchy-port
+(( EUID == 0 )) || exec sudo "$0" "$@"
+if [[ ! -d $PORT_DIR/.git ]]; then
+  echo "omarchy-port-update: brak klonu portu w $PORT_DIR — sklonuj: git clone https://github.com/szoniu/omarchy-port.git $PORT_DIR" >&2
+  exit 2
+fi
+# safe.directory: klon innego właściciela (np. sklonowany przez użytkownika) — inaczej każde
+# polecenie gita pada na „dubious ownership”
+g() { git -c safe.directory="$PORT_DIR" -C "$PORT_DIR" "$@"; }
+echo -e "\e[32m\nUpdate omarchy-port ($PORT_DIR)\e[0m"
+przed=$(g rev-parse --short HEAD)
+if ! g pull --ff-only; then
+  echo "omarchy-port-update: git pull --ff-only nie przeszedł — gałąź upstream przepisana albo lokalne zmiany w $PORT_DIR." >&2
+  echo "Sprawdź: git -C $PORT_DIR status; git -C $PORT_DIR log --oneline -3 @{upstream}" >&2
+  exit 1
+fi
+po=$(g rev-parse --short HEAD)
+if [[ $przed == "$po" ]]; then echo "port bez zmian ($po)"; else echo "port: $przed → $po"; fi
+exec "$PORT_DIR/port/install.sh" --update

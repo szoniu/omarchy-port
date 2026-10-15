@@ -1,0 +1,179 @@
+migracja	1786391100.sh	M sudo	—
+migracja	1786605598.sh	M pacman,limine,initramfs,sudo	—
+migracja	1786609204.sh	A —	—
+migracja	1786719479.sh	A —	—
+migracja	1786967403.sh	A —	—
+migracja	1787215824.sh	A —	—
+migracja	1787342993.sh	A —	—
+migracja	1787573629.sh	A —	—
+migracja	1787580187.sh	M —	—
+migracja	1787666837.sh	A —	—
+migracja	1787679775.sh	A —	—
+migracja	1787760281.sh	M —	—
+migracja	1788129995.sh	A pakiety	—
+migracja	1788163635.sh	A sudo	—
+migracja	1788256455.sh	A sudo	—
+migracja	1788261467.sh	A systemd	—
+migracja	1788279117.sh	A pacman,pakiety,sudo	—
+migracja	1788281348.sh	A —	—
+migracja	1788595060.sh	A —	—
+migracja	1788596255.sh	A pakiety	—
+migracja	1788862626.sh	A systemd,sudo	—
+migracja	1788941927.sh	A —	—
+migracja	1788996284.sh	A pacman	—
+migracja	1789091250.sh	A —	—
+migracja	1789095456.sh	A —	—
+migracja	1789130779.sh	A systemd	—
+migracja	1789294350.sh	A sudo	—
+migracja	1789310715.sh	A —	—
+migracja	1789764927.sh	A systemd,pakiety	—
+migracja	1790017600.sh	A —	—
+migracja	1790042972.sh	A —	—
+migracja	1790114905.sh	A systemd	—
+migracja	1790282866.sh	A —	—
+migracja	1790364978.sh	A sudo	—
+migracja	1790397381.sh	A —	—
+migracja	1790457067.sh	A —	—
+migracja	1790517230.sh	A limine,initramfs,sudo	—
+migracja	1790528634.sh	A pakiety	—
+migracja	1790539857.sh	A pakiety	—
+migracja	1790542069.sh	A pakiety	—
+migracja	1790702362.sh	A pakiety	—
+migracja	1790702606.sh	A —	—
+migracja	1790863209.sh	A —	—
+migracja	1790917415.sh	A sudo	—
+migracja	1790917571.sh	A systemd	—
+migracja	1790917620.sh	A pacman,sudo	—
+migracja	1790917773.sh	A limine,initramfs,sudo	—
+migracja	1790950659.sh	A systemd,limine,initramfs,plymouth,sudo	—
+migracja	1790953795.sh	A limine,initramfs,sudo	—
+migracja	1790973240.sh	A pakiety	—
+migracja	1790984400.sh	A limine,initramfs,sudo	—
+migracja	1790984500.sh	A systemd,pakiety,sudo	—
+migracja	1790984600.sh	A limine,initramfs,sudo	—
+migracja	1790984700.sh	A limine,initramfs,sudo	—
+migracja	1791077437.sh	A systemd,limine,initramfs,plymouth,pakiety,sudo	—
+migracja	1791112479.sh	A —	—
+migracja	1791123731.sh	A —	—
+migracja	1791125650.sh	A systemd,sudo	—
+migracja	1791134093.sh	A sudo	—
+migracja	1791147791.sh	A sudo	—
+migracja	1791152480.sh	A pacman,limine,initramfs,sudo	—
+migracja	1791265613.sh	A —	—
+migracja	1791345484.sh	A pakiety	—
+migracja	1791367434.sh	A pakiety	—
+migracja	1791376887.sh	A —	—
+migracja	1791403252.sh	A pacman,sudo	—
+migracja	1791403310.sh	A pakiety	—
+migracja	1791408113.sh	A limine,initramfs,sudo	—
+migracja	1791470456.sh	A —	—
+migracja	1791479273.sh	A —	—
+migracja	1791542175.sh	A pakiety	—
+migracja	1791581004.sh	A limine,initramfs,sudo	—
+migracja	1791640449.sh	A —	—
+migracja	1791676907.sh	A —	—
+migracja	1791696584.sh	A —	—
+migracja	1791698594.sh	A —	—
+migracja	1791705142.sh	A —	—
+migracja	1791708587.sh	A pakiety	—
+migracja	1791722809.sh	A —	—
+migracja	1791723398.sh	A —	—
+migracja	1791769486.sh	A pacman,systemd,limine,initramfs,pakiety,sudo	—
+migracja	1791784278.sh	A limine,initramfs,sudo	—
+migracja	1791867831.sh	A sudo	—
+migracja	1791875754.sh	A —	—
+migracja	1791898365.sh	A limine,sudo	—
+migracja	1791934674.sh	A —	—
+migracja	1791935188.sh	A —	—
+migracja	1791968925.sh	A —	—
+migracja	1791969355.sh	A —	—
+migracja	1792020559.sh	A —	—
+migracja	1792041364.sh	A pakiety	—
+krok	config/all.sh	M snapper	—
+krok	config/locale.sh	A —	—
+krok	hardware/all.sh	M pacman,limine,initramfs	—
+krok	hardware/apple/fix-brcmfmac-supplicant.sh	M —	—
+krok	hardware/apple/fix-spi-keyboard.sh	M initramfs,pakiety,sudo	—
+krok	hardware/apple/fix-t2.sh	M systemd,limine,initramfs,pakiety	—
+krok	hardware/asus/fix-asus-proart-p14-fkeys.sh	A initramfs	—
+krok	hardware/asus/fix-asus-proart-p14-speakers.sh	A pakiety	—
+krok	hardware/asus/fix-asus-proart-p14-touchpad.sh	A —	—
+krok	hardware/bluetooth.sh	M systemd	—
+krok	hardware/dell-xps13-ptl-speaker-firmware.sh	A pakiety	—
+krok	hardware/dell-xps13-sidecar-amps.sh	A pakiety,sudo	—
+krok	hardware/fix-elgato-camlink-4k.sh	A pakiety,sudo	—
+krok	hardware/fix-fkeys.sh	M sudo	—
+krok	hardware/fix-n1x-gpu-memory.sh	A —	—
+krok	hardware/fix-surface-keyboard.sh	M initramfs	—
+krok	hardware/fix-yt6801-ethernet-adapter.sh	M —	—
+krok	hardware/gb10/sleep.sh	A —	—
+krok	hardware/lenovo/start-yoga-slim7x-remoteprocs.sh	A —	—
+krok	hardware/lenovo/yoga-slim7x.sh	A systemd,limine,initramfs	—
+krok	hardware/n1x.sh	A systemd,limine,initramfs,plymouth,pakiety	—
+krok	hardware/nvidia.sh	M initramfs,pakiety	—
+krok	hardware/nvidia/dgx-spark-boot.sh	A limine	—
+krok	hardware/platform-setup.sh	A —	—
+krok	hardware/qualcomm/dtb-uki.sh	A systemd,limine,initramfs,pakiety,sudo	—
+krok	hardware/qualcomm/firmware.sh	A pakiety	—
+krok	hardware/qualcomm/initramfs.sh	A initramfs	—
+krok	hardware/qualcomm/kernel-params.sh	A limine	—
+krok	hardware/surface.sh	M pakiety	—
+krok	hardware/vulkan.sh	M pakiety	—
+krok	helpers/browser-policy.sh	M —	—
+krok	helpers/image-target.sh	A pacman,initramfs,kroki.tsv:post-install/pacman.sh	—
+krok	helpers/pacman.sh	A pacman	—
+krok	post-install/pacman.sh	M pacman,pakiety	pomiń
+krok	provisioning/luks-rekey.sh	A —	—
+krok	provisioning/setup-form.sh	M systemd	—
+krok	user/all.sh	M —	—
+krok	user/first-run/enable-user-units.sh	M systemd	—
+krok	user/hardware/vm-no-animations.sh	A —	—
+krok	user/input-method.sh	A —	—
+krok	user/mise-work.sh	M —	—
+krok	user/mise.sh	M —	podmień
+krok	user/platform-setup.sh	A —	—
+krok	user/theme.sh	M —	—
+krok	user/xcompose.sh	M —	—
+nakładka	omarchy-pkg-add	M 3 insertions(+), 3 deletions(-)
+nakładka	omarchy-pkg-aur-add	M 2 insertions(+), 2 deletions(-)
+nakładka	omarchy-pkg-aur-install	M 2 insertions(+), 1 deletion(-)
+nakładka	omarchy-pkg-drop	M 14 insertions(+), 3 deletions(-)
+nakładka	omarchy-pkg-install	M 1 insertion(+), 1 deletion(-)
+nakładka	omarchy-pkg-missing	M 1 insertion(+), 1 deletion(-)
+nakładka	omarchy-pkg-present	M 1 insertion(+), 1 deletion(-)
+nakładka	omarchy-pkg-remove	M 1 insertion(+), 1 deletion(-)
+nakładka	omarchy-update	M 130 insertions(+), 16 deletions(-)
+nakładka	omarchy-update-orphan-pkgs	M 5 insertions(+), 3 deletions(-)
+nakładka	omarchy-update-restart	M 54 insertions(+), 36 deletions(-)
+pakiet	base-devel	+	—
+pakiet	clang	-	jest
+pakiet	disktree-bin	+	—
+pakiet	dua-cli	-	jest
+pakiet	fcitx5-chewing	+	—
+pakiet	fcitx5-chinese-addons	+	—
+pakiet	fcitx5-hangul	+	—
+pakiet	fcitx5-mozc	+	—
+pakiet	fcitx5-table-extra	+	—
+pakiet	ffmpeg	+	—
+pakiet	gliff	+	—
+pakiet	hype	+	—
+pakiet	kdenlive	-	jest
+pakiet	lazydocker	-	jest
+pakiet	llvm	-	jest
+pakiet	monologue	+	—
+pakiet	obs-studio	-	zamiennik
+pakiet	omarchy-hyprland-titlebars	+	—
+pakiet	omasnap	+	—
+pakiet	owe	+	—
+pakiet	owe-lockfeed	+	—
+pakiet	qt6-base	+	—
+pakiet	qt6-declarative	+	—
+pakiet	qt6-multimedia	+	—
+pakiet	qt6-svg	+	—
+pakiet	qt6-wayland	+	—
+pakiet	signed	+	—
+pakiet	superwhisper-bin	+	—
+pakiet	tensaku	-	brak
+pakiet	vi	+	—
+pakiet	xournalpp	-	jest
+łatka	blokada-biezacy-stan.patch	nie pasuje — przejrzeć

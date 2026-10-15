@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# omarchy:summary=Check whether Omarchy updates are available.
+
+# omarchy-port (Void): nakładka na /usr/bin/omarchy-update-available (checkupdates pakietu omarchy →
+# nowy commit portu). Nowe wersje Omarchy przychodzą razem z portem (pin w share/upstream.env), więc
+# aktualizacja = inny commit na gałęzi, którą śledzi /opt/omarchy-port. Wersję zainstalowaną i adres
+# zapisuje orkiestrator (/var/lib/omarchy-port/wersja-portu) — tu sam `git ls-remote`, bez dostępu do
+# repo roota. Pakietów systemowych upstream tu nie liczy (tylko pakiet omarchy), port też nie.
+# Gałąź dev (OMARCHY_PATH poza /usr/share/omarchy) — bez zmian względem upstreamu.
+
+set -euo pipefail
+
+updates=()
+OMARCHY_PATH=${OMARCHY_PATH:-/usr/share/omarchy}
+
+if [[ $OMARCHY_PATH != "/usr/share/omarchy" ]]; then
+  upstream=$(git -C "$OMARCHY_PATH" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)
+  if [[ -n $upstream ]]; then
+    GIT_TERMINAL_PROMPT=0 timeout 10 git -C "$OMARCHY_PATH" fetch --quiet 2>/dev/null || true
+    behind=$(git -C "$OMARCHY_PATH" rev-list --count "HEAD..$upstream" 2>/dev/null || echo 0)
+    if (( behind > 0 )); then
+      commit_label=commits
+      (( behind == 1 )) && commit_label=commit
+      updates+=("omarchy-dev-checkout $behind new $commit_label on $upstream")
+    fi
+  fi
+fi
+
+if IFS=$'\t' read -r installed url ref </var/lib/omarchy-port/wersja-portu 2>/dev/null &&
+  [[ -n $installed && -n $url && -n $ref ]]; then
+  # ls-remote nie potrzebuje repo, ale git i tak czyta bieżący katalog — z nieczytelnego pada po cichu
+  remote=$(cd / && GIT_TERMINAL_PROMPT=0 timeout 10 git ls-remote "$url" "$ref" 2>/dev/null | cut -f1 || true)
+  # Klon przed upstreamem (lokalny commit, cofnięta gałąź) to nie aktualizacja — pull --ff-only i tak
+  # nic by nie zmienił. Obiekty klonu czytamy bez zapisu (safe.directory: repo należy do roota).
+  if [[ -n $remote && $remote != "$installed" ]] &&
+    ! git -c safe.directory=/opt/omarchy-port -C /opt/omarchy-port merge-base --is-ancestor "$remote" "$installed" 2>/dev/null; then
+    updates+=("omarchy-port ${installed:0:7} -> ${remote:0:7} (${ref#refs/heads/})")
+  fi
+fi
+
+if (( ${#updates[@]} > 0 )); then
+  printf '%s\n' "${updates[@]}"
+  exit 0
+else
+  echo "Omarchy is up to date"
+  exit 1
+fi
