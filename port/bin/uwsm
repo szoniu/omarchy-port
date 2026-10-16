@@ -1,5 +1,6 @@
 #!/bin/sh
-# omarchy-port: minimalny `uwsm` dla systemów bez systemd. Instalowany TYLKO gdy prawdziwego nie ma.
+# omarchy-port: minimalny `uwsm` dla systemów bez systemd. Bez systemd instalowany zawsze — uwsm z pakietu
+# stawia sesję z unitów systemd --user, więc i tak by nie zadziałał.
 #   uwsm start …         → sesja portu (omarchy.desktop z Omarchy ma Exec=uwsm start … i TryExec=uwsm;
 #                          motyw SDDM Omarchy WYBIERA sesję z „uwsm” w nazwie — musi działać)
 #   uwsm stop            → koniec sesji (omarchy-system-logout: `sleep 2 && uwsm stop`)
@@ -9,8 +10,13 @@ case ${1:-} in
   start)
     exec /usr/libexec/omarchy-port/session ;;
   stop)
-    if [ -n "${XDG_SESSION_ID:-}" ]; then
-      exec loginctl terminate-session "$XDG_SESSION_ID"
+    # sesja Hyprlanda tego użytkownika, nie wołającego: z SSH (pam_elogind) XDG_SESSION_ID wskazuje sesję SSH,
+    # a prawdziwy uwsm stop kończy pulpit niezależnie od tego, skąd go wywołano
+    sid=
+    hpid=$(pgrep -u "$(id -u)" -x Hyprland | head -1)
+    [ -n "$hpid" ] && sid=$(tr '\0' '\n' <"/proc/$hpid/environ" 2>/dev/null | sed -n 's/^XDG_SESSION_ID=//p')
+    if [ -n "$sid" ]; then
+      exec loginctl terminate-session "$sid"
     fi
     exec pkill -TERM -u "$(id -u)" -x Hyprland ;;
   app)

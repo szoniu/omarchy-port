@@ -44,9 +44,13 @@ units=()
 for a in "$@"; do [[ $a == -* ]] || units+=("$a"); done
 
 case $verb in
-  reboot|poweroff|suspend|hibernate|hybrid-sleep|suspend-then-hibernate)
-    exec loginctl "$verb" ;;
-  halt) exec loginctl poweroff ;;
+  reboot|poweroff|suspend|hibernate|hybrid-sleep|suspend-then-hibernate|halt)
+    [[ $verb == halt ]] && verb=poweroff
+    # systemctl sprawdza z góry inne sesje i blokady tylko na terminalu; z menu i timera (omarchy-system-reboot)
+    # decyduje logind z polkitem. loginctl z elogind sprawdza zawsze, więc bez -i menu nie restartowało przy
+    # żadnej innej sesji (np. SSH) i kończyło się cichym błędem. Blokad typu block nadal pilnuje logind.
+    if [[ -t 1 && -t 2 ]]; then exec loginctl "$verb"; fi
+    exec loginctl -i "$verb" ;;
   daemon-reload|daemon-reexec|reset-failed) exit 0 ;;
 esac
 
