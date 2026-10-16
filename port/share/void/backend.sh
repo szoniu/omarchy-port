@@ -27,10 +27,18 @@ dyst_repozytoria() {
   synchro xbps-install -Syu xbps   # najpierw sam xbps — Void wymaga aktualnego xbps przed resztą
   synchro xbps-install -y void-repo-nonfree
   synchro xbps-install -S
-  fp=$(xbps-query -vL </dev/null | awk -v u="$BH_URL" '
+  local repozytoria
+  repozytoria=$(xbps-query -vL </dev/null)
+  # xbps-install -S zwraca 0 także wtedy, gdy indeksu jednego repo nie pobrał (sieć, TLS) — takie repo ma
+  # licznik pakietów -1, a bez tego sprawdzenia kończyło się mylącym „podpisane kluczem nieznanym”
+  if [[ $(awk -v u="$BH_URL" '$2 == u { print $1; exit }' <<<"$repozytoria") == -1 ]]; then
+    odrzuc_blackhole
+    die "repo blackhole ($BH_URL) się nie zsynchronizowało — xbps nie pobrał indeksu (sieć albo TLS, błąd wyżej); repo usunięte"
+  fi
+  fp=$(awk -v u="$BH_URL" '
     $2 == u { w = 1; next }
     w && $1 ~ /^[0-9]+$/ && $2 ~ /^https?:/ { exit }
-    w && NF == 2 && $2 ~ /^[0-9a-f]{2}(:[0-9a-f]{2})+$/ { print $2; exit }')
+    w && NF == 2 && $2 ~ /^[0-9a-f]{2}(:[0-9a-f]{2})+$/ { print $2; exit }' <<<"$repozytoria")
   if [[ $fp != "$BH_FP" ]]; then
     odrzuc_blackhole
     die "repo blackhole podpisane kluczem ${fp:-nieznanym}, a przypięty to $BH_FP — repo usunięte"

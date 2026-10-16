@@ -1,7 +1,7 @@
 #!/bin/sh
 # omarchy-port: `timedatectl` bez systemd. Instalowany TYLKO gdy prawdziwego nie ma.
 # Formy z Omarchy: list-timezones, show -p Timezone --value, set-timezone <strefa>.
-# Void trzyma strefę w /etc/localtime (symlink) + TIMEZONE w /etc/rc.conf (stosowane przy starcie).
+# Void trzyma strefę w /etc/localtime (symlink) + TIMEZONE w /etc/rc.conf (stosowane przy starcie); Gentoo tylko /etc/localtime.
 ZONEINFO=/usr/share/zoneinfo
 case ${1:-} in
   list-timezones)
@@ -20,7 +20,8 @@ case ${1:-} in
     [ -f "$ZONEINFO/$tz" ] || { echo "Failed to set time zone: Invalid or not installed time zone '$tz'" >&2; exit 1; }
     [ "$(id -u)" = 0 ] || { echo "Failed to set time zone: Access denied (omarchy-port: wymaga roota — użyj sudo)" >&2; exit 4; }
     ln -sf "$ZONEINFO/$tz" /etc/localtime
-    if [ -f /etc/rc.conf ]; then
+    # TIMEZONE w /etc/rc.conf czyta tylko Void — na Gentoo to config OpenRC, a strefę daje /etc/localtime
+    if [ -f /etc/rc.conf ] && command -v xbps-install >/dev/null; then
       if grep -q '^TIMEZONE=' /etc/rc.conf; then sed -i "s|^TIMEZONE=.*|TIMEZONE=\"$tz\"|" /etc/rc.conf
       else echo "TIMEZONE=\"$tz\"" >>/etc/rc.conf; fi
     fi ;;

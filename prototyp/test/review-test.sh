@@ -13,27 +13,42 @@ mkdir -p ~/.config/systemd/user
 echo "### #2 is-active usługi systemowej bez roota"
 t "sshd active jako user" '[[ $(systemctl is-active sshd.service) == active ]]'
 echo "### #9 disable bez --now nie zatrzymuje, enable/--now"
-sudo systemctl disable uuidd.service; sleep 1
-t "uuidd po disable: is-enabled=disabled" '[[ $(systemctl is-enabled uuidd.service) == disabled ]]'
-sudo systemctl enable --now uuidd.service
-t "enable --now: uuidd active od razu" '[[ $(systemctl is-active uuidd.service) == active ]]'
-sudo systemctl disable uuidd.service; sleep 6
-t "disable (bez --now): uuidd dalej active" '[[ $(systemctl is-active uuidd.service) == active ]]'
-sudo systemctl disable --now uuidd.service; sleep 6
-t "disable --now: uuidd zatrzymany" '[[ $(systemctl is-active uuidd.service) == inactive ]]'
-sudo systemctl enable uuidd.service >/dev/null
+# usługa testowa jak w uslugi-test.sh: runit uuidd, OpenRC rsyncd (uuidd na Gentoo wymaga USE uuidd w util-linux)
+U=uuidd
+[[ -d /run/openrc ]] && U=rsyncd
+byla=$(systemctl is-enabled $U.service)
+sudo systemctl disable $U.service; sleep 1
+t "$U po disable: is-enabled=disabled" '[[ $(systemctl is-enabled $U.service) == disabled ]]'
+sudo systemctl enable --now $U.service
+t "enable --now: $U active od razu" '[[ $(systemctl is-active $U.service) == active ]]'
+sudo systemctl disable $U.service; sleep 6
+t "disable (bez --now): $U dalej active" '[[ $(systemctl is-active $U.service) == active ]]'
+sudo systemctl disable --now $U.service; sleep 6
+t "disable --now: $U zatrzymany" '[[ $(systemctl is-active $U.service) == inactive ]]'
+if [[ $byla == enabled ]]; then sudo systemctl enable $U.service >/dev/null; fi
 echo "### #10 enable usługi bez pakietu"
 sudo systemctl enable supergfxd.service 2>/dev/null; rc=$?
-t "supergfxd: rc≠0 i brak wiszącego linku" '(( rc != 0 )) && [[ ! -L /var/service/supergfxd ]]'
+t "supergfxd: rc≠0 i brak wiszącego wpisu w initcie" '(( rc != 0 )) && [[ ! -L /var/service/supergfxd && -z $(compgen -G "/etc/runlevels/*/supergfxd") ]]'
 echo "### #4 timery roota widoczne dla systemctl"
 sudo systemd-run --on-active=60s --unit=omarchy-test-root true
 t "sudo systemctl is-active X.timer = active" '[[ $(sudo systemctl is-active omarchy-test-root.timer) == active ]]'
 sudo systemctl stop omarchy-test-root.timer
 t "po stop: inactive" '[[ $(sudo systemctl is-active omarchy-test-root.timer) == inactive ]]'
-echo "### #4b reguła tmpfiles przy boocie (core-service)"
+echo "### #4b reguła tmpfiles przy boocie"
+# most: to, co uruchamia reguły przy starcie (OpenRC: systemd-tmpfiles-setup w runlevelu startowym, runit:
+# core-service portu) — bez niego grant przeżyłby restart, choć same reguły niżej działają
+if [[ -d /run/openrc ]]; then
+  t "systemd-tmpfiles-setup w runlevelu boot albo sysinit" '[[ -L /etc/runlevels/boot/systemd-tmpfiles-setup || -L /etc/runlevels/sysinit/systemd-tmpfiles-setup ]]'
+else
+  t "core-service 90-omarchy-port-tmpfiles.sh na miejscu" '[[ -f /etc/runit/core-services/90-omarchy-port-tmpfiles.sh ]]'
+fi
 echo 'szoniu ALL=(ALL) NOPASSWD: /bin/true' | sudo tee /etc/sudoers.d/99-omarchy-nopasswd-test >/dev/null
-sudo sh -c '. /etc/runit/core-services/90-omarchy-port-tmpfiles.sh'
-t "grant NOPASSWD usunięty przez core-service" '[[ ! -e /etc/sudoers.d/99-omarchy-nopasswd-test ]]'
+# OpenRC: to samo, co robi przy starcie systemd-tmpfiles-setup, tylko dla reguł Omarchy (pełny przebieg
+# --remove na żywym systemie czyściłby też /tmp); runit: core-service portu
+if [[ -d /run/openrc ]]; then sudo sh -c 'systemd-tmpfiles --remove --boot /etc/tmpfiles.d/omarchy*.conf'
+else sudo sh -c '. /etc/runit/core-services/90-omarchy-port-tmpfiles.sh'; fi
+# przez sudo: /etc/sudoers.d ma 0750 root, więc użytkownik nie widzi plików w środku i samo -e zawsze mówi „nie ma”
+t "grant NOPASSWD usunięty przez reguły tmpfiles" '! sudo test -e /etc/sudoers.d/99-omarchy-nopasswd-test'
 echo "### #3 systemd-run: --wait po poleceniu idzie do programu; --unit w tle widoczny"
 systemd-run --user --quiet --unit=omarchy-test-args sh -c 'echo "$@" > /tmp/args-test; sleep 30' _ --wait
 sleep 1

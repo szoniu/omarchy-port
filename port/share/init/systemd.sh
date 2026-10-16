@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# shellcheck disable=SC2034  # USLUGI_BAZOWE czyta install.sh (etap 9)
+# shellcheck disable=SC2034  # USLUGI_BAZOWE i INIT_PAKIETY* czyta install.sh (etapy 2 i 9)
 # omarchy-port: init systemd (Gentoo) dla install.sh — prawdziwe systemctl, bez shimów portu.
 
 init_pid() { # init_pid <usługa> — PID procesu głównego działającej usługi (0 = nie działa)
@@ -17,3 +17,6 @@ init_przeladuj_sshd() {
 # dbus i polkit są na systemd aktywowane same; NTP jak na Archu — systemd-timesyncd
 # (omarchy-update-time restartuje właśnie tę usługę).
 USLUGI_BAZOWE=(systemd-timesyncd)
+# pakiety zależne od initu (etap 2) — tu bez zmian względem dane/pakiety-<dystrybucja>.txt
+INIT_PAKIETY_BEZ=()
+INIT_PAKIETY=()

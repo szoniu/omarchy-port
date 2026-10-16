@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# omarchy-port: pełne Omarchy na Voidzie (glibc, x86_64, runit) albo Gentoo (amd64, systemd) —
+# omarchy-port: pełne Omarchy na Voidzie (glibc, x86_64, runit) albo Gentoo (amd64, systemd albo OpenRC) —
 # orkiestrator. Jako root, na DZIAŁAJĄCYM systemie z siecią, gitem i istniejącym użytkownikiem (taki
 # stan zostawia instalator szoniu/void albo szoniu/gentoo + git). Idempotentny: ponowne uruchomienie
 # dociąga to, czego brakuje. Część zależna od dystrybucji i initu: share/<dystrybucja>/backend.sh
@@ -31,11 +31,11 @@
 #   7. kroki install/ jako root, pojedynczo; pominięcia i podmiany: share/<dystrybucja>/kroki.tsv; przed
 #      config/firewall.sh włączony sshd dostaje regułę z Setup > Security > SSH (ufw limit 22/tcp)
 #   8. omarchy-provision-user jako użytkownik, na tym samym drzewie kroków — tylko dopóki nie przeszło
-#   9. usługi bazowe initu (runit: dbus, polkitd, chronyd; systemd: timesyncd); dhcpcd wyłączony,
+#   9. usługi bazowe initu (runit: dbus, polkitd, chronyd; systemd: timesyncd; OpenRC: dbus, elogind, chronyd); dhcpcd wyłączony,
 #      gdy sieć przejmuje NetworkManager;
 #      SDDM dostaje ostatniego użytkownika (motyw Omarchy nie ma pola użytkownika)
 # Usługi włączane w trakcie (krok enable-services i etap 9) NIE startują od razu — wstają przy
-# następnym starcie systemu (na runit: shim systemctl w trybie OMARCHY_PORT_INSTALL).
+# następnym starcie systemu (na runit: shim systemctl w trybie OMARCHY_PORT_INSTALL; na OpenRC rc-update add nie startuje).
 # Przy --update etapy 6–9 nie idą, z jednym wyjątkiem: instalacja sprzed omarchy-port#8 (krok
 # config/firewall.sh pominięty) dostaje firewall raz — ufw rusza przy następnym starcie systemu.
 #
@@ -151,6 +151,15 @@ dyst_repozytoria
 # ---------------------------------------------------------------------------------------------
 etap "2/9 pakiety"
 mapfile -t PAKIETY < <(grep -v '^#' "$REPO/dane/pakiety-$DYSTR.txt" | tr -s ' ' '\n' | sed '/^$/d')
+# pakiety zależne od initu (share/init/<init>.sh) — na OpenRC bez uwsm, z elogind i chrony
+if (( ${#INIT_PAKIETY_BEZ[@]} )); then
+  mapfile -t PAKIETY < <(printf '%s\n' "${PAKIETY[@]}" | grep -vxF -f <(printf '%s\n' "${INIT_PAKIETY_BEZ[@]}"))
+  echo "bez pakietów (init $INIT): ${INIT_PAKIETY_BEZ[*]}"
+fi
+if (( ${#INIT_PAKIETY[@]} )); then
+  PAKIETY+=("${INIT_PAKIETY[@]}")
+  echo "dodane pakiety (init $INIT): ${INIT_PAKIETY[*]}"
+fi
 echo "pakietów na liście: ${#PAKIETY[@]}"
 dyst_pakiety "${PAKIETY[@]}"
 # OpenSSH ≥ 9.8 przy każdym połączeniu uruchamia sshd-session z dysku: po aktualizacji openssh nowy
