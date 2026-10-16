@@ -82,7 +82,7 @@ if [[ $INIT == openrc ]]; then
   echo "### OpenRC: usługa padła (crashed)"
   systemctl start "$U.service"
   kill -9 "$(cat "/run/$U.pid")"; sleep 1
-  t "rc-service widzi crashed" '[[ $(rc-service "$U" status 2>/dev/null) == *crashed* ]]'
+  t "rc-service widzi crashed" '[[ $(rc-service "$U" status 2>&1) == *crashed* ]]   # crashed idzie na stderr'
   out=$(systemctl is-active "$U.service"); rc=$?
   t "is-active po padnięciu: inactive, rc 3" '[[ $out == inactive && $rc == 3 ]]'
   systemctl restart "$U.service"
