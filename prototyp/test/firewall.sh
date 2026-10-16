@@ -23,9 +23,12 @@ sprawdz() { # sprawdz <co> <oczekiwane> <jest>
 st=$(ufw status | sed -n 's/^Status: //p')
 sprawdz "ufw status" active "$st"
 sprawdz "ENABLED w /etc/ufw/ufw.conf" yes "$(sed -n 's/^ENABLED=//p' /etc/ufw/ufw.conf)"
-# stan initu wprost, nie przez shim portu: runit — link w /var/service bez pliku down; systemd — systemctl
+# stan initu wprost, nie przez shim portu: systemd — systemctl; OpenRC — runlevel default;
+# runit — link w /var/service bez pliku down
 if [[ -d /run/systemd/system ]]; then
   sprawdz "usługa ufw włączona (systemd)" tak "$(systemctl -q is-enabled ufw.service && echo tak || echo nie)"
+elif [[ -d /run/openrc ]]; then
+  sprawdz "usługa ufw włączona (OpenRC: runlevel default)" tak "$([[ -L /etc/runlevels/default/ufw ]] && echo tak || echo nie)"
 else
   sprawdz "usługa ufw włączona (runit: /var/service/ufw bez down)" tak \
     "$([[ -L /var/service/ufw && ! -e /etc/sv/ufw/down ]] && echo tak || echo nie)"
@@ -55,7 +58,7 @@ sprawdz "domyślnie: deny (incoming), allow (outgoing)" tak \
 sprawdz "ufw-docker w /usr/bin (pakiet portu)" tak "$([[ -x /usr/bin/ufw-docker ]] && echo tak || echo nie)"
 sprawdz "blok ufw-docker w after.rules" 1 "$(grep -c '^# BEGIN UFW AND DOCKER' /etc/ufw/after.rules || true)"
 sprawdz "blok ufw-docker w after6.rules" 1 "$(grep -c '^# BEGIN UFW AND DOCKER' /etc/ufw/after6.rules || true)"
-# Kolejność startu ufw i dockera w runit jest dowolna — łańcuch DOCKER-USER ma mieć reguły ufw-docker
+# Kolejność startu ufw i dockera bez systemd (runit, OpenRC) bywa dowolna — łańcuch DOCKER-USER ma mieć reguły ufw-docker
 # niezależnie od tego, kto wstał pierwszy.
 docker_user=$(iptables -S DOCKER-USER 2>/dev/null) || docker_user=
 sprawdz "DOCKER-USER → ufw-user-forward" tak \
