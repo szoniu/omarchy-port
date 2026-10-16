@@ -128,13 +128,6 @@ case $INIT in
     # PipeWire: pipewire, pipewire-pulse i WirePlumbera startuje nadzorca unitów sesji, jak
     # gentoo-pipewire-launcher (z XDG autostart, którego sesja Hyprlanda nie uruchamia). Bez conf.d w /etc:
     # działałby dla całego systemu i podwajał WirePlumbera innym pulpitom na tej samej maszynie.
-    # Pliki z wcześniejszej wersji portu (nagłówek „omarchy-port (OpenRC)”) znikają; cudze zostają.
-    for f in /etc/pipewire/pipewire.conf.d/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/20-pipewire-pulse.conf; do
-      if [[ -f $f ]] && head -1 "$f" | /usr/bin/grep -q '^# omarchy-port (OpenRC)'; then
-        rm -f "$f"
-        echo "pipewire: usunięty $f (wcześniejsza wersja portu)"
-      fi
-    done
     echo "pipewire: pulse i WirePlumber startuje nadzorca unitów sesji (bez conf.d w /etc)"
     # Reguły tmpfiles Omarchy przy starcie (m.in. sprzątanie „sudo bez hasła”) stosuje na Gentoo
     # systemd-tmpfiles-setup z systemd-utils[tmpfiles] (--create --remove --boot) — port pilnuje tylko,

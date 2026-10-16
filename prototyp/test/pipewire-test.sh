@@ -35,6 +35,16 @@ if command -v gentoo-pipewire-launcher >/dev/null; then
   systemctl --user start pipewire.service; sleep 3
   trojka "sesja po powrocie"
   t "sesja po powrocie: domyślny sink" 'wpctl inspect @DEFAULT_AUDIO_SINK@ >/dev/null 2>&1'
+
+  echo "### pozostałość innego pulpitu (launcher, wylogowanie bez zabijania procesów), potem restart dźwięku sesji"
+  pkill -u "$(id -u)" -x 'pipewire|wireplumber'; sleep 1
+  setsid gentoo-pipewire-launcher >/dev/null 2>&1 </dev/null &
+  sleep 5
+  stary=$(pgrep -u "$(id -u)" -fx '/usr/bin/pipewire')
+  systemctl --user restart pipewire.service; sleep 3
+  t "główny pipewire launchera zatrzymany (był: ${stary:-brak})" '[[ -n $stary ]] && ! kill -0 $stary 2>/dev/null'
+  trojka "sesja po restarcie"
+  t "sesja po restarcie: domyślny sink" 'wpctl inspect @DEFAULT_AUDIO_SINK@ >/dev/null 2>&1'
 fi
 echo "FAIL: $FAIL"
 ((FAIL == 0))

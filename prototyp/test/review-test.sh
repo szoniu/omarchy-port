@@ -35,6 +35,13 @@ t "sudo systemctl is-active X.timer = active" '[[ $(sudo systemctl is-active oma
 sudo systemctl stop omarchy-test-root.timer
 t "po stop: inactive" '[[ $(sudo systemctl is-active omarchy-test-root.timer) == inactive ]]'
 echo "### #4b reguła tmpfiles przy boocie"
+# most: to, co uruchamia reguły przy starcie (OpenRC: systemd-tmpfiles-setup w runlevelu startowym, runit:
+# core-service portu) — bez niego grant przeżyłby restart, choć same reguły niżej działają
+if [[ -d /run/openrc ]]; then
+  t "systemd-tmpfiles-setup w runlevelu boot albo sysinit" '[[ -L /etc/runlevels/boot/systemd-tmpfiles-setup || -L /etc/runlevels/sysinit/systemd-tmpfiles-setup ]]'
+else
+  t "core-service 90-omarchy-port-tmpfiles.sh na miejscu" '[[ -f /etc/runit/core-services/90-omarchy-port-tmpfiles.sh ]]'
+fi
 echo 'szoniu ALL=(ALL) NOPASSWD: /bin/true' | sudo tee /etc/sudoers.d/99-omarchy-nopasswd-test >/dev/null
 # OpenRC: to samo, co robi przy starcie systemd-tmpfiles-setup, tylko dla reguł Omarchy (pełny przebieg
 # --remove na żywym systemie czyściłby też /tmp); runit: core-service portu

@@ -63,8 +63,10 @@ to_seconds() {
 # Inne instancje pipewire (np. omarchy-speaker-tuning: `pipewire -c omarchy-speaker-tuning.conf`)
 # NIE są „dźwiękiem” w sensie tych pseudo-unitów i nie wolno ich zabijać.
 is_audio() { case $1 in pipewire.service|pipewire.socket|pipewire-pulse.service|pipewire-pulse.socket|wireplumber.service) return 0 ;; esac; return 1; }
-audio_pids() { pgrep -u "$UID_" -fx pipewire; pgrep -u "$UID_" -fx '(/usr/bin/)?pipewire -c pipewire-pulse.conf'; pgrep -u "$UID_" -x wireplumber; }
-audio_active() { pgrep -u "$UID_" -fx pipewire >/dev/null; }
+# Główny demon także jako /usr/bin/pipewire: tak startuje go gentoo-pipewire-launcher innego pulpitu, a po
+# wylogowaniu stamtąd (elogind nie zabija procesów) zostaje z martwą magistralą D-Bus tamtej sesji.
+audio_pids() { pgrep -u "$UID_" -fx '(/usr/bin/)?pipewire'; pgrep -u "$UID_" -fx '(/usr/bin/)?pipewire -c pipewire-pulse.conf'; pgrep -u "$UID_" -x wireplumber; }
+audio_active() { pgrep -u "$UID_" -fx '(/usr/bin/)?pipewire' >/dev/null; }
 audio_conf_d() { compgen -G '/etc/pipewire/pipewire.conf.d/*wireplumber*.conf' >/dev/null; }
 audio_start() {
   audio_active && return 0

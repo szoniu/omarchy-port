@@ -24,14 +24,16 @@ usl_runlevel() {
 
 # Stan z `rc-service <nazwa> status` („* status: started|stopped|crashed|…”) — oba strumienie, bo
 # „crashed” OpenRC wypisuje przez eerror na stderr. Gdyby bez roota rc-service nie odpowiedział, zostaje
-# katalog stanu OpenRC (/run/openrc/started — czytelny dla wszystkich).
+# katalog stanu OpenRC (/run/openrc/started, /run/openrc/inactive — czytelne dla wszystkich).
+# „inactive” to działający demon, który sam oznaczył się jako niegotowy (NetworkManager bez połączenia
+# przy starcie: mark_service_inactive) — dla systemd to usługa aktywna, a stop ma ją zatrzymać.
 usl_stan() {
   local st
   st=$("$RC_SERVICE" "$1" status 2>&1 | sed -n 's/.*status: *\([a-z]*\).*/\1/p' | head -1)
   case $st in
-    started) echo run ;;
+    started|inactive) echo run ;;
     crashed) echo crashed ;;
-    '') if [[ -e /run/openrc/started/$1 ]]; then echo run; else echo down; fi ;;
+    '') if [[ -e /run/openrc/started/$1 || -e /run/openrc/inactive/$1 ]]; then echo run; else echo down; fi ;;
     *) echo down ;;
   esac
 }

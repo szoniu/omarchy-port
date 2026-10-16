@@ -95,6 +95,16 @@ if [[ $INIT == openrc ]]; then
   t "restart podnosi usługę po padnięciu" 'dziala $U'
   systemctl stop "$U.service"
 
+  echo "### OpenRC: usługa inactive (demon działa — jak NetworkManager bez połączenia przy starcie)"
+  systemctl start "$U.service"
+  RC_SVCNAME=$U /usr/libexec/rc/sbin/mark_service_inactive "$U"   # to samo woła skrypt NetworkManagera
+  t "rc-service widzi inactive" '[[ $(rc-service "$U" status 2>&1) == *inactive* ]]'
+  out=$(systemctl is-active "$U.service"); rc=$?
+  t "is-active usługi inactive: active, rc 0" '[[ $out == active && $rc == 0 ]]'
+  systemctl stop "$U.service"
+  t "stop zatrzymuje usługę inactive" '[[ $(rc-service "$U" status 2>&1) == *stopped* ]] && ! pgrep -f "^/usr/bin/rsync --daemon" >/dev/null'
+  rc-service "$U" zap >/dev/null 2>&1; pkill -f "^/usr/bin/rsync --daemon"   # sprzątanie, gdyby stop nie zadziałał
+
   echo "### OpenRC: runlevel z mapy (elogind@boot)"
   if [[ -x /etc/init.d/elogind ]]; then
     systemctl enable elogind.service
