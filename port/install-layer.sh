@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# omarchy-port: instalacja warstwy zgodności (Void/runit, Gentoo/systemd). Jako root, idempotentnie.
+# omarchy-port: instalacja warstwy zgodności (Void/runit, Gentoo/systemd i OpenRC). Jako root, idempotentnie.
 #   shimy (systemctl, systemd-run, systemd-cat, uwsm-app, xdg-terminal-exec) → /usr/local/bin,
-#       TYLKO gdy prawdziwego polecenia nie ma (na Gentoo z systemd żaden nie powstaje);
+#       TYLKO gdy prawdziwego polecenia nie ma (na Gentoo z systemd żaden nie powstaje) — poza uwsm
+#       i uwsm-app, które bez systemd zostają zawsze;
 #   nakładki (omarchy-pkg-*, omarchy-version*, omarchy-update*), polecenia portu (omarchy-port-*)
 #       i dyspozytor `omarchy` przez /usr/share/omarchy/bin (SSH, TTY) → /usr/local/bin, zawsze —
 #       /usr/local/bin jest w PATH i w secure_path sudo PRZED /usr/bin z plikami Omarchy,
 #       a linki w /usr/share/omarchy/bin (PATH sesji) są przekierowane na nakładki;
 #   dane (mapa pakietów i backend pakietów dystrybucji: share/<dystrybucja>/pkg.sh) → /usr/share/omarchy-port,
-#   na runit sesja bez uwsm → /usr/libexec/omarchy-port + wayland-sessions, a usługi startowe portu →
-#       /etc/runit/core-services (na systemd sesja idzie upstreamowym omarchy.desktop przez uwsm),
+#   na runit i OpenRC sesja bez uwsm → /usr/libexec/omarchy-port + wayland-sessions (shimy uwsm zawsze),
+#       na runit usługi startowe portu → /etc/runit/core-services, na OpenRC PipeWire z conf.d portu
+#       i systemd-tmpfiles-setup w runlevelu startowym (na systemd sesja idzie upstreamowym
+#       omarchy.desktop przez uwsm),
+#   backend usług shima systemctl (share/init/<init>-uslugi.sh) → /usr/share/omarchy-port/uslugi-backend.sh,
 #   greeter SDDM → config portu (upstreamowy + no_update_news) przez /etc/sddm.conf.d,
 #   migracje pominięte/podmienione na dystrybucji (share/<dystrybucja>/migracje.tsv) i migracje samego
 #       portu, gdy branding przeszedł (share/<dystrybucja>/migracje-portu) → /usr/share/omarchy/migrations,
@@ -56,6 +60,12 @@ done
 
 for shim in systemctl systemd-run systemd-cat systemd-inhibit timedatectl uwsm uwsm-app xdg-terminal-exec; do
   real=$(PATH=/usr/bin:/bin:/usr/sbin:/sbin command -v "$shim" || true)
+  # uwsm stawia sesję z unitów systemd --user — bez systemd nie zadziała, nawet zainstalowany. Na runit
+  # i OpenRC shim portu zostaje zawsze; /usr/local/bin jest w PATH przed /usr/bin, więc go przesłania.
+  if [[ -n $real && $INIT != systemd && $shim == uwsm* ]]; then
+    echo "UWAGA: $real na $INIT nie uruchomi sesji — shim portu /usr/local/bin/$shim go przesłania" >&2
+    real=
+  fi
   if [[ -n $real ]]; then
     echo "pomijam shim $shim — jest $real"
     rm -f "/usr/local/bin/$shim"   # stary shim nie może przesłaniać prawdziwego polecenia
@@ -88,6 +98,17 @@ else
   echo "UWAGA: brak /usr/share/omarchy/bin — puść install-layer.sh ponownie po instalacji plików Omarchy" >&2
 fi
 
+# Sesja bez uwsm (runit, OpenRC): dbus-run-session → nadzorca unitów → start-hyprland. Plik sesji
+# z szablonu z nazwą dystrybucji (Void: omarchy-void.desktop jak dotąd); motyw SDDM Omarchy i tak wybiera
+# omarchy.desktop (uwsm start …), który przez shim uwsm prowadzi do tej samej sesji.
+case $INIT in
+  runit|openrc)
+    install -m 755 "$SRC/session/session" /usr/libexec/omarchy-port/session
+    sed "s/@DYSTRYBUCJA@/${DYSTR^}/" "$SRC/session/omarchy-port.desktop.in" >"/usr/share/wayland-sessions/omarchy-$DYSTR.desktop"
+    echo "sesja: /usr/libexec/omarchy-port/session (wayland-sessions/omarchy-$DYSTR.desktop)"
+    ;;
+esac
+
 case $INIT in
   runit)
     # PipeWire na Voidzie: WirePlumber i serwer pulse jako moduły pipewire (Void Handbook) — nadzorca
@@ -96,16 +117,31 @@ case $INIT in
     ln -sfn /usr/share/examples/wireplumber/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/
     ln -sfn /usr/share/examples/pipewire/20-pipewire-pulse.conf /etc/pipewire/pipewire.conf.d/
     echo "pipewire: wireplumber + pulse jako moduły"
-
-    install -m 755 "$SRC/session/session" /usr/libexec/omarchy-port/session
     # reguły tmpfiles Omarchy przy boocie (Void nie ma systemd-tmpfiles) — m.in. sprzątanie „sudo bez hasła”
     install -m 644 "$SRC/share/runit/90-omarchy-port-tmpfiles.sh" /etc/runit/core-services/
     echo "core-service: /etc/runit/core-services/90-omarchy-port-tmpfiles.sh"
     # usługi włączone w trakcie instalacji (shim systemctl, tryb OMARCHY_PORT_INSTALL) startują przy boocie
     install -m 644 "$SRC/share/runit/91-omarchy-port-start-at-boot.sh" /etc/runit/core-services/
     echo "core-service: /etc/runit/core-services/91-omarchy-port-start-at-boot.sh"
-    install -m 644 "$SRC/session/omarchy-void.desktop" /usr/share/wayland-sessions/
-    echo "sesja: /usr/libexec/omarchy-port/session"
+    ;;
+  openrc)
+    # PipeWire jak na Voidzie (jeden `pipewire` od nadzorcy unitów, WirePlumber i pulse z conf.d), ale
+    # pliki daje port — Gentoo bez systemd ma zamiast nich gentoo-pipewire-launcher z XDG autostart,
+    # którego sesja Hyprlanda nie uruchamia
+    install -d /etc/pipewire/pipewire.conf.d
+    install -m 644 "$SRC"/share/openrc/pipewire.conf.d/*.conf /etc/pipewire/pipewire.conf.d/
+    echo "pipewire: wireplumber + pulse jako moduły (pliki portu)"
+    # Reguły tmpfiles Omarchy przy starcie (m.in. sprzątanie „sudo bez hasła”) stosuje na Gentoo
+    # systemd-tmpfiles-setup z systemd-utils[tmpfiles] (--create --remove --boot) — port pilnuje tylko,
+    # że jest w runlevelu startowym
+    if [[ -L /etc/runlevels/sysinit/systemd-tmpfiles-setup || -L /etc/runlevels/boot/systemd-tmpfiles-setup ]]; then
+      echo "tmpfiles: systemd-tmpfiles-setup w runlevelu startowym"
+    elif [[ -x /etc/init.d/systemd-tmpfiles-setup ]]; then
+      rc-update add systemd-tmpfiles-setup boot
+      echo "tmpfiles: systemd-tmpfiles-setup dodany do runlevelu boot"
+    else
+      echo "UWAGA: brak /etc/init.d/systemd-tmpfiles-setup (sys-apps/systemd-utils[tmpfiles]) — reguły tmpfiles Omarchy nie zadziałają przy starcie, m.in. tymczasowe sudo bez hasła przeżyje restart" >&2
+    fi
     ;;
   systemd)
     # Jak w Archu: PipeWire, serwer pulse i WirePlumber jako unity systemd --user. Arch włącza je
@@ -117,8 +153,8 @@ case $INIT in
         echo "UWAGA: systemctl --global enable $u nie powiódł się — brak unitu (pipewire bez USE sound-server?)" >&2
       fi
     done
-    # Sesja: upstreamowy omarchy.desktop (uwsm start … hyprland.desktop) — sesja portu tylko na runit
-    rm -f /usr/share/wayland-sessions/omarchy-void.desktop
+    # Sesja: upstreamowy omarchy.desktop (uwsm start … hyprland.desktop) — sesja portu tylko bez systemd
+    rm -f "/usr/share/wayland-sessions/omarchy-$DYSTR.desktop"
     ;;
 esac
 
