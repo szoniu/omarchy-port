@@ -39,7 +39,7 @@ Różnice wobec Omarchy na Archu:
 - `gum`, `mise`, `usage`, `lazydocker` i `localsend` nie mają odpowiednika w `::gentoo`, GURU ani hyproverlay, więc instaluje je sam port z wydań upstreamu (wersja i suma przypięte w [`port/share/pakiety/`](port/share/pakiety/) albo w omarchy-pkgs);
 - `yaru-icon-theme` na razie brak;
 - Chrome dostaje flagi Omarchy (Wayland, rozszerzenia, libsecret) przez wrapper `/usr/local/bin/google-chrome-stable`, który czyta `~/.config/chrome-flags.conf` jak wrapper z AUR; launcher Google na Gentoo tego pliku nie czyta;
-- na OpenRC sesja idzie bez uwsm, jak na Voidzie: `uwsm` nie jest instalowany (shim portu). Usługi, które włącza Omarchy (`systemctl enable …`), trafiają do runleveli przez shim `systemctl` (`rc-update add`, bez startu do restartu), SDDM wstaje przez usługę `display-manager`, a NTP to chrony.
+- na OpenRC sesja idzie bez uwsm, jak na Voidzie: `uwsm` nie jest instalowany (shim portu). Usługi, które włącza Omarchy (`systemctl enable …`), trafiają do runleveli przez shim `systemctl` (`rc-update add`, bez startu do restartu), SDDM wstaje przez usługę `display-manager`, NTP to chrony, a PipeWire z pulse i WirePlumberem startuje nadzorca unitów portu, jak `gentoo-pipewire-launcher`, bez plików w `/etc` (inne pulpity na tej samej maszynie zostają przy swoim).
 
 Instalacja od zera na bazie z binhostem trwa w VM (8 rdzeni) około 75 minut na systemd i około 95 minut na OpenRC; kompilują się Hyprland, Quickshell i kilkadziesiąt pakietów ze zmienionymi USE. Wyniki: [`wyniki/2026-10-15-gentoo.md`](wyniki/2026-10-15-gentoo.md) (systemd), [`wyniki/2026-10-16-openrc.md`](wyniki/2026-10-16-openrc.md) (OpenRC).
 

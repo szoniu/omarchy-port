@@ -55,14 +55,27 @@ to_seconds() {
   echo "$total"
 }
 
-# --- dźwięk: główny demon to proces o linii poleceń dokładnie „pipewire” (tak go startujemy);
-# pipewire-pulse (`pipewire -c pipewire-pulse.conf`) i wireplumber to jego dzieci przez conf.d.
+# --- dźwięk: główny demon to proces o linii poleceń dokładnie „pipewire” (tak go startujemy).
+# pipewire-pulse (`pipewire -c pipewire-pulse.conf`) i wireplumber: na Voidzie dzieci pipewire przez
+# conf.d w /etc (Void Handbook), a bez takiego conf.d (Gentoo z OpenRC) startuje je nadzorca, jak
+# gentoo-pipewire-launcher. Conf.d portu w /etc na Gentoo podwajałby WirePlumbera innym pulpitom
+# na tej samej maszynie (Plasma, GNOME: XDG autostart → gentoo-pipewire-launcher).
 # Inne instancje pipewire (np. omarchy-speaker-tuning: `pipewire -c omarchy-speaker-tuning.conf`)
 # NIE są „dźwiękiem” w sensie tych pseudo-unitów i nie wolno ich zabijać.
 is_audio() { case $1 in pipewire.service|pipewire.socket|pipewire-pulse.service|pipewire-pulse.socket|wireplumber.service) return 0 ;; esac; return 1; }
 audio_pids() { pgrep -u "$UID_" -fx pipewire; pgrep -u "$UID_" -fx '(/usr/bin/)?pipewire -c pipewire-pulse.conf'; pgrep -u "$UID_" -x wireplumber; }
 audio_active() { pgrep -u "$UID_" -fx pipewire >/dev/null; }
-audio_start() { audio_active || { setsid pipewire >>"$LOGD/pipewire.log" 2>&1 </dev/null & disown; log "pipewire start"; }; }
+audio_conf_d() { compgen -G '/etc/pipewire/pipewire.conf.d/*wireplumber*.conf' >/dev/null; }
+audio_start() {
+  audio_active && return 0
+  setsid pipewire >>"$LOGD/pipewire.log" 2>&1 </dev/null & disown
+  if ! audio_conf_d; then
+    setsid pipewire -c pipewire-pulse.conf >>"$LOGD/pipewire.log" 2>&1 </dev/null & disown
+    sleep 1   # jak gentoo-pipewire-launcher: WirePlumber po wstaniu głównego demona
+    setsid wireplumber >>"$LOGD/pipewire.log" 2>&1 </dev/null & disown
+  fi
+  log "pipewire start"
+}
 audio_stop() {
   local pids
   pids=$(audio_pids)

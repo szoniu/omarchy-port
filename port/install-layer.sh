@@ -9,8 +9,8 @@
 #       a linki w /usr/share/omarchy/bin (PATH sesji) są przekierowane na nakładki;
 #   dane (mapa pakietów i backend pakietów dystrybucji: share/<dystrybucja>/pkg.sh) → /usr/share/omarchy-port,
 #   na runit i OpenRC sesja bez uwsm → /usr/libexec/omarchy-port + wayland-sessions (shimy uwsm zawsze),
-#       na runit usługi startowe portu → /etc/runit/core-services, na OpenRC PipeWire z conf.d portu
-#       i systemd-tmpfiles-setup w runlevelu startowym (na systemd sesja idzie upstreamowym
+#       na runit usługi startowe portu → /etc/runit/core-services, na OpenRC PipeWire bez conf.d w /etc
+#       (pulse i WirePlumbera startuje nadzorca unitów) i systemd-tmpfiles-setup w runlevelu startowym (na systemd sesja idzie upstreamowym
 #       omarchy.desktop przez uwsm),
 #   backend usług shima systemctl (share/init/<init>-uslugi.sh) → /usr/share/omarchy-port/uslugi-backend.sh,
 #   greeter SDDM → config portu (upstreamowy + no_update_news) przez /etc/sddm.conf.d,
@@ -125,12 +125,17 @@ case $INIT in
     echo "core-service: /etc/runit/core-services/91-omarchy-port-start-at-boot.sh"
     ;;
   openrc)
-    # PipeWire jak na Voidzie (jeden `pipewire` od nadzorcy unitów, WirePlumber i pulse z conf.d), ale
-    # pliki daje port — Gentoo bez systemd ma zamiast nich gentoo-pipewire-launcher z XDG autostart,
-    # którego sesja Hyprlanda nie uruchamia
-    install -d /etc/pipewire/pipewire.conf.d
-    install -m 644 "$SRC"/share/openrc/pipewire.conf.d/*.conf /etc/pipewire/pipewire.conf.d/
-    echo "pipewire: wireplumber + pulse jako moduły (pliki portu)"
+    # PipeWire: pipewire, pipewire-pulse i WirePlumbera startuje nadzorca unitów sesji, jak
+    # gentoo-pipewire-launcher (z XDG autostart, którego sesja Hyprlanda nie uruchamia). Bez conf.d w /etc:
+    # działałby dla całego systemu i podwajał WirePlumbera innym pulpitom na tej samej maszynie.
+    # Pliki z wcześniejszej wersji portu (nagłówek „omarchy-port (OpenRC)”) znikają; cudze zostają.
+    for f in /etc/pipewire/pipewire.conf.d/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/20-pipewire-pulse.conf; do
+      if [[ -f $f ]] && head -1 "$f" | /usr/bin/grep -q '^# omarchy-port (OpenRC)'; then
+        rm -f "$f"
+        echo "pipewire: usunięty $f (wcześniejsza wersja portu)"
+      fi
+    done
+    echo "pipewire: pulse i WirePlumber startuje nadzorca unitów sesji (bez conf.d w /etc)"
     # Reguły tmpfiles Omarchy przy starcie (m.in. sprzątanie „sudo bez hasła”) stosuje na Gentoo
     # systemd-tmpfiles-setup z systemd-utils[tmpfiles] (--create --remove --boot) — port pilnuje tylko,
     # że jest w runlevelu startowym
