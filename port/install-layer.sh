@@ -27,7 +27,16 @@ wykryj_system || { echo "install-layer: przerwane — powód wyżej" >&2; exit 1
 DYST="$SRC/share/$DYSTR"
 
 install -d /usr/share/omarchy-port /usr/libexec/omarchy-port /usr/local/bin /usr/share/wayland-sessions
-install -m 644 "$SRC/share/pkg-map.sh" "$SRC/share/runit-services.tsv" "$SRC/share/user-units-skip.tsv" /usr/share/omarchy-port/
+install -m 644 "$SRC/share/pkg-map.sh" "$SRC/share/uslugi.tsv" "$SRC/share/user-units-skip.tsv" /usr/share/omarchy-port/
+rm -f /usr/share/omarchy-port/runit-services.tsv   # stara nazwa mapy usług (do omarchy-port#5)
+# Backend usług shima systemctl (share/init/<init>-uslugi.sh: runit, OpenRC) pod stałą nazwą, jak
+# pkg-backend.sh. Na systemd shima nie ma, więc backendu też nie.
+if [[ -f $SRC/share/init/$INIT-uslugi.sh ]]; then
+  install -m 644 "$SRC/share/init/$INIT-uslugi.sh" /usr/share/omarchy-port/uslugi-backend.sh
+  echo "usługi: /usr/share/omarchy-port/uslugi-backend.sh ($INIT)"
+else
+  rm -f /usr/share/omarchy-port/uslugi-backend.sh
+fi
 # Mapa i backend pakietów dystrybucji pod stałymi nazwami — nakładki omarchy-pkg-* i omarchy-update* są
 # wspólne, a różnice siedzą w pkg-backend.sh. Stara nazwa mapy (do omarchy-port#5) znika.
 install -m 644 "$REPO/dane/mapa-pakietow-$DYSTR.tsv" /usr/share/omarchy-port/mapa-pakietow.tsv

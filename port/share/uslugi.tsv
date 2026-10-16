@@ -1,0 +1,27 @@
+systemd	runit	openrc	uwagi
+NetworkManager	NetworkManager	NetworkManager
+sshd	sshd	sshd
+tailscaled	tailscaled	tailscale
+iwd	iwd	iwd
+ufw	ufw	ufw
+thermald	thermald	thermald
+docker	docker	docker	docker.socket/docker.service → jedna usługa
+cups	cupsd	cupsd
+bluetooth	bluetoothd	bluetooth
+avahi-daemon	avahi-daemon	avahi-daemon
+sddm	sddm	display-manager	OpenRC: display-manager (gui-libs/display-manager-init) z DISPLAYMANAGER="sddm" w /etc/conf.d/display-manager — ustawia go backend
+elogind	elogind	elogind@boot	Void: port go nie włącza (startuje z aktywacji D-Bus); Gentoo: runlevel boot
+power-profiles-daemon	power-profiles-daemon	power-profiles-daemon
+supergfxd	supergfxd	supergfxd
+intel_lpmd	intel_lpmd	intel_lpmd
+NetworkManager-wait-online	-	-	bez systemd nie ma celu network-online — nie ma na co czekać
+systemd-networkd-wait-online	-	-	j.w.
+systemd-networkd	-	-	sieć robi NetworkManager
+systemd-resolved	-	-	resolv.conf zarządza NetworkManager
+systemd-timesyncd	chronyd	chronyd	NTP: chrony — ten sam demon, który dotwiz stawia na Voidzie (dwa demony NTP walczą o zegar)
+systemd-oomd	-	-	brak odpowiednika
+linux-modules-cleanup	-	-	Arch: sprzątanie modułów starego kernela po aktualizacji
+snapper-timeline	-	-	snapper poza zakresem (Omarchy: btrfs + limine)
+snapper-cleanup	-	-	j.w.
+omarchy-seamless-login	-	-	Arch/limine: płynne przejście z plymouth
+omarchy-nvme-suspend-fix	-	-	do przejrzenia przy sprzęcie (omarchy-port#6)

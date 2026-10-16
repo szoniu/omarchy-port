@@ -1,13 +1,17 @@
 #!/bin/bash
-# omarchy-port: `systemctl` dla systemów BEZ systemd (Void/runit). Instalowany TYLKO gdy
+# omarchy-port: `systemctl` dla systemów BEZ systemd (Void/runit, Gentoo/OpenRC). Instalowany TYLKO gdy
 # prawdziwego systemctl nie ma — na Gentoo z systemd nie powstaje.
 #   zasilanie (reboot/poweroff/suspend/hibernate…) → loginctl (elogind)
 #   --user …                                       → omarchy-port-units (nadzorca unitów użytkownika)
-#   usługi systemowe                               → runit (/etc/sv, /var/service), mapa nazw w runit-services.tsv
-# Usługa świadomie pominięta (kolumna runit = „-”) → rc 0 + wpis w logu; nieznana → rc 5 jak w systemd.
-MAP=/usr/share/omarchy-port/runit-services.tsv
-SVDIR=/etc/sv
-RUNSVDIR=/var/service
+#   usługi systemowe                               → backend initu, mapa nazw w uslugi.tsv (kolumna initu)
+# Usługa świadomie pominięta („-” w kolumnie initu) → rc 0 + wpis w logu; nieznana → rc 5 jak w systemd.
+# Tu jest to, co wspólne: mapa nazw, kody wyjścia i komunikaty systemd, timery. Mechanika initu siedzi
+# w backendzie (/usr/share/omarchy-port/uslugi-backend.sh, z port/share/init/<init>-uslugi.sh), który daje:
+#   USL_KOLUMNA (kolumna w mapie), usl_istnieje, usl_stan (run|down|crashed|pusty = brak nadzorcy),
+#   usl_wlaczona, usl_wlacz/usl_wylacz <nazwa> <now>, usl_maskuj, usl_odmaskuj, usl_start, usl_restart,
+#   usl_stop, usl_przeladuj — rc ≠ 0 = błąd (komunikat wypisuje backend).
+MAP=/usr/share/omarchy-port/uslugi.tsv
+BACKEND=/usr/share/omarchy-port/uslugi-backend.sh
 if (( EUID == 0 )); then LOGF=/var/log/omarchy-port/systemctl.log
 else LOGF="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-port/systemctl.log"; fi
 log() { mkdir -p "${LOGF%/*}" 2>/dev/null; printf '%s %s\n' "$(date '+%F %T')" "$*" >>"$LOGF" 2>/dev/null; }
@@ -46,14 +50,28 @@ case $verb in
   daemon-reload|daemon-reexec|reset-failed) exit 0 ;;
 esac
 
-# nazwa runit dla unitu systemd; wypisuje nazwę, „-” (pominięty) albo nic (nieznany)
-runit_name() {
-  local u=${1%.service}
+if [[ ! -r $BACKEND ]]; then
+  echo "systemctl (omarchy-port): brak backendu usług $BACKEND — uruchom port/install-layer.sh" >&2
+  log "brak backendu: $verb ${units[*]}"
+  exit 1
+fi
+# shellcheck source=../share/init/runit-uslugi.sh
+. "$BACKEND"
+
+# surowy wpis z kolumny initu (chronyd, display-manager, elogind@boot, „-”); pusty = unitu nie ma w mapie
+mapa() {
+  awk -F'\t' -v s="$1" -v k="$USL_KOLUMNA" '
+    NR == 1 { for (i = 1; i <= NF; i++) if ($i == k) c = i; next }
+    c && $1 == s { print $c; exit }' "$MAP" 2>/dev/null
+}
+# nazwa usługi initu dla unitu systemd: z mapy (bez runlevelu po „@”), „-” (pominięty) albo — dla unitu
+# spoza mapy — ta sama nazwa, jeśli init ma taką usługę; nic = nieznany
+nazwa_uslugi() {
+  local u=${1%.service} wpis
   u=${u%.socket}; u=${u%.timer}; u=${u%.path}
-  local row
-  row=$(awk -F'\t' -v s="$u" 'NR > 1 && $1 == s { print $2; exit }' "$MAP" 2>/dev/null)
-  if [[ -n $row ]]; then printf '%s\n' "$row"; return; fi
-  [[ -d $SVDIR/$u ]] && printf '%s\n' "$u"
+  wpis=$(mapa "$u")
+  if [[ -n $wpis ]]; then printf '%s\n' "${wpis%%@*}"; return; fi
+  usl_istnieje "$u" && printf '%s\n' "$u"
 }
 
 need_root() {
@@ -63,35 +81,12 @@ need_root() {
   fi
 }
 
-# Stan usługi: root czyta supervise/stat. Użytkownik NIE — supervise/ to symlink do
-# /run/runit/supervise.<nazwa> z prawami 0700 (a `sv status` wymaga supervise/ok), więc bez roota
-# patrzymy w jawną tablicę procesów: `runsv <nazwa>` ma dziecko-usługę, a przy log/ także logger.
-svstat() {
-  local st r n expect=0
-  st=$(awk '{ print $1; exit }' "$RUNSVDIR/$1/supervise/stat" 2>/dev/null)
-  [[ -n $st ]] && { echo "$st"; return; }
-  r=$(pgrep -fx "runsv $1") || { echo ''; return; }
-  n=$(pgrep -P "$r" | wc -l)
-  [[ -e $SVDIR/$1/log/run ]] && expect=1
-  (( n > expect )) && echo run || echo down
-}
-is_running() { [[ $(svstat "$1") == run ]]; }
-# runsvdir skanuje /var/service co ~5 s — czekamy na supervise/ zamiast zakładać, że już jest
-wait_supervised() { local _; for _ in $(seq 1 30); do [[ -e $RUNSVDIR/$1/supervise/stat ]] && return 0; sleep 0.5; done; return 1; }
-wait_state() { local _; for _ in $(seq 1 30); do [[ $(svstat "$1") == "$2" ]] && return 0; sleep 0.5; done; return 1; }
 # Timery z `sudo systemd-run --on-active` (omarchy-sudo-passwordless): plik „next pid”
 TIMERS=/run/omarchy-port/timers
-# Tryb instalacji (OMARCHY_PORT_INSTALL=1, ustawia go port/install.sh): `enable` bez --now NIE startuje
-# usługi — jak w systemd, a Omarchy na tym polega („Enable services only… don't start daemons
-# mid-install”). runit nie ma stanu „włączona od następnego startu”, więc: link + plik down + wpis tu;
-# core-service 91-omarchy-port-start-at-boot.sh zdejmuje down przed startem usług.
-START_AT_BOOT=/var/lib/omarchy-port/start-at-boot
-pending() { [[ -f $START_AT_BOOT ]] && /usr/bin/grep -qxF -- "$1" "$START_AT_BOOT"; }
-unpend() { [[ -f $START_AT_BOOT ]] && sed -i "/^${1//./\\.}\$/d" "$START_AT_BOOT"; return 0; }
 
 rc=0
 for unit in "${units[@]}"; do
-  if [[ $unit == *.timer && -z $(runit_name "$unit") ]]; then
+  if [[ $unit == *.timer && -z $(nazwa_uslugi "$unit") ]]; then
     t="$TIMERS/${unit%.timer}.timer"; tpid=$(awk '{ print $2 }' "$t" 2>/dev/null)
     case $verb in
       is-active)
@@ -104,87 +99,50 @@ for unit in "${units[@]}"; do
     esac
     continue
   fi
-  name=$(runit_name "$unit")
+  name=$(nazwa_uslugi "$unit")
   if [[ $name == - ]]; then
     case $verb in
       is-active) ((quiet)) || echo inactive; rc=3 ;;
       is-enabled) ((quiet)) || echo disabled; rc=1 ;;
       is-failed) rc=1 ;;
-      *) ((quiet)) || echo "omarchy-port: $unit — pominięty na runit (zob. $MAP)" >&2
+      *) ((quiet)) || echo "omarchy-port: $unit — pominięty na $USL_KOLUMNA (zob. $MAP)" >&2
          log "pominięty: $verb $unit" ;;
     esac
     continue
   fi
-  if [[ -z $name || ! -d $SVDIR/$name ]]; then
-    # nazwa z mapy bez katalogu w /etc/sv = pakietu nie ma — NIE robimy wiszącego linku
+  if [[ -z $name ]] || ! usl_istnieje "$name"; then
+    # nazwa z mapy bez usługi w initcie = pakietu nie ma — NIE robimy wiszącego wpisu
     case $verb in
       is-active) ((quiet)) || echo inactive; rc=3; continue ;;
       is-enabled) ((quiet)) || echo "Failed to get unit file state for $unit: No such file or directory" >&2; rc=1; continue ;;
       is-failed) rc=1; continue ;;
     esac
     echo "Failed to $verb $unit: Unit file $unit does not exist." >&2
-    log "nieznany/brak pakietu: $verb $unit (runit: ${name:-?})"
+    log "nieznany/brak pakietu: $verb $unit ($USL_KOLUMNA: ${name:-?})"
     rc=5; continue
   fi
-  # Semantyka systemd na runit:
-  #   enable         = link w /var/service + brak pliku down (start przy boocie)
-  #   disable        = plik down (BEZ zatrzymania — tak jak systemd; Omarchy na tym polega:
-  #                    `disable docker.service` „do not stop running containers”, `disable iwd`)
-  #   disable --now  = usunięcie linku (zatrzymuje)
-  #   mask           = usunięcie linku + down
   case $verb in
-    enable)
-      need_root "$unit"
-      if [[ -n ${OMARCHY_PORT_INSTALL:-} ]] && ((!now)) && [[ ! -L $RUNSVDIR/$name ]]; then
-        # down PRZED linkiem — runsv nie może zdążyć wystartować usługi
-        touch "$SVDIR/$name/down"
-        ln -sfn "$SVDIR/$name" "$RUNSVDIR/$name" || { rc=1; continue; }
-        mkdir -p "${START_AT_BOOT%/*}"
-        pending "$name" || echo "$name" >>"$START_AT_BOOT"
-        log "instalacja: $name włączona od następnego startu"
-        continue
-      fi
-      rm -f "$SVDIR/$name/down"
-      ln -sfn "$SVDIR/$name" "$RUNSVDIR/$name" || { rc=1; continue; }
-      if ((now)); then
-        wait_supervised "$name" && wait_state "$name" run || { echo "systemctl (omarchy-port): $unit nie wystartował" >&2; rc=1; }
-      fi ;;
-    disable)
-      need_root "$unit"
-      unpend "$name"
-      if ((now)); then rm -f "$RUNSVDIR/$name"; else touch "$SVDIR/$name/down"; fi ;;
-    mask)
-      need_root "$unit"
-      unpend "$name"
-      rm -f "$RUNSVDIR/$name"; touch "$SVDIR/$name/down" ;;
-    unmask)
-      need_root "$unit"
-      rm -f "$SVDIR/$name/down" ;;
-    start|restart)
-      need_root "$unit"
-      # systemd potrafi wystartować usługę wyłączoną — runit potrzebuje nadzorcy, więc link + down
-      if [[ ! -L $RUNSVDIR/$name ]]; then touch "$SVDIR/$name/down"; ln -sfn "$SVDIR/$name" "$RUNSVDIR/$name"; fi
-      wait_supervised "$name" || { echo "systemctl (omarchy-port): runsv nie podjął $name" >&2; rc=1; continue; }
-      sv "$verb" "$RUNSVDIR/$name" >/dev/null || rc=1 ;;
-    stop)
-      need_root "$unit"
-      [[ -L $RUNSVDIR/$name ]] && { sv stop "$RUNSVDIR/$name" >/dev/null || rc=1; } ;;
-    reload)
-      need_root "$unit"
-      sv hup "$RUNSVDIR/$name" >/dev/null || rc=1 ;;
+    enable)  need_root "$unit"; usl_wlacz "$name" "$now" || rc=1 ;;
+    disable) need_root "$unit"; usl_wylacz "$name" "$now" || rc=1 ;;
+    mask)    need_root "$unit"; usl_maskuj "$name" || rc=1 ;;
+    unmask)  need_root "$unit"; usl_odmaskuj "$name" || rc=1 ;;
+    start)   need_root "$unit"; usl_start "$name" || rc=1 ;;
+    restart) need_root "$unit"; usl_restart "$name" || rc=1 ;;
+    stop)    need_root "$unit"; usl_stop "$name" || rc=1 ;;
+    reload)  need_root "$unit"; usl_przeladuj "$name" || rc=1 ;;
     try-restart|condrestart)
       need_root "$unit"
-      if is_running "$name"; then sv restart "$RUNSVDIR/$name" >/dev/null || rc=1; fi ;;
+      if [[ $(usl_stan "$name") == run ]]; then usl_restart "$name" || rc=1; fi ;;
     is-active)
-      if is_running "$name"; then ((quiet)) || echo active
+      if [[ $(usl_stan "$name") == run ]]; then ((quiet)) || echo active
       else ((quiet)) || echo inactive; rc=3; fi ;;
     is-enabled)
-      if [[ -L $RUNSVDIR/$name ]] && { [[ ! -e $SVDIR/$name/down ]] || pending "$name"; }; then ((quiet)) || echo enabled
+      if usl_wlaczona "$name"; then ((quiet)) || echo enabled
       else ((quiet)) || echo disabled; rc=1; fi ;;
     is-failed) rc=1 ;;
     status)
-      st=$(svstat "$name")
-      echo "$unit ($name): ${st:-brak nadzorcy}$([[ -e $SVDIR/$name/down ]] && echo ', disabled')"
+      st=$(usl_stan "$name")
+      echo "$unit ($name): ${st:-brak nadzorcy}$(usl_wlaczona "$name" || echo ', disabled')"
       [[ $st == run ]] || rc=3 ;;
     *)
       echo "systemctl (omarchy-port): nieobsługiwane: $verb" >&2
