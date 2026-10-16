@@ -2,7 +2,7 @@
 # omarchy-port: rozpoznanie dystrybucji i initu — wspólne dla install.sh i install-layer.sh.
 #   DYSTR: void (xbps) | gentoo (emerge) — wybiera katalog share/<DYSTR> (backend, kroki, migracje, łatki)
 #   INIT:  runit | systemd | openrc — po działającym systemie, nie po zainstalowanych pakietach
-# Obsługiwane pary: void/runit, gentoo/systemd. Gentoo z OpenRC: omarchy-port#5 (w drodze).
+# Obsługiwane pary: void/runit, gentoo/systemd, gentoo/openrc.
 wykryj_system() { # ustawia DYSTR i INIT; rc 1 + powód na stderr, gdy pary nie zna
   if command -v xbps-install >/dev/null; then
     DYSTR=void
@@ -31,10 +31,7 @@ wykryj_system() { # ustawia DYSTR i INIT; rc 1 + powód na stderr, gdy pary nie 
     return 1
   fi
   case $DYSTR/$INIT in
-    void/runit | gentoo/systemd) ;;
-    gentoo/openrc)
-      echo "Gentoo z OpenRC: jeszcze nieobsługiwane (omarchy-port#5)" >&2
-      return 1 ;;
+    void/runit | gentoo/systemd | gentoo/openrc) ;;
     *)
       echo "$DYSTR z $INIT: nieobsługiwane" >&2
       return 1 ;;
