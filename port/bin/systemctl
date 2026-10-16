@@ -48,7 +48,7 @@ case $verb in
     [[ $verb == halt ]] && verb=poweroff
     # systemctl sprawdza z góry inne sesje i blokady tylko na terminalu; z menu i timera (omarchy-system-reboot)
     # decyduje logind z polkitem. loginctl z elogind sprawdza zawsze, więc bez -i menu nie restartowało przy
-    # żadnej innej sesji (np. SSH) i kończyło się cichym błędem. Blokad typu block nadal pilnuje logind.
+    # żadnej innej sesji (np. SSH) i kończyło się cichym błędem. Blokady typu block sprawdza dalej logind z polkitem.
     if [[ -t 1 && -t 2 ]]; then exec loginctl "$verb"; fi
     exec loginctl -i "$verb" ;;
   daemon-reload|daemon-reexec|reset-failed) exit 0 ;;
