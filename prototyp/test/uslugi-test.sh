@@ -56,6 +56,12 @@ t "is-enabled: enabled" '[[ $(systemctl is-enabled "$U.service") == enabled ]]'
 t "nie uruchomiona do restartu" '! dziala $U'
 systemctl disable "$U.service" >/dev/null   # runit: zdejmuje też wpis z listy start-at-boot
 
+echo "### enable --now po disable --now (runit: nowy runsv, a supervise/stat został po poprzednim)"
+systemctl disable --now "$U.service" >/dev/null; sleep "$PRZERWA"
+systemctl disable "$U.service" >/dev/null   # jak review-test #9: plik down bez linku
+systemctl enable --now "$U.service"; rc=$?
+t "enable --now: rc 0 i działa od razu" '[[ $rc == 0 ]] && dziala $U'
+
 echo "### enable --now, disable bez --now, stop/start/restart"
 systemctl enable --now "$U.service"
 t "enable --now: działa od razu" 'dziala $U'

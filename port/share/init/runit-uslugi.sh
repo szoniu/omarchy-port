@@ -13,8 +13,10 @@ RUNSVDIR=/var/service
 START_AT_BOOT=/var/lib/omarchy-port/start-at-boot
 pending() { [[ -f $START_AT_BOOT ]] && /usr/bin/grep -qxF -- "$1" "$START_AT_BOOT"; }
 unpend() { [[ -f $START_AT_BOOT ]] && sed -i "/^${1//./\\.}\$/d" "$START_AT_BOOT"; return 0; }
-# runsvdir skanuje /var/service co ~5 s — czekamy na supervise/ zamiast zakładać, że już jest
-wait_supervised() { local _; for _ in $(seq 1 30); do [[ -e $RUNSVDIR/$1/supervise/stat ]] && return 0; sleep 0.5; done; return 1; }
+# runsvdir skanuje /var/service co ~5 s — czekamy, aż runsv tej usługi odpowiada (sv status), zamiast
+# zakładać, że już jest. Nie na supervise/stat: plik zostaje po poprzednim runsv (supervise/ to link do
+# /run/runit), więc przy świeżym linku wyglądał na gotowy, zanim nowy nadzorca wstał, i sv up padał.
+wait_supervised() { local _; for _ in $(seq 1 30); do sv status "$RUNSVDIR/$1" >/dev/null 2>&1 && return 0; sleep 0.5; done; return 1; }
 wait_state() { local _; for _ in $(seq 1 30); do [[ $(usl_stan "$1") == "$2" ]] && return 0; sleep 0.5; done; return 1; }
 
 usl_istnieje() { [[ -d $SVDIR/$1 ]]; }
