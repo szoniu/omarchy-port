@@ -90,7 +90,7 @@ Szczegóły, liczby i lista tego, co jeszcze pada: [`wyniki/2026-10-14-runda-1-2
 | `prototyp/vm/` | VM testowa: QEMU z Fedory w kontenerze podmana (virgl), VNC, QMP (klawisze, mysz), zrzuty przez VNC |
 | `prototyp/void/`, `prototyp/gentoo/` | baza systemu w VM (`install-base.sh`) — odpowiednik instalatorów szoniu/void i szoniu/gentoo do testów; Gentoo ze stage3 (podpis releng) i binhostem, `INIT=systemd` albo `openrc`, odpalane z live ISO Voida |
 | `prototyp/bramka/` | `podbicie.sh` — co przejrzeć przed zmianą pinu Omarchy (migracje, kroki, pakiety, łatki) |
-| `prototyp/test/` | zrzut skrótów z plików Lua Omarchy, test skrótów i menu w żywej sesji, test PAM, odcisk stanu systemu (`stan-systemu.sh`), test firewalla prawdziwymi pakietami (`firewall.sh`), test shima `systemctl` dla usług systemowych (`uslugi-test.sh`) |
+| `prototyp/test/` | zrzut skrótów z plików Lua Omarchy, test skrótów i menu w żywej sesji, test PAM, odcisk stanu systemu (`stan-systemu.sh`), test firewalla prawdziwymi pakietami (`firewall.sh`), test shima `systemctl` dla usług systemowych (`uslugi-test.sh`), pierwsze uruchomienie Chrome na Gentoo bez kreatora i z polityką Omarchy (`chrome-pierwsze-uruchomienie.sh`) |
 | `dane/` | mapy pakietów i listy do instalacji (`*-void`, `*-gentoo`) |
 | `wyniki/` | wyniki rund prototypu |
 
