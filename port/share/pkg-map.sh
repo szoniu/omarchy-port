@@ -16,9 +16,11 @@ PORT_PKG_BACKEND=${PORT_PKG_BACKEND:-/usr/share/omarchy-port/pkg-backend.sh}
 # port_pkg_name <arch> → wypisuje nazwę w dystrybucji (albo port:<arch>); rc 1 = pakietu świadomie brak
 port_pkg_name() {
   local arch=$1 row stan nazwa
-  # Nazwa od „-” trafiłaby do xbps/emerge jako opcja — upstream od v4.0.5 woła pacmana z `--` przed
-  # nazwami, tu odmowa (rc 1 jak pakiet, którego brak: missing → rc 0, present i add → rc 1).
-  if [[ $arch == -* ]]; then
+  # Tylko nazwa pakietu Archa (małe litery, cyfry, @._+-; bez „-” i „.” na początku), dodatkowo bez „@”
+  # na początku — nazwa spoza mapy idzie do xbps/emerge bez zmian, a „-x” to tam opcja, „@x” na Gentoo
+  # zestaw (@world jako root). Upstream od v4.0.5 woła pacmana z `--` przed nazwami; tu odmowa (rc 1 jak
+  # pakiet, którego brak: missing → rc 0, present i add → rc 1), zanim cokolwiek dojdzie do sudo.
+  if [[ ! $arch =~ ^[a-z0-9][a-z0-9@._+-]*$ ]]; then
     echo "omarchy-port: '$arch' nie jest nazwą pakietu" >&2
     return 1
   fi
