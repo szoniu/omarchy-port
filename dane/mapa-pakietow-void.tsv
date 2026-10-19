@@ -69,6 +69,7 @@ libsecret	jest	libsecret
 libvips	jest	libvips	
 libyaml	jest	libyaml	
 libreoffice-fresh	zamiennik	libreoffice	
+linux-firmware-cirrus-dx13260	brak		omarchy-pkgs
 llvm	jest	llvm	
 localsend	brak		omarchy-pkgs
 lua51	jest	lua51	

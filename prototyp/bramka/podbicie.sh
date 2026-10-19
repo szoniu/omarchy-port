@@ -9,6 +9,10 @@
 #   nakładka  <plik>  <D|M + skala zmiany>                           — upstream zmienił skrypt, który port
 #                                                                       zastępuje własnym (port/bin): przejrzeć
 #   pakiet    <nazwa> <+|->                 <stan w mapie Voida>     — zmiany install/omarchy-base.packages
+#   pakiet-inny <nazwa> <+|->               <stan w mapie>           — zmiany install/omarchy-other.packages:
+#                                                                       pakiety na żądanie (sprzęt, aplikacje
+#                                                                       z menu) — brak w mapie = nazwa Archa
+#                                                                       pójdzie do xbps/emerge bez zmian
 #   pakiet-portu <nazwa> <bez zmian|zmieniony …>                    — PKGBUILD-y omarchy-pkgs pakietów w stanie
 #                                                                       „port” (install.sh buduje je sam)
 #   łatka     <plik>  <pasuje|już w wydaniu|nie pasuje>            — share/latki i share/<dystrybucja>/latki
@@ -67,7 +71,7 @@ stan_dystr() { # stan_dystr <kroki.tsv|migracje.tsv|mapa> <nazwa> — „void:�
   echo "${out[*]}"
 }
 
-n_mig=0 n_mig_flag=0 n_mig_lista=0 n_krok=0 n_nakl=0 n_pak=0 n_pport=0 n_latka_zle=0 n_brand=0
+n_mig=0 n_mig_flag=0 n_mig_lista=0 n_krok=0 n_nakl=0 n_pak=0 n_pak_inny=0 n_pport=0 n_latka_zle=0 n_brand=0
 
 while IFS=$'\t' read -r st plik; do
   m=${plik#migrations/}
@@ -108,12 +112,17 @@ for f in "$PORT"/port/bin/omarchy-*; do
 done
 
 # [[:space:]] zamiast \s — skrypt chodzi też na macOS (BSD sed traktuje \s jak literę s)
-pakiety() { git -C "$SRC" show "$1:install/omarchy-base.packages" 2>/dev/null | grep -v '^[[:space:]]*#' | sed '/^[[:space:]]*$/d;s/[[:space:]].*//' | LC_ALL=C sort -u; }
+pakiety() { git -C "$SRC" show "$1:install/$2" 2>/dev/null | grep -v '^[[:space:]]*#' | sed '/^[[:space:]]*$/d;s/[[:space:]].*//' | LC_ALL=C sort -u; }
 while IFS= read -r linia; do
   znak=${linia:0:1} p=${linia:1}
   printf 'pakiet\t%s\t%s\t%s\n' "$p" "$znak" "$(stan_dystr mapa "$p")"
   n_pak=$((n_pak + 1))
-done < <(diff <(pakiety "$STARY") <(pakiety "$NOWY_SHA") | sed -n 's/^< /-/p; s/^> /+/p')
+done < <(diff <(pakiety "$STARY" omarchy-base.packages) <(pakiety "$NOWY_SHA" omarchy-base.packages) | sed -n 's/^< /-/p; s/^> /+/p')
+while IFS= read -r linia; do
+  znak=${linia:0:1} p=${linia:1}
+  printf 'pakiet-inny\t%s\t%s\t%s\n' "$p" "$znak" "$(stan_dystr mapa "$p")"
+  n_pak_inny=$((n_pak_inny + 1))
+done < <(diff <(pakiety "$STARY" omarchy-other.packages) <(pakiety "$NOWY_SHA" omarchy-other.packages) | sed -n 's/^< /-/p; s/^> /+/p')
 
 # Pakiety w stanie „port” (dane/mapa-pakietow-<dystrybucja>.tsv, np. ufw-docker) port buduje sam z PKGBUILD-ów
 # (install.sh, etap 3: źródła z sumami, package()) — z omarchy-pkgs albo z port/share/pakiety. Zmiana
@@ -173,6 +182,7 @@ zalozenie "omarchy-transcode-ascii --mode block" grep -qF 'mode != "block"' "$d/
   echo "  nakładki portu do przeniesienia zmian upstreamu: $n_nakl"
   echo "  kroki install/ zmienione: $n_krok — kroki z kroki.tsv: podmiany przejrzeć ze zmianą upstreamu"
   echo "  zmiany listy pakietów: $n_pak — brak w mapie dystrybucji (-) = dopisać do dane/mapa-pakietow-<dystrybucja>.tsv"
+  echo "  zmiany listy pakietów na żądanie (omarchy-other.packages): $n_pak_inny — nowe bez mapy: dopisać (choćby jako brak)"
   echo "  pakiety portu z omarchy-pkgs zmienione ($OMARCHY_PKGS_COMMIT → $NOWY_PKGS_SHA): $n_pport"
   echo "  łatki do przejrzenia: $n_latka_zle"
   echo "  założenia brandingu Voida niespełnione: $n_brand"
