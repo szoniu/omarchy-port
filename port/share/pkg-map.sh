@@ -16,6 +16,12 @@ PORT_PKG_BACKEND=${PORT_PKG_BACKEND:-/usr/share/omarchy-port/pkg-backend.sh}
 # port_pkg_name <arch> → wypisuje nazwę w dystrybucji (albo port:<arch>); rc 1 = pakietu świadomie brak
 port_pkg_name() {
   local arch=$1 row stan nazwa
+  # Nazwa od „-” trafiłaby do xbps/emerge jako opcja — upstream od v4.0.5 woła pacmana z `--` przed
+  # nazwami, tu odmowa (rc 1 jak pakiet, którego brak: missing → rc 0, present i add → rc 1).
+  if [[ $arch == -* ]]; then
+    echo "omarchy-port: '$arch' nie jest nazwą pakietu" >&2
+    return 1
+  fi
   row=$(awk -F'\t' -v p="$arch" 'NR > 1 && $1 == p { print $2 "\t" $3; exit }' "$PORT_PKG_MAP" 2>/dev/null)
   if [[ -z $row ]]; then
     printf '%s\n' "$arch"

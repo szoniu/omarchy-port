@@ -5,3 +5,5 @@
 # znacznik. Instalacja oznacza wszystkie istniejące migracje jako wykonane (omarchy-provision-user),
 # więc lista dotyczy tylko migracji dochodzących przy podbiciu wersji — przegląd:
 # prototyp/bramka/podbicie.sh.
+1788996284.sh	pomiń	naprawia remote_clipboard.lua z pakietu omarchy-nvim, którego port nie instaluje (mapa: brak) — wersję pakietu sprawdza przez pacman -Q i vercmp
+1791403252.sh	pomiń	kolejność repozytoriów w /etc/pacman.conf i omarchy-update-system-pkgs — nie dotyczy Voida, pakiety aktualizuje omarchy-port-update

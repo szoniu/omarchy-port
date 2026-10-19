@@ -1,0 +1,37 @@
+migracja	1787760281.sh	M —	void:— gentoo:—
+migracja	1788996284.sh	A pacman	void:— gentoo:—
+migracja	1789095456.sh	A —	void:— gentoo:—
+migracja	1789130779.sh	A systemd	void:— gentoo:—
+migracja	1790017600.sh	A —	void:— gentoo:—
+migracja	1790114905.sh	A systemd	void:— gentoo:—
+migracja	1790282866.sh	A —	void:— gentoo:—
+migracja	1790397381.sh	A —	void:— gentoo:—
+migracja	1791265613.sh	A —	void:— gentoo:—
+migracja	1791403252.sh	A pacman,sudo	void:— gentoo:—
+migracja	1791581004.sh	A limine,initramfs,sudo	void:— gentoo:—
+migracja	1791934674.sh	A —	void:— gentoo:—
+migracja	1791935188.sh	A —	void:— gentoo:—
+krok	hardware/all.sh	M pacman	void:— gentoo:—
+krok	hardware/apple/fix-t2.sh	M systemd,limine,initramfs,pakiety	void:— gentoo:—
+krok	hardware/dell-xps13-ptl-speaker-firmware.sh	A pakiety	void:— gentoo:—
+krok	helpers/browser-policy.sh	M —	void:— gentoo:—
+krok	user/mise-work.sh	M —	void:— gentoo:—
+krok	user/mise.sh	M —	void:podmień gentoo:—
+nakładka	omarchy-pkg-add	M 3 insertions(+), 3 deletions(-)
+nakładka	omarchy-pkg-aur-add	M 2 insertions(+), 2 deletions(-)
+nakładka	omarchy-pkg-missing	M 1 insertion(+), 1 deletion(-)
+nakładka	omarchy-pkg-present	M 1 insertion(+), 1 deletion(-)
+pakiet-portu	gum	PKGBUILD portu (share/pakiety), wersja 2.0.2 — sprawdzić wydania upstreamu
+pakiet-portu	lazydocker	PKGBUILD portu (share/pakiety), wersja 0.25.2 — sprawdzić wydania upstreamu
+pakiet-portu	localsend	PKGBUILD portu (share/pakiety), wersja 1.18.2 — sprawdzić wydania upstreamu
+pakiet-portu	mise-bin	zmieniony 2026.10.9-1 → 2026.10.12-1 — przejrzeć source=/b2sums=/depends/package()
+pakiet-portu	ufw-docker	bez zmian
+pakiet-portu	usage	PKGBUILD portu (share/pakiety), wersja 6.12.1 — sprawdzić wydania upstreamu
+łatka	latki/blokada-biezacy-stan.patch	pasuje
+łatka	void/latki/menu.patch	pasuje
+łatka	void/latki/pasek.patch	pasuje
+branding	icon.txt	ok
+branding	logo.txt	ok
+branding	default/sddm/omarchy/logo.png	ok
+branding	tło motywu SDDM #1a1b26 (Main.qml)	ok
+branding	omarchy-transcode-ascii --mode block	ok

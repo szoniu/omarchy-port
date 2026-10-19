@@ -20,4 +20,7 @@ done
 t "omarchy-pkg-present foot" 0 omarchy-pkg-present foot
 t "omarchy-pkg-missing foot" 1 omarchy-pkg-missing foot
 t "omarchy-pkg-present nie-ma-takiego" 1 omarchy-pkg-present nie-ma-takiego-pakietu
+# nazwa od „-” nie idzie do menedżera pakietów jako opcja (xbps-query --version / -h dają rc 0)
+t "omarchy-pkg-present --version" 1 omarchy-pkg-present --version
+t "omarchy-pkg-missing -h" 0 omarchy-pkg-missing -h
 exit $fail
