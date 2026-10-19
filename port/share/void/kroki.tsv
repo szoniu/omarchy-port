@@ -6,3 +6,4 @@ config/snapper.sh	pomiń	snapper i limine-snapper-sync — Omarchy zakłada btrf
 hardware/pacman.sh	pomiń	repo pacmana dla Maców z T2 (/etc/pacman.conf) — nie dotyczy Voida
 post-install/pacman.sh	pomiń	pacman.conf i mirrorlist Archa; cups-files.conf z UID-ami Archa (User/Group 209)
 user/mise.sh	podmień	mise z repo Voida nie zna upgrade.auto_prune — ustawienie pomijane, reszta kroku bez zmian
+hardware/dell-xps13-ptl-speaker-firmware.sh	pomiń	aliasy firmware Cirrus dla głośników Dell XPS 13 DX13260 (pakiet Omarchy linux-firmware-cirrus-dx13260 z konfiguracją mkinitcpio) — na Voidzie go nie ma, krok padłby na omarchy-pkg-add

@@ -69,6 +69,7 @@ libreoffice-fresh	zamiennik	app-office/libreoffice-bin
 libsecret	jest	app-crypt/libsecret	
 libvips	zamiennik	media-libs/vips	
 libyaml	jest	dev-libs/libyaml	
+linux-firmware-cirrus-dx13260	brak		omarchy-pkgs
 llvm	jest	llvm-core/llvm	
 localsend	port		omarchy-pkgs
 lua51	zamiennik	dev-lang/lua:5.1	
