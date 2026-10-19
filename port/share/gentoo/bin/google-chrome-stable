@@ -12,4 +12,7 @@ if [[ -r $config ]]; then
     flagi+=("$linia")
   done <"$config"
 fi
-exec /opt/google/chrome/google-chrome "${flagi[@]}" "$@"
+# --no-first-run: kreator świeżego profilu (zaznaczone „domyślna przeglądarka”) woła w sesji `xdg-settings
+# set default-web-browser`, które przy hyprland-mimeapps.list z Omarchy v4.0.5 wpisuje omarchy-browser.desktop
+# do ogólnego mimeapps.list (omarchy-port#13)
+exec /opt/google/chrome/google-chrome --no-first-run "${flagi[@]}" "$@"
