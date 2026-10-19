@@ -23,4 +23,14 @@ t "omarchy-pkg-present nie-ma-takiego" 1 omarchy-pkg-present nie-ma-takiego-paki
 # nazwa od „-” nie idzie do menedżera pakietów jako opcja (xbps-query --version / -h dają rc 0)
 t "omarchy-pkg-present --version" 1 omarchy-pkg-present --version
 t "omarchy-pkg-missing -h" 0 omarchy-pkg-missing -h
+# add: rc 1 byłby i bez odmowy (pakietu „--version” nie ma po instalacji), więc liczy się komunikat — odmowa
+# przed sudo, a nie `xbps-install -Sy --version` / `emerge … --version` jako root (na Gentoo present i
+# missing czytają /var/db/pkg, opcja trafia do menedżera tylko tędy)
+out=$(env -i "${E[@]}" bash -c 'omarchy-pkg-add --version' 2>&1)
+if [[ $out == *"nie jest nazwą pakietu"* ]]; then
+  printf '  OK   omarchy-pkg-add --version (odmowa przed menedżerem pakietów)\n'
+else
+  printf '  FAIL omarchy-pkg-add --version (brak odmowy: %s)\n' "$(head -c 100 <<<"$out" | tr '\n' ' ')"
+  fail=1
+fi
 exit $fail
