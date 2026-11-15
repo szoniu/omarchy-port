@@ -2,7 +2,7 @@
 
 **Pełne [Omarchy](https://github.com/basecamp/omarchy), tylko na Voidzie albo Gentoo zamiast Archa.** Hyprland, shell na Quickshellu, keybindy, menu, motywy i config Omarchy. Wszystko przy przypiętym tagu upstreamu, plus cienka warstwa zgodności dla runit/OpenRC i xbps/emerge.
 
-Status: **prototyp** (Void, Gentoo z systemd i Gentoo z OpenRC działają w VM — [#5](https://git.szoniu.pl/szoniu/omarchy-port/issues/5); wyniki w [`wyniki/`](wyniki/)). Port nie jest jeszcze gotowy do instalacji na sprzęcie.
+Status: **zamrożony na v4.0.5 (od 15.11.2026)**. Prototyp działa w VM (Void, Gentoo z systemd i Gentoo z OpenRC — [#5](https://git.szoniu.pl/szoniu/omarchy-port/issues/5); wyniki w [`wyniki/`](wyniki/)), ale żaden komputer z niego nie korzysta, a Omarchy poszło dalej (v4.5.0 z 05.11.2026 to 100 nowych migracji od pinu). Nie podbijamy wersji na zapas. Wracamy, gdy pojawi się konkretny komputer, który ma dostać Void albo Gentoo z pełnym Omarchy. Wtedy robimy jedno podbicie od razu do aktualnego wydania ([#20](https://git.szoniu.pl/szoniu/omarchy-port/issues/20), bramka [`prototyp/bramka/podbicie.sh`](prototyp/bramka/podbicie.sh)), test w VM i instalację. Do tego czasu port nie nadaje się do instalacji na sprzęcie ([#6](https://git.szoniu.pl/szoniu/omarchy-port/issues/6)). Issues zostają otwarte jako lista zadań na powrót.
 
 Kontekst i decyzje: epik [szoniu/dotfiles#169](https://git.szoniu.pl/szoniu/dotfiles/issues/169). Instalatory, które będą wołać port: [szoniu/void](https://github.com/szoniu/void), [szoniu/gentoo](https://github.com/szoniu/gentoo).
 
